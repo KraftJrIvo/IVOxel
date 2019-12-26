@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VoxelMap", "VoxelMap\VoxelMap.vcxproj", "{2C220FCA-B527-4DE6-8994-8A6A97737864}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Rendering", "Rendering\Rendering.vcxproj", "{A0B53A10-BF90-41B7-A719-F021CEBC5249}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2C220FCA-B527-4DE6-8994-8A6A97737864} = {2C220FCA-B527-4DE6-8994-8A6A97737864}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test", "Test\Test.vcxproj", "{781D6CA8-3040-4FA2-9DFE-4DF532F37D45}"
 	ProjectSection(ProjectDependencies) = postProject

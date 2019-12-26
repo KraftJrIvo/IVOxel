@@ -20,10 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TextFileMap.h" />
+    <ClInclude Include="VoxelChunk.h" />
     <ClInclude Include="VoxelMap.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TextFileMap.cpp" />
+    <ClCompile Include="VoxelChunk.cpp" />
     <ClCompile Include="VoxelMap.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

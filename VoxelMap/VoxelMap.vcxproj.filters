@@ -15,18 +15,24 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="VoxelMap.h">
+    <ClInclude Include="TextFileMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TextFileMap.h">
+    <ClInclude Include="VoxelChunk.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VoxelMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="VoxelMap.cpp">
+    <ClCompile Include="TextFileMap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TextFileMap.cpp">
+    <ClCompile Include="VoxelChunk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VoxelMap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
