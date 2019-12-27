@@ -4,7 +4,7 @@ CPURenderer::CPURenderer()
 {
 }
 
-int CPURenderer::render(const VoxelMap& map)
+int CPURenderer::render(const VoxelMap& map, const Camera& cam)
 {
 	return 0;
 }

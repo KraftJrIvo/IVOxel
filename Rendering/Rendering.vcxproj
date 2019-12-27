@@ -19,11 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="CPURenderer.h" />
     <ClInclude Include="GPURenderer.h" />
     <ClInclude Include="IVoxelRenderer.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CPURenderer.cpp" />
     <ClCompile Include="GPURenderer.cpp" />
   </ItemGroup>

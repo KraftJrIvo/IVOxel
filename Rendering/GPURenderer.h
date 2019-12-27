@@ -6,5 +6,5 @@ class GPURenderer
 {
 public:
 	GPURenderer();
-	virtual int render(const VoxelMap& map);
+	virtual int render(const VoxelMap& map, const Camera& cam);
 };

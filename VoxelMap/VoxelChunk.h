@@ -2,16 +2,25 @@
 
 #include <vector>
 
-class VoxelChunk
+#include "types.h"
+
+#define PYRAMID_BASE 2
+
+struct VoxelChunk
 {
-public:
 	VoxelChunk();
+	VoxelChunk(const std::vector<int>& size, VoxelMapType type);
+
+	std::vector<std::vector<unsigned char>> vNLeavesOnLayers;
+	std::vector<std::vector<unsigned char>> vLayerSizes;
+	std::vector<std::vector<unsigned char>> vVoxPyramidOffsets;
+	std::vector<std::vector<unsigned char>> vVoxPyramid;
+
+	std::vector<int> size;
+	std::vector<unsigned char> vTypes;
+	std::vector<unsigned char> vColors;
 
 private:
 	unsigned char _nPyramidPower;
 	unsigned char _nTypeBytes;
-	std::vector<std::vector<unsigned char>> _vNLeavesOnLayers;
-	std::vector<std::vector<unsigned char>> _vLayerSizes;
-	std::vector<std::vector<unsigned char>> _vLayers;
-	std::vector<std::vector<unsigned char>> _vTypes;
 };
