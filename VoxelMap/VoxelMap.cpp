@@ -1,16 +1,22 @@
 #include "VoxelMap.h"
 
-VoxelMap::VoxelMap() :
-	_type(ONE_BYTE_RGB256)
+VoxelMap::VoxelMap()
 {
 }
 
-VoxelMap::VoxelMap(VoxelMapType type) :
+VoxelMap::VoxelMap(const VoxelMapType& type) :
 	_type(type)
 {
 }
 
-int VoxelMap::optimize()
+void VoxelMap::buildPyramid(uint16_t power)
 {
-	return 0;
+	for (auto& chunk : _chunks)
+		chunk.buildPyramid(power);
+}
+
+void VoxelMap::optimizePyramid()
+{
+	for (auto& chunk : _chunks)
+		chunk.optimizePyramid();
 }

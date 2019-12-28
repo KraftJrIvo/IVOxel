@@ -1,28 +1,27 @@
 #pragma once
 
-#include "VoxelChunk.h"
-
 #include <map>
 
-#include "types.h"
+#include "VoxelChunk.h"
 #include "Light.h"
 
 class VoxelMap
 {
 public:
 	VoxelMap();
-	VoxelMap(VoxelMapType type);
+	VoxelMap(const VoxelMapType& type);
 
-	int optimize();
+	void buildPyramid(uint16_t power = -1);
+	void optimizePyramid();
 
-	virtual int save() = 0;
-	virtual int load() = 0;
+	virtual void save() = 0;
+	virtual void load() = 0;
 
 protected:
 	VoxelMapType _type;
 
 	std::vector<VoxelChunk> _chunks;
-	std::map<int, std::map<int, std::map<int, size_t>>> _chunksIds;
+	std::map<int32_t, std::map<int32_t, std::map<int32_t, uint32_t>>> _chunksIds;
 
-	std::vector<Light> _lights;
+	std::vector<std::vector<Light>> _lightsByChunks;
 };

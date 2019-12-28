@@ -7,12 +7,12 @@
 class TextFileMap : public VoxelMap
 {
 public:
-	TextFileMap(VoxelMapType type);
+	TextFileMap(const VoxelMapType& type);
 
 	void setFilePath(std::string path);
 
-	virtual int save();
-	virtual int load();
+	virtual void save();
+	virtual void load();
 
 private:
 	std::string _filePath;

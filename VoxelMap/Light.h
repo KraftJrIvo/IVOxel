@@ -5,8 +5,8 @@
 struct Light
 {
 	Light();
-	Light(const std::vector<float>& position, const std::vector<unsigned char>& rgba);
+	Light(const std::vector<float>& position, const std::vector<uint8_t>& rgba);
 
 	std::vector<float> position;
-	std::vector<unsigned char> rgba;
+	std::vector<uint8_t> rgba;
 };

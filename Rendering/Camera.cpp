@@ -6,7 +6,7 @@ Camera::Camera() :
 {
 }
 
-Camera::Camera(float fov, const std::vector<size_t>& resolution) :
+Camera::Camera(float fov, const std::vector<uint16_t>& resolution) :
 	_fov(fov),
 	_resolution(resolution)
 {
@@ -14,12 +14,12 @@ Camera::Camera(float fov, const std::vector<size_t>& resolution) :
 
 void Camera::move(const std::vector<float>& delta)
 {
-	for (int i = 0; i < DIMENSIONS; ++i)
+	for (uint8_t i = 0; i < DIMENSIONS; ++i)
 		_translation[i] += delta[i];
 }
 
 void Camera::rotate(const std::vector<float>& delta)
 {
-	for (int i = 0; i < DIMENSIONS; ++i)
+	for (uint8_t i = 0; i < DIMENSIONS; ++i)
 		_rotation[i] += delta[i];
 }

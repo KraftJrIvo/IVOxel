@@ -6,5 +6,5 @@ class CPURenderer
 {
 public:
 	CPURenderer();
-	virtual int render(const VoxelMap& map, const Camera& cam);
+	virtual void render(const VoxelMap& map, const Camera& cam);
 };

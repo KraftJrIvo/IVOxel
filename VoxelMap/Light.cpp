@@ -6,7 +6,7 @@ Light::Light() :
 {
 }
 
-Light::Light(const std::vector<float>& _position, const std::vector<unsigned char>& _rgba) :
+Light::Light(const std::vector<float>& _position, const std::vector<uint8_t>& _rgba) :
 	position(_position),
 	rgba(_rgba)
 {
