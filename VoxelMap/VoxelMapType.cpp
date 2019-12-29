@@ -40,16 +40,16 @@ uint8_t VoxelMapType::computeSizeInBytes()
 	{
 	case VoxelColorFormat::GRAYSCALE:
 	case VoxelColorFormat::RGB256:
-		sizeInBytesColor = sizeInBytes += 1;
+		sizeInBytes += sizeInBytesColor += 1;
 		break;
 	case VoxelColorFormat::RGB256_WITH_ALPHA:
-		sizeInBytesColor = sizeInBytes += 2;
+		sizeInBytes += sizeInBytesColor += 2;
 		break;
 	case VoxelColorFormat::THREE_BYTES_RGB:
-		sizeInBytesColor = sizeInBytes += 3;
+		sizeInBytes += sizeInBytesColor += 3;
 		break;
 	case VoxelColorFormat::THREE_BYTES_RGB_WITH_ALPHA:
-		sizeInBytesColor = sizeInBytes += 4;
+		sizeInBytes += sizeInBytesColor += 4;
 		break;
 	case VoxelColorFormat::NO_COLOR:
 	default:
@@ -60,10 +60,10 @@ uint8_t VoxelMapType::computeSizeInBytes()
 	switch (neightInfoFormat)
 	{
 	case VoxelNeighbourInfoFormat::BINARY_6_DIR_INFO:
-		sizeInBytesNeighbourInfo = 1;
+		sizeInBytes += sizeInBytesNeighbourInfo += 1;
 		break;
 	case VoxelNeighbourInfoFormat::BINARY_26_DIR_INFO:
-		sizeInBytesNeighbourInfo = 4;
+		sizeInBytes += sizeInBytesNeighbourInfo += 4;
 		break;
 	case VoxelNeighbourInfoFormat::NO_NEIGHBOUR_INFO:
 	default:
