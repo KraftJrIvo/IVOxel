@@ -13,7 +13,6 @@ int main()
 	map.load();
 
 	map.buildPyramid();
-	map.optimizePyramid();
 	
 	Camera cam(90, {640, 480});
 	cam.move({ 0, 0, -0.5f });

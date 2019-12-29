@@ -66,7 +66,8 @@ void TextFileMap::load()
 			auto& voxTxt = *it++;
 			uint8_t vox = (voxTxt[0] == '-') ? 255 : std::stoi(voxTxt);
 
-			chunk.vTypes.push_back(vox);
+			auto formattedType = _type.formatType(vox);
+			chunk.vTypes = join(chunk.vTypes, formattedType);
 		}
 
 		// reversing Y for convenience
@@ -74,8 +75,9 @@ void TextFileMap::load()
 		for (uint32_t j = 0; j < chunkSize[Z]; ++j)
 			for (uint32_t k = 0; k < chunkSize[Y]; ++k)
 				for (uint32_t l = 0; l < chunkSize[X]; ++l)
-					chunk.vTypes[chunkSize[X] * chunkSize[Y] * j + chunkSize[X] * k + l] =
-					temp[chunkSize[X] * chunkSize[Y] * j + chunkSize[X] * (chunkSize[Y] - k - 1) + l];
+					for (uint8_t m = 0; m < _type.sizeInBytesType; ++m)
+						chunk.vTypes[_type.sizeInBytesType * (chunkSize[X] * chunkSize[Y] * j + chunkSize[X] * k + l) + m] =
+						temp[_type.sizeInBytesType * (chunkSize[X] * chunkSize[Y] * j + chunkSize[X] * (chunkSize[Y] - k - 1) + l) + m];
 
 		// parsing voxel colors
 		std::vector<std::vector<uint8_t>> colors(RGBA);
@@ -96,8 +98,15 @@ void TextFileMap::load()
 		for (uint32_t j = 0; j < chunkSize[Z]; ++j)
 			for (uint32_t k = 0; k < chunkSize[Y]; ++k)
 				for (uint32_t l = 0; l < chunkSize[X]; ++l)
-					for (uint8_t m = 0; m < RGBA; ++m)
-						chunk.vColors.push_back(colors[m][chunkSize[X] * chunkSize[Y] * j + chunkSize[X] * (chunkSize[Y] - k - 1) + l]);
+				{
+					uint8_t offset = chunkSize[X] * chunkSize[Y] * j + chunkSize[X] * (chunkSize[Y] - k - 1) + l;
+					uint8_t r = colors[R][offset];
+					uint8_t g = colors[G][offset];
+					uint8_t b = colors[B][offset];
+					uint8_t a = colors[A][offset];
+					auto formattedColor = _type.formatColor(r, g, b, a);
+					chunk.vColors = join(chunk.vColors, formattedColor);
+				}
 
 		// parsing lights
 		uint8_t nLights = std::stoi(*it++);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <string>
 #include <istream>
 
@@ -18,6 +19,7 @@
 #define A 3
 
 // orientaion
+#define NO_DIR		0
 #define LEFT		0
 #define RIGHT		1
 #define DOWN		2
@@ -45,7 +47,7 @@ enum class VoxelTypeFormat
 {
 	NO_TYPE,					// 0 bytes
 	UINT8,						// 1 byte
-	UINT8_WITH_ORIENTATION,		// 2 bytes: 1 byte type + 1 byte orientation
+	UINT8_WITH_ORIENTATION,		// 2 bytes: 1 byte type + 1 byte orientation (0 flipZ flipY flipX - high half, orientation - low half)
 	UINT16,						// 2 bytes
 	UINT16_WITH_ORIENTATION,	// 3 bytes: 2 bytes type + 1 byte orientation
 };
@@ -59,3 +61,5 @@ enum class VoxelNeighbourInfoFormat
 
 class WordDelimitedBySpace : public std::string {};
 std::istream& operator>>(std::istream& is, WordDelimitedBySpace& output);
+
+std::vector<uint8_t> join(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b);

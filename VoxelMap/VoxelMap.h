@@ -11,8 +11,7 @@ public:
 	VoxelMap();
 	VoxelMap(const VoxelMapType& type);
 
-	void buildPyramid(uint16_t power = -1);
-	void optimizePyramid();
+	void buildPyramid();
 
 	virtual void save() = 0;
 	virtual void load() = 0;

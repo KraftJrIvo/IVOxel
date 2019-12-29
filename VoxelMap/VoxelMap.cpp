@@ -9,14 +9,8 @@ VoxelMap::VoxelMap(const VoxelMapType& type) :
 {
 }
 
-void VoxelMap::buildPyramid(uint16_t power)
+void VoxelMap::buildPyramid()
 {
 	for (auto& chunk : _chunks)
-		chunk.buildPyramid(power);
-}
-
-void VoxelMap::optimizePyramid()
-{
-	for (auto& chunk : _chunks)
-		chunk.optimizePyramid();
+		chunk.buildPyramid();
 }

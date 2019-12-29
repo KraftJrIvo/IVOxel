@@ -1,33 +1,18 @@
 #include "VoxelChunk.h"
 
-#include <algorithm>
-
-VoxelChunk::VoxelChunk() :
-	_pyramidPower(0),
-	_nTypeBytes(1)
+VoxelChunk::VoxelChunk()
 {
 }
 
-VoxelChunk::VoxelChunk(const std::vector<uint32_t>& size, const VoxelMapType& type)
-{
-	uint32_t maxDim = std::max(size[0], std::max(size[1], size[2]));
-	_pyramidPower = uint8_t(std::ceil(std::log2(maxDim)));
-
-	_nTypeBytes = type.sizeInBytes;
+VoxelChunk::VoxelChunk(const std::vector<uint32_t>& _size, const VoxelMapType& _type) :
+	size(_size),
+	type(_type)
+{	
 }
 
-void VoxelChunk::buildPyramid(uint16_t power)
+void VoxelChunk::buildPyramid()
 {
-	if (power != -1)
-		_pyramidPower = power;
+	pyramid = VoxelPyramid(size, type);
 
-	//std::vector
-}
-
-void VoxelChunk::optimizePyramid()
-{
-}
-
-void VoxelChunk::changeVoxel(const std::vector<uint32_t>& pos, uint8_t type, const std::vector<uint8_t>& color)
-{
+	pyramid.build(size, vTypes, vColors, vNeighbours);
 }
