@@ -1,6 +1,6 @@
+#include <CPURenderer.h>
 #include <TextFileMap.h>
 #include <Camera.h>
-#include <CPURenderer.h>
 
 int main()
 {

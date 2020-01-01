@@ -11,9 +11,9 @@ public:
 	void move(const std::vector<float>& delta);
 	void rotate(const std::vector<float>& delta);
 
-private:
-	float _fov;
-	std::vector<uint16_t> _resolution;
-	std::vector<float> _translation;
-	std::vector<float> _rotation;
+	float fov;
+	std::vector<uint16_t> resolution;
+	std::vector<float> translation;
+	std::vector<float> rotation;
+
 };

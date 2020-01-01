@@ -1,25 +1,29 @@
 #include "Camera.h"
 
 Camera::Camera() :
-	_fov(90),
-	_resolution({ 640, 480 })
+	fov(90),
+	resolution({ 640, 480 }),
+	translation({ 0,0,0 }),
+	rotation({ 0,0,0 })
 {
 }
 
 Camera::Camera(float fov, const std::vector<uint16_t>& resolution) :
-	_fov(fov),
-	_resolution(resolution)
+	fov(fov),
+	resolution(resolution),
+	translation({ 0,0,0 }),
+	rotation({ 0,0,0 })
 {
 }
 
 void Camera::move(const std::vector<float>& delta)
 {
 	for (uint8_t i = 0; i < DIMENSIONS; ++i)
-		_translation[i] += delta[i];
+		translation[i] += delta[i];
 }
 
 void Camera::rotate(const std::vector<float>& delta)
 {
 	for (uint8_t i = 0; i < DIMENSIONS; ++i)
-		_rotation[i] += delta[i];
+		rotation[i] += delta[i];
 }
