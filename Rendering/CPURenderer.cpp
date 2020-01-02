@@ -1,5 +1,7 @@
 #include "CPURenderer.h"
 
+#include "RayVoxelMarcher.h"
+
 CPURenderer::CPURenderer()
 {
 }
@@ -28,8 +30,52 @@ std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera
 		* Eigen::AngleAxisd(cam.rotation[1], Eigen::Vector3d::UnitY())
 		* Eigen::AngleAxisd(cam.rotation[2], Eigen::Vector3d::UnitZ());
 	quat.normalize();
-	Eigen::Vector3d viewVec(0,0,1.0);
+	Eigen::Vector3f viewVec(0,0,1.0);
 	viewVec = quat.matrix() * viewVec;
+
+	Ray ray(1, cam.translation, viewVec, 1.0f);
+
+	return _rayTraceMap(map, ray);
+}
+
+std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray)
+{
+	std::vector<uint8_t> resultColor = { 0, 0, 0 };
+
+	RayVoxelMarcher marcher;
+	std::vector<int32_t> startChunk = {
+		int32_t(floor(ray.start[X])),
+		int32_t(floor(ray.start[Y])),
+		int32_t(floor(ray.start[Z]))
+	};
+	marcher.setStart(ray, 1.0f);
+
+	bool notFinish = true;
+
+	while (notFinish)
+	{
+		auto curPos = marcher.getAbsPos();
+
+		notFinish = ray.bouncesLeft > 0 && map.checkIfChunkIsPossible(curPos, ray.direction);
+
+		//marcher.marchAndGetNextDir();
+	}
+
+	return resultColor;
+}
+
+std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, Ray& ray)
+{
 	
-	return rgb;
+	return {};
+}
+
+std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const Ray& ray)
+{
+	return {};
+}
+
+std::vector<uint8_t> CPURenderer::mixRayColor(const std::vector<uint8_t>& color, const Ray& ray)
+{
+	return std::vector<uint8_t>();
 }

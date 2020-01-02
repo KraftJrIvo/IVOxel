@@ -22,14 +22,19 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CPURenderer.h" />
     <ClInclude Include="GPURenderer.h" />
+    <ClInclude Include="IReflectiveObject.h" />
     <ClInclude Include="IVoxelRenderer.h" />
+    <ClInclude Include="Ray.h" />
     <ClInclude Include="RayVoxelMarcher.h" />
+    <ClInclude Include="Voxel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CPURenderer.cpp" />
     <ClCompile Include="GPURenderer.cpp" />
+    <ClCompile Include="Ray.cpp" />
     <ClCompile Include="RayVoxelMarcher.cpp" />
+    <ClCompile Include="Voxel.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

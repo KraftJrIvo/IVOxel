@@ -2,15 +2,21 @@
 
 #include <vector>
 
+#include "Ray.h"
+
 class RayVoxelMarcher
 {
 public:
 	RayVoxelMarcher();
 
-	void setStart(const std::vector<int32_t>& start);
-	void setDirection(const std::vector<int32_t>& dir);
-	std::vector<int8_t> getNextVoxelDir();
+	void setStart(const Ray& startRay, float cubeSide);
+	std::vector<int8_t> marchAndGetNextDir(const std::vector<std::pair<int32_t, int32_t>>& maxMins);
+	std::vector<float> getCurEntryPoint();
+	std::vector<float> getAbsPos();
+	bool checkFinished();
 private:
-	std::vector<int32_t> _curPos;
-	std::vector<int32_t> _direction;
+	bool _finished;
+	float _cubeSide;
+	std::vector<float> _curPos;
+	std::vector<float> _direction;
 };

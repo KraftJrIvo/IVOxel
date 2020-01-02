@@ -5,6 +5,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "IVoxelRenderer.h"
+#include "Ray.h"
 
 class CPURenderer
 {
@@ -13,5 +14,8 @@ public:
 	virtual void render(const VoxelMap& map, const Camera& cam);
 private:
 	std::vector<uint8_t> _renderPixel(const VoxelMap& map, const Camera& cam, uint32_t x, uint32_t y);
-	//Eigen _renderPixel(const VoxelMap& map, const Camera& cam, uint32_t x, uint32_t y);
+	std::vector<uint8_t> _rayTraceMap(const VoxelMap& map, Ray& ray);
+	std::vector<uint8_t> _rayTraceChunk(const VoxelMap& map, Ray& ray);
+	std::vector<uint8_t> _rayTraceVoxel(const VoxelMap& map, const Ray& ray);
+	std::vector<uint8_t> mixRayColor(const std::vector<uint8_t>& color, const Ray& ray);
 };

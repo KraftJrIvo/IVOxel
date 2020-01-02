@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iterator>
 #include <sstream>
+#include <algorithm>
 
 TextFileMap::TextFileMap(const VoxelMapType& type) :
 	VoxelMap(type)
@@ -47,15 +48,13 @@ void TextFileMap::load()
 
 	const uint32_t voxelCount = chunkSize[X] * chunkSize[Y] * chunkSize[Z];
 
-	std::vector<int32_t> chunkPos(3);
+	std::vector<int32_t> chunkPos(DIMENSIONS);
 	for (uint32_t i = 0; i < nChunks; ++i)
 	{
 		for (uint8_t j = 0; j < DIMENSIONS; ++j)
 			chunkPos[j] = std::stoi(txtFileNumbers[offset++]);
 
-		_chunksIds[chunkPos[X]][chunkPos[Y]][chunkPos[Z]] = _chunks.size();
-		_chunks.push_back(VoxelChunk(chunkSize, _type));
-		VoxelChunk& chunk = _chunks[_chunks.size() - 1];
+		VoxelChunk& chunk = _addChunk(chunkPos, chunkSize);
 
 		chunk.vTypes.reserve(voxelCount);
 
