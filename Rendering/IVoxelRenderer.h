@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Camera.h"
 #include <VoxelMap.h>
+
+#include "Camera.h"
 
 class IVoxelRenderer
 {

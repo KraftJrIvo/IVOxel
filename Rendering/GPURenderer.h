@@ -2,7 +2,7 @@
 
 #include "IVoxelRenderer.h"
 
-class GPURenderer
+class GPURenderer : public IVoxelRenderer
 {
 public:
 	GPURenderer();

@@ -1,7 +1,5 @@
 #include "CPURenderer.h"
 
-#include "RayVoxelMarcher.h"
-
 CPURenderer::CPURenderer()
 {
 }
@@ -25,10 +23,10 @@ std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera
 {
 	std::vector<uint8_t> rgb = {0,0,0};
 
-	Eigen::Quaterniond quat = 
-		Eigen::AngleAxisd(cam.rotation[0], Eigen::Vector3d::UnitX())
-		* Eigen::AngleAxisd(cam.rotation[1], Eigen::Vector3d::UnitY())
-		* Eigen::AngleAxisd(cam.rotation[2], Eigen::Vector3d::UnitZ());
+	Eigen::Quaternionf quat = 
+		Eigen::AngleAxisf(cam.rotation[0], Eigen::Vector3f::UnitX())
+		* Eigen::AngleAxisf(cam.rotation[1], Eigen::Vector3f::UnitY())
+		* Eigen::AngleAxisf(cam.rotation[2], Eigen::Vector3f::UnitZ());
 	quat.normalize();
 	Eigen::Vector3f viewVec(0,0,1.0);
 	viewVec = quat.matrix() * viewVec;

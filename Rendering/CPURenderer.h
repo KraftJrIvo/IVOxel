@@ -1,13 +1,12 @@
 #pragma once
 
-#include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <opencv2/opencv.hpp>
 
 #include "IVoxelRenderer.h"
-#include "Ray.h"
+#include "RayVoxelMarcher.h"
 
-class CPURenderer
+class CPURenderer : public IVoxelRenderer
 {
 public:
 	CPURenderer();
