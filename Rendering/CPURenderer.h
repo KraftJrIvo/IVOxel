@@ -11,7 +11,7 @@ class CPURenderer : public IVoxelRenderer
 {
 public:
 	CPURenderer();
-	virtual void render(const VoxelMap& map, const Camera& cam);
+	virtual void render(const VoxelMap& map, Camera& cam);
 private:
 	std::vector<uint8_t> _renderPixel(const VoxelMap& map, const Camera& cam, uint32_t x, uint32_t y);
 	std::vector<uint8_t> _rayTraceMap(const VoxelMap& map, Ray& ray);

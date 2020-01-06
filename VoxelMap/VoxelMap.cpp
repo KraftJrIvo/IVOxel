@@ -4,13 +4,13 @@
 
 VoxelMap::VoxelMap()
 {
-	_maxMinChunk.resize(DIMENSIONS, { -3,3 });
+	_maxMinChunk.resize(DIMENSIONS, { -1,1 });
 }
 
 VoxelMap::VoxelMap(const VoxelMapType& type) :
 	_type(type)
 {
-	_maxMinChunk.resize(DIMENSIONS, { -3,3 });
+	_maxMinChunk.resize(DIMENSIONS, { -1,1 });
 }
 
 void VoxelMap::buildPyramid()

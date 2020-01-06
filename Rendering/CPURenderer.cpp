@@ -4,20 +4,37 @@ CPURenderer::CPURenderer()
 {
 }
 
-void CPURenderer::render(const VoxelMap& map, const Camera& cam)
+void CPURenderer::render(const VoxelMap& map, Camera& cam)
 {
-	cv::Mat result(cam.resolution[1], cam.resolution[0], CV_8UC3, cv::Scalar(0,0,0));
+	while (true)
+	{
+		cv::Mat result(cam.resolution[1], cam.resolution[0], CV_8UC3, cv::Scalar(0, 0, 0));
 
-	for (uint32_t i = 0; i < cam.resolution[0]; ++i)
-		for (uint32_t j = 0; j < cam.resolution[1]; ++j)
-		{
-			//std::cout << i << " " << j << std::endl;
-			auto pixel = _renderPixel(map, cam, i, j);
-			result.at<cv::Vec3b>(j, i) = { pixel[0], pixel[1], pixel[2] };
-		}
+		for (uint32_t i = 0; i < cam.resolution[0]; ++i)
+			for (uint32_t j = 0; j < cam.resolution[1]; ++j)
+			{
+				//std::cout << i << " " << j << std::endl;
+				auto pixel = _renderPixel(map, cam, i, j);
+				result.at<cv::Vec3b>(j, i) = { pixel[0], pixel[1], pixel[2] };
+			}
 
-	cv::imshow("result", result);
-	cv::waitKey(0);
+		cv::imshow("result", result);
+		auto keyCode = cv::waitKey(-1);
+
+		float speed = 0.1f;
+		float rspeed = 0.1f;
+
+		if (keyCode == 113) cam.move({0, speed, 0});
+		else if (keyCode == 119) cam.move({ 0, 0, speed });
+		else if (keyCode == 101) cam.move({ 0, -speed, 0 });
+		else if (keyCode == 97) cam.move({ -speed, 0, 0 });
+		else if (keyCode == 115) cam.move({ 0, 0, -speed });
+		else if (keyCode == 100) cam.move({ speed, 0, 0 });
+		else if (keyCode == 56) cam.rotate({ rspeed, 0, 0 });
+		else if (keyCode == 52) cam.rotate({ 0, rspeed, 0 });
+		else if (keyCode == 54) cam.rotate({ 0, -rspeed, 0 });
+		else if (keyCode == 50) cam.rotate({ -rspeed, 0, 0 });
+	}
 }
 
 std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera& cam, uint32_t x, uint32_t y)
@@ -26,19 +43,6 @@ std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera
 
 	float halfRes = cam.resolution[X] / 2;
 	float halfFovRad = (cam.fov / 180.0f) * 3.14159f / 2.0f;
-	/*float halfRes = cam.resolution[X] / 2;
-	float halfFovRad = (cam.fov / 180.0f) * 3.14159f / 2.0f;
-	float horAng = halfFovRad * (float(x) - halfRes) / halfRes;
-	float verAng = halfFovRad * (float(y) - cam.resolution[Y] / 2) / halfRes;
-
-	Eigen::Quaternionf quat =
-		Eigen::AngleAxisf(cam.rotation[0], Eigen::Vector3f::UnitX())
-		* Eigen::AngleAxisf(cam.rotation[1], Eigen::Vector3f::UnitY())
-		* Eigen::AngleAxisf(cam.rotation[2], Eigen::Vector3f::UnitZ());
-	quat *= Eigen::AngleAxisf(verAng, Eigen::Vector3f::UnitX());
-
-	Eigen::Vector3f viewVec(0,0,1.0);
-	viewVec = quat.matrix() * viewVec;*/
 
 	float coeffX = (float(x) - halfRes) / halfRes;
 	float coeffY = -(float(y) - cam.resolution[Y] / 2) / halfRes;
@@ -47,10 +51,13 @@ std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera
 	float coordY = coeffY * sin(halfFovRad);
 	float coordZ = cos(halfFovRad);
 
-	float dist = 0.01;
-	float planeSz = 2.0;
-
 	Eigen::Vector3f viewVec(coordX, coordY, coordZ);
+
+	Eigen::Quaternionf quat =
+		Eigen::AngleAxisf(cam.rotation[0], Eigen::Vector3f::UnitX())
+		* Eigen::AngleAxisf(cam.rotation[1], Eigen::Vector3f::UnitY())
+		* Eigen::AngleAxisf(cam.rotation[2], Eigen::Vector3f::UnitZ());
+	viewVec = quat.matrix() * viewVec;
 
 	Ray ray(1, cam.translation, viewVec, 1.0f);
 
@@ -70,15 +77,10 @@ std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray)
 	marcher.setStart(ray, 1.0f);
 
 	auto curPos = marcher.getAbsPos();
-	bool notFinish = map.checkIfChunkIsPossible(curPos, ray.direction);
+	bool notFinish = true;// map.checkIfChunkIsPossible(curPos, ray.direction);
 
 	while (notFinish)
 	{
-		auto off = marcher.marchAndGetNextDir(map.getMinMaxChunks());
-
-		for (uint8_t i = 0; i < DIMENSIONS; ++i)
-			curChunkPos[i] += off[i];
-		//std::cout << curChunkPos[0] << " " << curChunkPos[1] << " " << curChunkPos[2] << std::endl;
 		auto* chunk = map.getChunk(curChunkPos);
 		if (chunk)
 		{
@@ -87,6 +89,11 @@ std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray)
 		}
 
 		notFinish = ray.bouncesLeft > 0 && !marcher.checkFinished();
+
+		auto off = marcher.marchAndGetNextDir(map.getMinMaxChunks());
+
+		for (uint8_t i = 0; i < DIMENSIONS; ++i)
+			curChunkPos[i] += off[i];
 	}
 
 	return resultColor;

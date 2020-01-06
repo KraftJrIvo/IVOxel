@@ -41,21 +41,21 @@ std::vector<int8_t> RayVoxelMarcher::marchAndGetNextDir(const std::vector<std::p
 	float maxDiff = std::max(diffs[X], std::max(diffs[Y], diffs[Z]));
 
 	std::vector<int8_t> result = {
-		char((1 - 2 * xIsNegative) * (diffs[X] == maxDiff)),
-		char((1 - 2 * yIsNegative) * (diffs[Y] == maxDiff)),
-		char((1 - 2 * zIsNegative) * (diffs[Z] == maxDiff))
+		char((1 - 2 * xIsNegative) * (fabs(maxDiff - diffs[X]) < 0.001f)),
+		char((1 - 2 * yIsNegative) * (fabs(maxDiff - diffs[Y]) < 0.001f)),
+		char((1 - 2 * zIsNegative) * (fabs(maxDiff - diffs[Z]) < 0.001f))
 	};
 
 	std::vector<float> intersection = {
-		(diffs[X] == maxDiff) ? (float(!xIsNegative) - vecStart[X]) : ((diffs[Y] == maxDiff) ? (pathY * _direction[X] / _direction[Y]) : (pathZ * _direction[X] / _direction[Z])),
-		(diffs[Y] == maxDiff) ? (float(!yIsNegative) - vecStart[Y]) : ((diffs[X] == maxDiff) ? (pathX * _direction[Y] / _direction[X]) : (pathZ * _direction[Y] / _direction[Z])),
-		(diffs[Z] == maxDiff) ? (float(!zIsNegative) - vecStart[Z]) : ((diffs[X] == maxDiff) ? (pathX * _direction[Z] / _direction[X]) : (pathY * _direction[Z] / _direction[Y]))
+		(result[X] != 0) ? (float(!xIsNegative) - vecStart[X]) : ((result[Y] != 0) ? (pathY * _direction[X] / _direction[Y]) : (pathZ * _direction[X] / _direction[Z])),
+		(result[Y] != 0) ? (float(!yIsNegative) - vecStart[Y]) : ((result[X] != 0) ? (pathX * _direction[Y] / _direction[X]) : (pathZ * _direction[Y] / _direction[Z])),
+		(result[Z] != 0) ? (float(!zIsNegative) - vecStart[Z]) : ((result[X] != 0) ? (pathX * _direction[Z] / _direction[X]) : (pathY * _direction[Z] / _direction[Y]))
 	};
 
 	for (uint8_t i = 0; i < DIMENSIONS; ++i)
 	{
 		_curPos[i] += intersection[i] * _cubeSide;
-		_finished |= (_curPos[i] < maxMins[i].first || _curPos[i] > maxMins[i].second);
+		_finished |= ((_curPos[i] < maxMins[i].first && _direction[i] < 0) || _curPos[i] > maxMins[i].second && _direction[i] > 0);
 	}
 
 	_lastResult = result;
@@ -69,8 +69,13 @@ std::vector<float> RayVoxelMarcher::getCurEntryPoint()
 
 	float dbg = floor(_curPos[Z] / _cubeSide);
 
+	auto curPos = _curPos;
+
 	for (uint8_t i = 0; i < DIMENSIONS; ++i)
-		result[i] = (_lastResult[i] == -1) ? 1.0f : (_curPos[i] - ((_curPos[i] > 0) ? floor(_curPos[i] / _cubeSide) : ceil(_curPos[i] / _cubeSide)));
+	{
+		while (curPos[i] < 0) curPos[i]++;
+		result[i] = (_lastResult[i] == -1) ? 1.0f : (curPos[i] - floor(curPos[i] / _cubeSide));
+	}
 
 	return result;
 }
