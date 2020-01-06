@@ -18,5 +18,6 @@ private:
 	bool _finished;
 	float _cubeSide;
 	std::vector<float> _curPos;
-	std::vector<float> _direction;
+	std::vector<int8_t> _lastResult;
+	Eigen::Vector3f _direction;
 };

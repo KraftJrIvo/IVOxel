@@ -11,6 +11,7 @@ void CPURenderer::render(const VoxelMap& map, const Camera& cam)
 	for (uint32_t i = 0; i < cam.resolution[0]; ++i)
 		for (uint32_t j = 0; j < cam.resolution[1]; ++j)
 		{
+			//std::cout << i << " " << j << std::endl;
 			auto pixel = _renderPixel(map, cam, i, j);
 			result.at<cv::Vec3b>(j, i) = { pixel[0], pixel[1], pixel[2] };
 		}
@@ -23,13 +24,33 @@ std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera
 {
 	std::vector<uint8_t> rgb = {0,0,0};
 
-	Eigen::Quaternionf quat = 
+	float halfRes = cam.resolution[X] / 2;
+	float halfFovRad = (cam.fov / 180.0f) * 3.14159f / 2.0f;
+	/*float halfRes = cam.resolution[X] / 2;
+	float halfFovRad = (cam.fov / 180.0f) * 3.14159f / 2.0f;
+	float horAng = halfFovRad * (float(x) - halfRes) / halfRes;
+	float verAng = halfFovRad * (float(y) - cam.resolution[Y] / 2) / halfRes;
+
+	Eigen::Quaternionf quat =
 		Eigen::AngleAxisf(cam.rotation[0], Eigen::Vector3f::UnitX())
 		* Eigen::AngleAxisf(cam.rotation[1], Eigen::Vector3f::UnitY())
 		* Eigen::AngleAxisf(cam.rotation[2], Eigen::Vector3f::UnitZ());
-	quat.normalize();
+	quat *= Eigen::AngleAxisf(verAng, Eigen::Vector3f::UnitX());
+
 	Eigen::Vector3f viewVec(0,0,1.0);
-	viewVec = quat.matrix() * viewVec;
+	viewVec = quat.matrix() * viewVec;*/
+
+	float coeffX = (float(x) - halfRes) / halfRes;
+	float coeffY = -(float(y) - cam.resolution[Y] / 2) / halfRes;
+
+	float coordX = coeffX * sin(halfFovRad);
+	float coordY = coeffY * sin(halfFovRad);
+	float coordZ = cos(halfFovRad);
+
+	float dist = 0.01;
+	float planeSz = 2.0;
+
+	Eigen::Vector3f viewVec(coordX, coordY, coordZ);
 
 	Ray ray(1, cam.translation, viewVec, 1.0f);
 
@@ -41,39 +62,149 @@ std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray)
 	std::vector<uint8_t> resultColor = { 0, 0, 0 };
 
 	RayVoxelMarcher marcher;
-	std::vector<int32_t> startChunk = {
+	std::vector<int32_t> curChunkPos = {
 		int32_t(floor(ray.start[X])),
 		int32_t(floor(ray.start[Y])),
 		int32_t(floor(ray.start[Z]))
 	};
 	marcher.setStart(ray, 1.0f);
 
-	bool notFinish = true;
+	auto curPos = marcher.getAbsPos();
+	bool notFinish = map.checkIfChunkIsPossible(curPos, ray.direction);
 
 	while (notFinish)
 	{
-		auto curPos = marcher.getAbsPos();
+		auto off = marcher.marchAndGetNextDir(map.getMinMaxChunks());
 
-		notFinish = ray.bouncesLeft > 0 && map.checkIfChunkIsPossible(curPos, ray.direction);
+		for (uint8_t i = 0; i < DIMENSIONS; ++i)
+			curChunkPos[i] += off[i];
+		//std::cout << curChunkPos[0] << " " << curChunkPos[1] << " " << curChunkPos[2] << std::endl;
+		auto* chunk = map.getChunk(curChunkPos);
+		if (chunk)
+		{
+			Ray entryRay(ray.bouncesLeft, marcher.getCurEntryPoint(), ray.direction, ray.strength);
+			resultColor = {100,100,100};// _rayTraceChunk(map, *chunk, entryRay);
+		}
 
-		//marcher.marchAndGetNextDir();
+		notFinish = ray.bouncesLeft > 0 && !marcher.checkFinished();
 	}
 
 	return resultColor;
 }
 
-std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, Ray& ray)
+std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const VoxelChunk& chunk, Ray& ray)
 {
-	
-	return {};
+	std::vector<uint8_t> resultColor = { 0, 0, 0 };
+
+	Voxel vox;
+
+	uint32_t sideSteps = std::pow(chunk.pyramid.base, chunk.pyramid.power);
+	std::vector<std::pair<int32_t, int32_t>> minMaxs = { { 0, sideSteps-1 }, {0, sideSteps-1 }, {0, sideSteps-1 } };
+
+	RayVoxelMarcher marcher;
+	std::vector<uint32_t> curVoxPos = {
+		uint32_t(floor(ray.start[X])),
+		uint32_t(floor(ray.start[Y])),
+		uint32_t(floor(ray.start[Z]))
+	};
+	marcher.setStart(ray, 1.0f);
+
+	bool notFinish = true;
+	while (notFinish)
+	{
+		auto off = marcher.marchAndGetNextDir(minMaxs);
+		for (uint8_t i = 0; i < DIMENSIONS; ++i)
+			curVoxPos[i] += off[i];
+		vox = getVoxelData(map, chunk.pyramid, curVoxPos);
+		
+		notFinish = (vox.type != -1);
+	}
+
+	if (vox.type == -1)
+	{
+		Ray voxRay = ray;
+		voxRay.start = marcher.getCurEntryPoint();
+		return _rayTraceVoxel(vox, voxRay);
+	}
+	return ray.color;
 }
 
-std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const Ray& ray)
+std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const Voxel& vox, const Ray& ray)
 {
-	return {};
+	//TODO
+
+	return vox.color;
 }
 
 std::vector<uint8_t> CPURenderer::mixRayColor(const std::vector<uint8_t>& color, const Ray& ray)
 {
 	return std::vector<uint8_t>();
+}
+
+Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, const std::vector<uint32_t>& pos)
+{
+	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	std::vector<uint16_t> bytesForLayers;
+	for (uint32_t i = 0; i < pyram.power + 1; ++i)
+	{
+		uint32_t vol = std::pow(std::pow(pyram.base, i), DIMENSIONS);
+		uint16_t bytesForThis = uint16_t(std::ceil(std::log2(vol) / std::log2(pyram.base) / 8));
+		bytesForThis = (bytesForThis == 1 || bytesForThis == 2) ? bytesForThis : (bytesForThis == 0 ? 1 : 4);
+		bytesForLayers.push_back(bytesForThis);
+	}
+	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+	Voxel vox;
+
+	uint32_t sideSteps = std::pow(pyram.base, pyram.power);
+	uint32_t nLeaves = 0;
+	uint32_t curPwr = 0;
+	uint32_t curOff = 2;
+	uint32_t curLayerLen = 1;
+	std::vector<uint32_t> offsets;
+	std::vector<uint32_t> leavesOnLayers;
+	uint32_t nOffsetBytes = *((uint32_t*)pyram.data.data());
+	uint8_t voxSizeInBytes = pyram.data[4];
+	uint8_t* ptr = (uint8_t*)pyram.data.data() + 5;
+
+	for (uint8_t i = 0; i < pyram.power + 1; ++i)
+	{
+		leavesOnLayers.push_back(*((uint32_t*)ptr));
+		ptr += sizeof(uint32_t);
+	}
+
+	bool offsetIsFinal = false;
+	while (!offsetIsFinal)
+	{
+		//uint32_t curSteps = sideSteps / std::pow(pyram.base, curPwr);
+		int8_t* offset = (int8_t*)pyram.data.data() + curOff;
+		int32_t val;
+		if (bytesForLayers[curPwr] == 1)
+			val = *(offset);
+		else if (bytesForLayers[curPwr] == 2)
+			val = *((int16_t*)offset);
+		else
+			val = *((int32_t*)offset);
+
+		bool offsetIsFinal = val < 0;
+		
+		val = offsetIsFinal ? (-val - 1) : val;
+		offsets.push_back(val);
+		nLeaves += (offsetIsFinal ? val : leavesOnLayers[curPwr]);
+
+		ptr += bytesForLayers[curPwr] * curLayerLen;
+
+		curLayerLen -= leavesOnLayers[curPwr];
+		curLayerLen *= std::pow(pyram.base, DIMENSIONS);
+		curPwr++;
+	}
+
+	ptr += voxSizeInBytes * nLeaves;
+
+	auto voxData = map.getType().unformatVoxelData(ptr);
+	vox.type = std::get<0>(voxData);
+	vox.color = std::get<1>(voxData);
+	vox.neighs = std::get<2>(voxData);
+
+	return vox;
 }

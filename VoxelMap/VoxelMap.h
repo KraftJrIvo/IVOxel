@@ -19,6 +19,9 @@ public:
 	virtual void load() = 0;
 
 	bool checkIfChunkIsPossible(const std::vector<float>& pos, const Eigen::Vector3f& dir) const;
+	const std::vector<std::pair<int32_t, int32_t>>& getMinMaxChunks() const;
+	VoxelChunk* getChunk(const std::vector<int32_t>& pos) const;
+	VoxelMapType getType() const;
 
 protected:
 	VoxelMapType _type;

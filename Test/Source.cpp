@@ -15,7 +15,7 @@ int main()
 	map.buildPyramid();
 	
 	Camera cam(90, {640, 480});
-	cam.move({ 0, 0, -0.5f });
+	cam.move({ 1.5f, 0.5f, -1.5f });
 
 	renderer.render(map, cam);
 

@@ -8,7 +8,8 @@ RayVoxelMarcher::RayVoxelMarcher() :
 	_finished(false),
 	_cubeSide(0),
 	_curPos({0,0,0}),
-	_direction({0,0,0})
+	_direction({0,0,0}),
+	_lastResult({0,0,0})
 {
 }
 
@@ -31,6 +32,10 @@ std::vector<int8_t> RayVoxelMarcher::marchAndGetNextDir(const std::vector<std::p
 	float pathY = yIsNegative ? -vecStart[Y] : (1 - vecStart[Y]);
 	float pathZ = zIsNegative ? -vecStart[Z] : (1 - vecStart[Z]);
 
+	pathX = pathX == 0 ? 0.0000001f : pathX;
+	pathY = pathY == 0 ? 0.0000001f : pathY;
+	pathZ = pathZ == 0 ? 0.0000001f : pathZ;
+
 	std::vector<float> diffs = { _direction[X]/pathX, _direction[Y]/pathY, _direction[Z]/pathZ };
 
 	float maxDiff = std::max(diffs[X], std::max(diffs[Y], diffs[Z]));
@@ -41,11 +46,19 @@ std::vector<int8_t> RayVoxelMarcher::marchAndGetNextDir(const std::vector<std::p
 		char((1 - 2 * zIsNegative) * (diffs[Z] == maxDiff))
 	};
 
+	std::vector<float> intersection = {
+		(diffs[X] == maxDiff) ? (float(!xIsNegative) - vecStart[X]) : ((diffs[Y] == maxDiff) ? (pathY * _direction[X] / _direction[Y]) : (pathZ * _direction[X] / _direction[Z])),
+		(diffs[Y] == maxDiff) ? (float(!yIsNegative) - vecStart[Y]) : ((diffs[X] == maxDiff) ? (pathX * _direction[Y] / _direction[X]) : (pathZ * _direction[Y] / _direction[Z])),
+		(diffs[Z] == maxDiff) ? (float(!zIsNegative) - vecStart[Z]) : ((diffs[X] == maxDiff) ? (pathX * _direction[Z] / _direction[X]) : (pathY * _direction[Z] / _direction[Y]))
+	};
+
 	for (uint8_t i = 0; i < DIMENSIONS; ++i)
 	{
-		_curPos[i] += result[i] * _cubeSide;
+		_curPos[i] += intersection[i] * _cubeSide;
 		_finished |= (_curPos[i] < maxMins[i].first || _curPos[i] > maxMins[i].second);
 	}
+
+	_lastResult = result;
 
 	return result;
 }
@@ -54,8 +67,10 @@ std::vector<float> RayVoxelMarcher::getCurEntryPoint()
 {
 	std::vector<float> result = {0,0,0};
 
+	float dbg = floor(_curPos[Z] / _cubeSide);
+
 	for (uint8_t i = 0; i < DIMENSIONS; ++i)
-		result[i] = _curPos[i] - floor(_curPos[i] / _cubeSide);
+		result[i] = (_lastResult[i] == -1) ? 1.0f : (_curPos[i] - ((_curPos[i] > 0) ? floor(_curPos[i] / _cubeSide) : ceil(_curPos[i] / _cubeSide)));
 
 	return result;
 }

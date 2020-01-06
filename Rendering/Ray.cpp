@@ -25,8 +25,8 @@ Ray::Ray(uint8_t nBounces, const std::vector<float>& _start, const Eigen::Vector
 
 void Ray::normalize()
 {
-	float max = std::max(direction[X], std::max(direction[Y], direction[Z]));
-	direction = { direction[X] / max, direction[Y] / max, direction[Z] / max };
+	float hypot = sqrt(direction[X] * direction[X] + direction[Y] * direction[Y] + direction[Z] * direction[Z]);
+	direction = { direction[X] / hypot, direction[Y] / hypot, direction[Z] / hypot };
 }
 
 void Ray::mixColor(const std::vector<uint8_t>& _color)

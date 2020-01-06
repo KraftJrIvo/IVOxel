@@ -119,11 +119,6 @@ std::vector<uint8_t> VoxelMapType::formatColor(uint8_t r, uint8_t g, uint8_t b, 
 	default:
 		break;
 	}
-
-	//256 back to rgb
-	//byte R = (byte)((rgb8 & 0xE0) >> 5);     // rgb8 & 1110 0000  >> 5
-	//byte G = (byte)((rgb8 & 0x1C) >> 2);     // rgb8 & 0001 1100  >> 2
-	//byte B = (byte)(rgb8 & 0x03);            // rgb8 & 0000 0011
 }
 
 std::vector<uint8_t> VoxelMapType::formatNeighbours(const std::vector<int32_t>& neighsTypes, int32_t type)
@@ -131,4 +126,72 @@ std::vector<uint8_t> VoxelMapType::formatNeighbours(const std::vector<int32_t>& 
 	//TODO
 
 	return {};
+}
+
+VoxelData VoxelMapType::unformatVoxelData(const uint8_t* data)
+{
+	//TODO orient
+
+	VoxelData voxData;
+
+	uint8_t* ptr = (uint8_t*)data;
+
+	switch (typeFormat)
+	{
+	case VoxelTypeFormat::UINT8:
+	case VoxelTypeFormat::UINT8_WITH_ORIENTATION:
+		std::get<0>(voxData) = *ptr;
+		ptr += sizeof(uint8_t);
+		break;
+	case VoxelTypeFormat::UINT16:
+	case VoxelTypeFormat::UINT16_WITH_ORIENTATION:
+		std::get<0>(voxData) = *((uint16_t*)ptr);
+		ptr += sizeof(uint16_t);
+		break;
+	}
+
+	auto& color = std::get<1>(voxData);
+	color = {0, 0, 0, 255};
+	uint8_t rgb256;
+	switch (colorFormat)
+	{
+	case VoxelColorFormat::GRAYSCALE:
+		color[R] = color[G] = color[B] = *ptr;
+		ptr += sizeof(uint8_t);
+		break;
+	case VoxelColorFormat::RGB256:
+		rgb256 = *ptr;
+		color[R] = (uint8_t)((rgb256 & 0xE0) >> 5);
+		color[G] = (uint8_t)((rgb256 & 0x1C) >> 2);
+		color[B] = (uint8_t)(rgb256 & 0x03);
+		ptr += sizeof(uint8_t);
+		break;
+	case VoxelColorFormat::RGB256_WITH_ALPHA:
+		rgb256 = *ptr;
+		color[R] = (uint8_t)((rgb256 & 0xE0) >> 5);
+		color[G] = (uint8_t)((rgb256 & 0x1C) >> 2);
+		color[B] = (uint8_t)(rgb256 & 0x03);
+		ptr += sizeof(uint8_t);
+		color[A] = *ptr;
+		ptr += sizeof(uint8_t);
+		break;
+	case VoxelColorFormat::THREE_BYTES_RGB:
+		color[R] = *(ptr++);
+		color[G] = *(ptr++);
+		color[B] = *(ptr++);
+		break;
+	case VoxelColorFormat::THREE_BYTES_RGB_WITH_ALPHA:
+		color[R] = *(ptr++);
+		color[G] = *(ptr++);
+		color[B] = *(ptr++);
+		color[A] = *(ptr++);
+		break;
+	case VoxelColorFormat::NO_COLOR:
+	default:
+		break;
+	}
+
+	//TODO unformat neighbours
+
+	return voxData;
 }

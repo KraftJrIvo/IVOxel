@@ -83,6 +83,7 @@ void VoxelPyramid::build(const std::vector<uint32_t>& size, const std::vector<ui
 	uint32_t nSteps;
 	uint32_t nVoxels = 0;
 	uint32_t nComplex = 0;
+	uint32_t nOffsetBytes = 0;
 
 	std::vector<std::vector<uint8_t>> tempData(nLayers);
 
@@ -104,6 +105,7 @@ void VoxelPyramid::build(const std::vector<uint32_t>& size, const std::vector<ui
 			std::memcpy(offsetBytes.data(), &off, sizeof(int32_t));
 		}
 		data = join(data, offsetBytes);
+		nOffsetBytes += bytesForThis;
 	};
 
 	std::function<void(uint32_t, uint32_t, uint32_t, uint32_t)> recursivePyramid = [&](uint32_t pwr, uint32_t sx, uint32_t sy, uint32_t sz)
@@ -160,10 +162,10 @@ void VoxelPyramid::build(const std::vector<uint32_t>& size, const std::vector<ui
 
 	recursivePyramid(0, 0, 0, 0);
 
-	data.resize(sizeof(uint8_t) * 3 + offsets.size() * sizeof(uint32_t));
+	data.resize(sizeof(uint32_t) + sizeof(uint8_t) + nLayers * sizeof(uint32_t));
 	auto dataPtr = data.data();
-	std::memcpy(dataPtr, &nLayers, sizeof(uint8_t));
-	dataPtr += sizeof(uint8_t);
+	std::memcpy(dataPtr, &nOffsetBytes, sizeof(uint32_t));
+	dataPtr += sizeof(uint32_t);
 	std::memcpy(dataPtr, &type.sizeInBytes, sizeof(uint8_t));
 	dataPtr += sizeof(uint8_t);
 	for (int i = 0; i < nLayers; ++i)

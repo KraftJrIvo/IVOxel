@@ -4,6 +4,8 @@
 #include <string>
 #include <istream>
 
+#include "NeighbourConnections.h"
+
 // 3d coords
 #define DIMENSIONS 3
 #define X 0
@@ -63,3 +65,5 @@ class WordDelimitedBySpace : public std::string {};
 std::istream& operator>>(std::istream& is, WordDelimitedBySpace& output);
 
 std::vector<uint8_t> join(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b);
+
+typedef std::tuple<int32_t, std::vector<uint8_t>, NeighbourConnections> VoxelData;
