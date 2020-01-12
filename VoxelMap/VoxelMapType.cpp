@@ -106,10 +106,10 @@ std::vector<uint8_t> VoxelMapType::formatColor(uint8_t r, uint8_t g, uint8_t b, 
 	case VoxelColorFormat::GRAYSCALE:
 		return { r };
 	case VoxelColorFormat::RGB256:
-		rgb8 = ((r << 5) | (g << 2) | b);
+		rgb8 = encodeRGB(r, g, b);
 		return { rgb8 };
 	case VoxelColorFormat::RGB256_WITH_ALPHA:
-		rgb8 = ((r << 5) | (g << 2) | b);
+		rgb8 = encodeRGB(r, g, b);
 		return { rgb8, a };
 	case VoxelColorFormat::THREE_BYTES_RGB:
 		return { r, g, b };
@@ -140,13 +140,13 @@ VoxelData VoxelMapType::unformatVoxelData(const uint8_t* data)
 	{
 	case VoxelTypeFormat::UINT8:
 	case VoxelTypeFormat::UINT8_WITH_ORIENTATION:
-		std::get<0>(voxData) = *ptr;
-		ptr += sizeof(uint8_t);
+		std::get<0>(voxData) = *((int8_t*)ptr);
+		ptr += sizeof(int8_t);
 		break;
 	case VoxelTypeFormat::UINT16:
 	case VoxelTypeFormat::UINT16_WITH_ORIENTATION:
-		std::get<0>(voxData) = *((uint16_t*)ptr);
-		ptr += sizeof(uint16_t);
+		std::get<0>(voxData) = *((int16_t*)ptr);
+		ptr += sizeof(int16_t);
 		break;
 	}
 
@@ -161,16 +161,12 @@ VoxelData VoxelMapType::unformatVoxelData(const uint8_t* data)
 		break;
 	case VoxelColorFormat::RGB256:
 		rgb256 = *ptr;
-		color[R] = (uint8_t)((rgb256 & 0xE0) >> 5);
-		color[G] = (uint8_t)((rgb256 & 0x1C) >> 2);
-		color[B] = (uint8_t)(rgb256 & 0x03);
+		color = decodeRGB(rgb256);
 		ptr += sizeof(uint8_t);
 		break;
 	case VoxelColorFormat::RGB256_WITH_ALPHA:
 		rgb256 = *ptr;
-		color[R] = (uint8_t)((rgb256 & 0xE0) >> 5);
-		color[G] = (uint8_t)((rgb256 & 0x1C) >> 2);
-		color[B] = (uint8_t)(rgb256 & 0x03);
+		color = decodeRGB(rgb256);
 		ptr += sizeof(uint8_t);
 		color[A] = *ptr;
 		ptr += sizeof(uint8_t);

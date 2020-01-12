@@ -163,9 +163,7 @@ void VoxelPyramid::build(const std::vector<uint32_t>& size, const std::vector<ui
 	recursivePyramid(0, 0, 0, 0);
 
 	data.resize(sizeof(uint32_t) + sizeof(uint8_t) + nLayers * sizeof(uint32_t));
-	auto dataPtr = data.data();
-	std::memcpy(dataPtr, &nOffsetBytes, sizeof(uint32_t));
-	dataPtr += sizeof(uint32_t);
+	auto dataPtr = data.data() + sizeof(uint32_t);
 	std::memcpy(dataPtr, &type.sizeInBytes, sizeof(uint8_t));
 	dataPtr += sizeof(uint8_t);
 	for (int i = 0; i < nLayers; ++i)
@@ -181,6 +179,7 @@ void VoxelPyramid::build(const std::vector<uint32_t>& size, const std::vector<ui
 		for (int j = 0; j < sz; ++j)
 			pushOffset(bytesForLayers[i], offsets[i][j], offsetBytes);
 	}
+	std::memcpy(data.data(), &nOffsetBytes, sizeof(uint32_t));
 	for (int i = 0; i < nLayers; ++i)
 		data = join(data, tempData[i]);
 }

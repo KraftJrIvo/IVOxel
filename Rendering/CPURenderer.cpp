@@ -74,7 +74,7 @@ std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray)
 		int32_t(floor(ray.start[Y])),
 		int32_t(floor(ray.start[Z]))
 	};
-	marcher.setStart(ray, 1.0f);
+	marcher.setStart(ray);
 
 	auto curPos = marcher.getAbsPos();
 	bool notFinish = true;// map.checkIfChunkIsPossible(curPos, ray.direction);
@@ -85,7 +85,8 @@ std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray)
 		if (chunk)
 		{
 			Ray entryRay(ray.bouncesLeft, marcher.getCurEntryPoint(), ray.direction, ray.strength);
-			resultColor = {100,100,100};// _rayTraceChunk(map, *chunk, entryRay);
+			resultColor = _rayTraceChunk(map, *chunk, entryRay);
+			ray.bouncesLeft = entryRay.bouncesLeft;
 		}
 
 		notFinish = ray.bouncesLeft > 0 && !marcher.checkFinished();
@@ -101,12 +102,18 @@ std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray)
 
 std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const VoxelChunk& chunk, Ray& ray)
 {
-	std::vector<uint8_t> resultColor = { 0, 0, 0 };
+	ray.color = { 10, 10, 10 };
 
 	Voxel vox;
 
 	uint32_t sideSteps = std::pow(chunk.pyramid.base, chunk.pyramid.power);
-	std::vector<std::pair<int32_t, int32_t>> minMaxs = { { 0, sideSteps-1 }, {0, sideSteps-1 }, {0, sideSteps-1 } };
+	std::vector<std::pair<int32_t, int32_t>> minMaxs = { { 0, sideSteps }, {0, sideSteps }, {0, sideSteps } };
+
+	ray.start = {
+		ray.start[X] * sideSteps,
+		ray.start[Y] * sideSteps,
+		ray.start[Z] * sideSteps
+	};
 
 	RayVoxelMarcher marcher;
 	std::vector<uint32_t> curVoxPos = {
@@ -114,23 +121,45 @@ std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const Voxe
 		uint32_t(floor(ray.start[Y])),
 		uint32_t(floor(ray.start[Z]))
 	};
-	marcher.setStart(ray, 1.0f);
+	marcher.setStart(ray);
 
-	bool notFinish = true;
-	while (notFinish)
+	uint32_t stepsToTake = 1;
+
+	bool keepTracing = true;
+
+	while (keepTracing)
 	{
-		auto off = marcher.marchAndGetNextDir(minMaxs);
-		for (uint8_t i = 0; i < DIMENSIONS; ++i)
-			curVoxPos[i] += off[i];
-		vox = getVoxelData(map, chunk.pyramid, curVoxPos);
-		
-		notFinish = (vox.type != -1);
+			//bool solid = (25 * curVoxPos[Z] + 5 * curVoxPos[Y] + curVoxPos[X]) % 2 == 0;
+			//if (solid)
+			//{
+			//	vox.type = 0;
+			//	vox.color = { 200, 200, 200 };
+			//	break;
+			//}
+
+			vox = getVoxelData(map, chunk.pyramid, curVoxPos);
+			if (vox.type == -1)
+				stepsToTake = 1; //sideSteps / std::pow(chunk.pyramid.base, vox.power);
+			else
+				break;
+
+
+			// TODO optimize stepsToTake
+			for (uint8_t s = 0; s < stepsToTake; ++s)
+			{
+				auto off = marcher.marchAndGetNextDir(minMaxs);
+				for (uint8_t i = 0; i < DIMENSIONS; ++i)
+					curVoxPos[i] += off[i];
+			}
+			keepTracing = !marcher.checkFinished();
 	}
 
-	if (vox.type == -1)
+	if (vox.type != -1)
 	{
 		Ray voxRay = ray;
 		voxRay.start = marcher.getCurEntryPoint();
+		// TODO ray.bounce();
+		ray.bouncesLeft--;
 		return _rayTraceVoxel(vox, voxRay);
 	}
 	return ray.color;
@@ -163,16 +192,15 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 
 	Voxel vox;
 
-	uint32_t sideSteps = std::pow(pyram.base, pyram.power);
-	uint32_t nLeaves = 0;
+	uint32_t nLeavesBeforeCurrent = 0;
 	uint32_t curPwr = 0;
-	uint32_t curOff = 2;
+	//uint32_t curOff = 2;
 	uint32_t curLayerLen = 1;
-	std::vector<uint32_t> offsets;
+	//std::vector<uint32_t> offsets;
 	std::vector<uint32_t> leavesOnLayers;
 	uint32_t nOffsetBytes = *((uint32_t*)pyram.data.data());
 	uint8_t voxSizeInBytes = pyram.data[4];
-	uint8_t* ptr = (uint8_t*)pyram.data.data() + 5;
+	uint8_t* ptr = (uint8_t*)pyram.data.data() + sizeof(uint32_t) + sizeof(uint8_t);
 
 	for (uint8_t i = 0; i < pyram.power + 1; ++i)
 	{
@@ -180,11 +208,16 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 		ptr += sizeof(uint32_t);
 	}
 
+	uint32_t curPwrLayerPos = 0;
+
+	uint32_t totalWidth = std::pow(pyram.base, pyram.power);
+	uint32_t zLayerLen = std::pow(pyram.base, DIMENSIONS - 1);
+	uint32_t yRowLen = std::pow(pyram.base, DIMENSIONS - 2);
+
 	bool offsetIsFinal = false;
 	while (!offsetIsFinal)
 	{
-		//uint32_t curSteps = sideSteps / std::pow(pyram.base, curPwr);
-		int8_t* offset = (int8_t*)pyram.data.data() + curOff;
+		int8_t* offset = (int8_t*)ptr;
 		int32_t val;
 		if (bytesForLayers[curPwr] == 1)
 			val = *(offset);
@@ -196,22 +229,38 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 		bool offsetIsFinal = val < 0;
 		
 		val = offsetIsFinal ? (-val - 1) : val;
-		offsets.push_back(val);
-		nLeaves += (offsetIsFinal ? val : leavesOnLayers[curPwr]);
+		//offsets.push_back(val);
+		nLeavesBeforeCurrent += (offsetIsFinal ? val : leavesOnLayers[curPwr]);
 
-		ptr += bytesForLayers[curPwr] * curLayerLen;
+		if (offsetIsFinal)
+			break;
+
+		ptr += bytesForLayers[curPwr] * uint32_t(curLayerLen - curPwrLayerPos); // skipping to the end of current layer
+
+		uint32_t curSide = totalWidth / std::pow(pyram.base, curPwr);
+		uint32_t sidePart = curSide / pyram.base;
+		curPwrLayerPos = ((pos[Z] % curSide) / sidePart) * zLayerLen + ((pos[Y] % curSide) / sidePart) * yRowLen + ((pos[X] % curSide) / sidePart);
+
+		uint32_t fff = val * std::pow(pyram.base, DIMENSIONS);
+		ptr += fff; // skipping to the end of current layer
+		ptr += bytesForLayers[curPwr] * curPwrLayerPos;  // skipping to the start of current offset
 
 		curLayerLen -= leavesOnLayers[curPwr];
 		curLayerLen *= std::pow(pyram.base, DIMENSIONS);
 		curPwr++;
 	}
 
-	ptr += voxSizeInBytes * nLeaves;
+	ptr = (uint8_t*)pyram.data.data() + 5 + leavesOnLayers.size() * sizeof(uint32_t) + nOffsetBytes;
+
+	ptr += voxSizeInBytes * nLeavesBeforeCurrent;
+
+	//std::cout << pos[X] << pos[Y] << pos[Z] << std::endl;
 
 	auto voxData = map.getType().unformatVoxelData(ptr);
 	vox.type = std::get<0>(voxData);
 	vox.color = std::get<1>(voxData);
 	vox.neighs = std::get<2>(voxData);
+	vox.power = curPwr;
 
 	return vox;
 }

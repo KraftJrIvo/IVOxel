@@ -66,4 +66,7 @@ std::istream& operator>>(std::istream& is, WordDelimitedBySpace& output);
 
 std::vector<uint8_t> join(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b);
 
+uint8_t encodeRGB(uint8_t r, uint8_t g, uint8_t b);
+std::vector<uint8_t> decodeRGB(uint8_t rgb256);
+
 typedef std::tuple<int32_t, std::vector<uint8_t>, NeighbourConnections> VoxelData;
