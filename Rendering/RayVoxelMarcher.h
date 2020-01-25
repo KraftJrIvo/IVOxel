@@ -10,13 +10,13 @@ public:
 	RayVoxelMarcher();
 
 	void setStart(const Ray& startRay);
-	std::vector<int8_t> marchAndGetNextDir(const std::vector<std::pair<int32_t, int32_t>>& maxMins);
-	std::vector<float> getCurEntryPoint();
+	std::vector<float> marchAndGetNextDir(const std::vector<std::pair<int32_t, int32_t>>& maxMins, float side = 1.0f);
+	std::vector<float> getCurEntryPoint(float side = 1.0f);
 	std::vector<float> getAbsPos();
 	bool checkFinished();
 private:
 	bool _finished;
 	std::vector<float> _curPos;
-	std::vector<int8_t> _lastResult;
+	std::vector<float> _lastResult;
 	Eigen::Vector3f _direction;
 };

@@ -139,17 +139,32 @@ std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const Voxe
 
 			vox = getVoxelData(map, chunk.pyramid, curVoxPos);
 			if (vox.type == -1)
-				stepsToTake = 1; //sideSteps / std::pow(chunk.pyramid.base, vox.power);
+				stepsToTake = sideSteps / std::pow(chunk.pyramid.base, vox.power);
 			else
 				break;
 
-
-			// TODO optimize stepsToTake
-			for (uint8_t s = 0; s < stepsToTake; ++s)
+			/*bool keepTracingThroughEmpty = true;
+			while (keepTracingThroughEmpty)
 			{
 				auto off = marcher.marchAndGetNextDir(minMaxs);
 				for (uint8_t i = 0; i < DIMENSIONS; ++i)
+				{
 					curVoxPos[i] += off[i];
+					keepTracingThroughEmpty &= curVoxPos[i] % stepsToTake != 0;
+				}
+			}*/
+
+			// TODO optimize stepsToTake
+			//for (uint8_t s = 0; s < stepsToTake; ++s)
+			{
+				auto off = marcher.marchAndGetNextDir(minMaxs, stepsToTake);
+				//return { ((off[0] != 0) ? (unsigned char)255 : (unsigned char)0), ((off[1] != 0) ? (unsigned char)255 : (unsigned char)0), ((off[2] != 0) ? (unsigned char)255 : (unsigned char)0) };
+				for (uint8_t i = 0; i < DIMENSIONS; ++i)
+					if (off[i] < 0)
+						curVoxPos[i] += off[i] * (1 + curVoxPos[i] % stepsToTake);
+					else
+						curVoxPos[i] += off[i] * (stepsToTake - (curVoxPos[i] % stepsToTake));
+
 			}
 			keepTracing = !marcher.checkFinished();
 	}

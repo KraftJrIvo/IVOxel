@@ -16,7 +16,7 @@ int main()
 	
 	Camera cam(90, {640, 480});
 	cam.rotate({ 0,0,0 });
-	cam.move({ 1.5f, 1.5f, -1.5f });
+	cam.move({ 0.6f, 0.4f, -1.5f });
 
 	renderer.render(map, cam);
 
