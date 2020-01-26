@@ -9,16 +9,20 @@ Ray::Ray() :
 	direction({1,1,1}),
 	strength(0),
 	color({0,0,0}),
-	bouncesLeft(0)
+	bouncesLeft(0),
+	length(0),
+	lightRay(false)
 {
 }
 
-Ray::Ray(uint8_t nBounces, const std::vector<float>& _start, const Eigen::Vector3f& dir, float str, std::vector<uint8_t> _color) :
+Ray::Ray(uint8_t nBounces, const std::vector<float>& _start, const Eigen::Vector3f& dir, float str, bool _lightRay, std::vector<uint8_t> _color) :
 	start(_start),
 	direction(dir),
 	strength(str),
 	color(_color),
-	bouncesLeft(nBounces)
+	bouncesLeft(nBounces),
+	length(0),
+	lightRay(_lightRay)
 {
 	normalize();
 }

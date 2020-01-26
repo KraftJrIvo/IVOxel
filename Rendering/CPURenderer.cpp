@@ -1,5 +1,7 @@
 #include "CPURenderer.h"
 
+#include <algorithm>
+
 CPURenderer::CPURenderer()
 {
 }
@@ -84,23 +86,31 @@ std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray)
 		auto* chunk = map.getChunk(curChunkPos);
 		if (chunk)
 		{
-			Ray entryRay(ray.bouncesLeft, marcher.getCurEntryPoint(), ray.direction, ray.strength);
-			resultColor = _rayTraceChunk(map, *chunk, entryRay);
+			Ray entryRay(ray.bouncesLeft, marcher.getCurEntryPoint(), ray.direction, ray.strength, ray.lightRay);
+			resultColor = _rayTraceChunk(map, *chunk, entryRay, curChunkPos);
 			ray.bouncesLeft = entryRay.bouncesLeft;
+			ray.length += _calculateDepth(ray.start, marcher.getAbsPos());
+			ray.length += entryRay.length;
 		}
 
 		notFinish = ray.bouncesLeft > 0 && !marcher.checkFinished();
 
-		auto off = marcher.marchAndGetNextDir(map.getMinMaxChunks());
+		if (notFinish)
+		{
+			auto off = marcher.marchAndGetNextDir(map.getMinMaxChunks());
 
-		for (uint8_t i = 0; i < DIMENSIONS; ++i)
-			curChunkPos[i] += off[i];
+			for (uint8_t i = 0; i < DIMENSIONS; ++i)
+				curChunkPos[i] += off[i];
+		}
 	}
 
+	// depth dbg
+	//return {(uint8_t)(ray.length * 64.0f), (uint8_t)(ray.length * 64.0f), (uint8_t)(ray.length * 64.0f) };
+	
 	return resultColor;
 }
 
-std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const VoxelChunk& chunk, Ray& ray)
+std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const VoxelChunk& chunk, Ray& ray, const std::vector<int32_t>& curChunkPos)
 {
 	ray.color = { 10, 10, 10 };
 
@@ -129,36 +139,38 @@ std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const Voxe
 
 	while (keepTracing)
 	{
-			//bool solid = (25 * curVoxPos[Z] + 5 * curVoxPos[Y] + curVoxPos[X]) % 2 == 0;
-			//if (solid)
-			//{
-			//	vox.type = 0;
-			//	vox.color = { 200, 200, 200 };
-			//	break;
-			//}
-
 			vox = getVoxelData(map, chunk.pyramid, curVoxPos);
-			if (vox.type == -1)
-				stepsToTake = sideSteps / std::pow(chunk.pyramid.base, vox.power);
-			else
-				break;
+			stepsToTake = sideSteps / std::pow(chunk.pyramid.base, vox.power);
 
-			/*bool keepTracingThroughEmpty = true;
-			while (keepTracingThroughEmpty)
+			if (vox.type != -1)
 			{
-				auto off = marcher.marchAndGetNextDir(minMaxs);
-				for (uint8_t i = 0; i < DIMENSIONS; ++i)
-				{
-					curVoxPos[i] += off[i];
-					keepTracingThroughEmpty &= curVoxPos[i] % stepsToTake != 0;
-				}
-			}*/
+				//stepsToTake = 1;
 
-			// TODO optimize stepsToTake
-			//for (uint8_t s = 0; s < stepsToTake; ++s)
+				Ray voxRay = ray;
+				voxRay.start = marcher.getCurEntryPoint(stepsToTake);
+				// TODO ray.bounce();
+				ray.bouncesLeft--;
+
+				std::vector<float> absPose(3);
+				for (uint8_t i = 0; i < DIMENSIONS; ++i)
+					absPose[i] = curChunkPos[i] + (stepsToTake * float(curVoxPos[i] / stepsToTake)) / sideSteps;
+
+				auto color = _rayTraceVoxel(map, chunk, vox, voxRay, absPose, stepsToTake);
+
+				if (voxRay.length >= 0)
+				{
+					ray.length += _calculateDepth(ray.start, marcher.getAbsPos(), float(sideSteps));
+					ray.length += (voxRay.length * stepsToTake) / float(sideSteps);
+					return color;
+				}
+			}
+
 			{
 				auto off = marcher.marchAndGetNextDir(minMaxs, stepsToTake);
+				
+				// for dbg
 				//return { ((off[0] != 0) ? (unsigned char)255 : (unsigned char)0), ((off[1] != 0) ? (unsigned char)255 : (unsigned char)0), ((off[2] != 0) ? (unsigned char)255 : (unsigned char)0) };
+				
 				for (uint8_t i = 0; i < DIMENSIONS; ++i)
 					if (off[i] < 0)
 						curVoxPos[i] += off[i] * (1 + curVoxPos[i] % stepsToTake);
@@ -169,22 +181,136 @@ std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const Voxe
 			keepTracing = !marcher.checkFinished();
 	}
 
-	if (vox.type != -1)
-	{
-		Ray voxRay = ray;
-		voxRay.start = marcher.getCurEntryPoint();
-		// TODO ray.bounce();
-		ray.bouncesLeft--;
-		return _rayTraceVoxel(vox, voxRay);
-	}
+	// calculate length in chunks
+	ray.length += _calculateDepth(ray.start, marcher.getAbsPos(), float(sideSteps));
+
 	return ray.color;
 }
 
-std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const Voxel& vox, const Ray& ray)
+bool solveQuadratic(const float& a, const float& b, const float& c, float& x0, float& x1)
 {
-	//TODO
+	float discr = b * b - 4 * a * c;
+	if (discr < 0) return false;
+	else if (discr == 0) x0 = x1 = -0.5 * b / a;
+	else {
+		float q = (b > 0) ?
+			-0.5 * (b + sqrt(discr)) :
+			-0.5 * (b - sqrt(discr));
+		x0 = q / a;
+		x1 = c / q;
+	}
+	if (x0 > x1) std::swap(x0, x1);
 
-	return vox.color;
+	return true;
+}
+
+float intersectSphereDist(const Eigen::Vector3f& orig, const Eigen::Vector3f& dir)
+{
+	float t0, t1; // solutions for t if the ray intersects 
+
+	Eigen::Vector3f center = { 0.5f, 0.5f, 0.5f };
+	float radius2 = 0.49f * 0.49f;
+
+	Eigen::Vector3f L = orig - center;
+	float a = dir.dot(dir);
+	float b = 2 * dir.dot(L);
+	float c = L.dot(L) - radius2;
+	if (!solveQuadratic(a, b, c, t0, t1)) return -1;
+
+	if (t0 > t1) std::swap(t0, t1);
+
+	if (t0 < 0) {
+		t0 = t1; // if t0 is negative, let's use t1 instead 
+		if (t0 < 0) return -1; // both t0 and t1 are negative 
+	}
+
+	float t = t0;
+
+	return t / 2.0f;
+}
+
+std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const VoxelChunk& chunk, const Voxel& vox, Ray& ray, const std::vector<float>& absPose, float voxSide)
+{
+	Eigen::Vector3f orig = { ray.start[X], ray.start[Y], ray.start[Z] };
+	Eigen::Vector3f dir = { ray.direction[X], ray.direction[Y], ray.direction[Z] };
+	//dir.normalize();
+
+	Eigen::Vector3f hit;
+	Eigen::Vector3f normal;
+	// cube
+	//
+	//ray.length = 0;
+	//Eigen::Vector3f g = orig - Eigen::Vector3f(0.5f, 0.5f, 0.5f);
+	//Eigen::Vector3f gabs = { fabs(g[X]), fabs(g[Y]), fabs(g[Z]) };
+	//float maxG = std::max(gabs[X], std::max(gabs[Y], gabs[Z]));
+	//for (uint8_t i = 0; i < DIMENSIONS; ++i)
+	//if (gabs[i] == maxG)
+	//{
+	//	normal[i] = g[i] / 0.5f;
+	//	normal[(i + 1) % DIMENSIONS] = 0;
+	//	normal[(i + 2) % DIMENSIONS] = 0;
+	//	break;
+	//}
+	//hit = orig;
+	//
+
+	// sphere
+	//
+	ray.length = intersectSphereDist(orig, dir);
+	hit = orig + dir * ray.length;
+	Eigen::Vector3f center = { 0.5f, 0.5f, 0.5f };
+	normal = hit - center;
+	//
+
+	normal.normalize();
+
+	float voxDiv = (std::pow(chunk.pyramid.base, chunk.pyramid.power));
+
+	std::vector<float> dists;
+	std::vector<float> colorCoeffs = { 0,0,0 };
+	auto color = vox.color;
+
+	if (!ray.lightRay && ray.length >= 0)
+	{
+		for (auto& lightsInChunk : map.getLightsByChunks())
+		{
+			for (auto& light : lightsInChunk)
+			{
+				Eigen::Vector3f absRayStart = { absPose[X] + voxSide * hit[X]/voxDiv, absPose[Y] + voxSide * hit[Y]/voxDiv, absPose[Z] + voxSide * hit[Z]/voxDiv };
+				Eigen::Vector3f dirToLight = { (light.position[X] - absRayStart[X]), (light.position[Y] - absRayStart[Y]), (light.position[Z] - absRayStart[Z]) };
+				float lightDist = sqrt(dirToLight[X] * dirToLight[X] + dirToLight[Y] * dirToLight[Y] + dirToLight[Z] * dirToLight[Z]);
+				dirToLight.normalize();
+
+				Ray lightRay(1, { light.position[X], light.position[Y], light.position[Z] }, -dirToLight, 1.0f, true);
+				
+				_rayTraceMap(map, lightRay);
+
+				float lightStr = 0;
+				if (lightRay.length + 0.1f >= lightDist)
+				{
+					float dotVal = dirToLight.dot(normal);
+					lightStr = (dotVal < 0) ? 0 : dotVal;
+				}
+
+				for (uint8_t i = 0; i < RGB; ++i)
+					colorCoeffs[i] += (light.rgba[i] / 255.0f) * lightStr;
+			}
+		}
+
+		for (uint8_t i = 0; i < RGB; ++i)
+		{
+			colorCoeffs[i] = (colorCoeffs[i] > 1.0f) ? 1.0f : (colorCoeffs[i] < 0.0f) ? 0 : colorCoeffs[i];
+			color[i] = uint8_t(color[i] * colorCoeffs[i]);
+		}
+	}
+
+	// dbg normal
+	//return { uint8_t(128.0f + normal[X] * 127.0f), uint8_t(128.0f + normal[Y] * 127.0f), uint8_t(128.0f + normal[Z] * 127.0f) };
+
+	// dbg normal + light
+	//return { uint8_t((128.0f + normal[X] * 127.0f) * colorCoeffs[X]), uint8_t((128.0f + normal[Y] * 127.0f) * colorCoeffs[Y]), uint8_t((128.0f + normal[Z] * 127.0f) * colorCoeffs[Z]) };
+
+	return color;
 }
 
 std::vector<uint8_t> CPURenderer::mixRayColor(const std::vector<uint8_t>& color, const Ray& ray)
@@ -279,3 +405,16 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 
 	return vox;
 }
+
+float CPURenderer::_calculateDepth(const std::vector<float>& start, const std::vector<float>& end, float div)
+{
+	cv::Vec3f pos = cv::Vec3f(end[X], end[Y], end[Z]) - cv::Vec3f(start[X], start[Y], start[Z]);
+
+	float val = sqrt((pos[X] * pos[X]) + (pos[Y] * pos[Y]) + (pos[Z] * pos[Z]));
+	
+	if (div != 1.0f)
+		val /= div;
+
+	return  val;
+}
+

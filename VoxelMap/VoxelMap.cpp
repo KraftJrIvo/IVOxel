@@ -60,3 +60,9 @@ VoxelMapType VoxelMap::getType() const
 {
 	return _type;
 }
+
+const std::vector<std::vector<Light>>& VoxelMap::getLightsByChunks() const
+{
+	return _lightsByChunks;
+}
+

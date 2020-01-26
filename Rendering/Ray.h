@@ -7,12 +7,13 @@
 struct Ray
 {
 	Ray();
-	Ray(uint8_t nBounces, const std::vector<float>& _start, const Eigen::Vector3f& dir, float str, std::vector<uint8_t> _color = {0, 0, 0});
+	Ray(uint8_t nBounces, const std::vector<float>& _start, const Eigen::Vector3f& dir, float str, bool lightRay = false, std::vector<uint8_t> _color = {0, 0, 0});
 
 	void normalize();
 	void mixColor(const std::vector<uint8_t>& color);
 	void bounce(const std::vector<uint8_t>& surfaceColor, const std::vector<float>& surfaceNormal, float strengthToll);
 
+	bool lightRay;
 	uint8_t bouncesLeft;
 	float strength;
 	float length;

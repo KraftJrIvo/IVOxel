@@ -23,6 +23,8 @@ public:
 	VoxelChunk* getChunk(const std::vector<int32_t>& pos) const;
 	VoxelMapType getType() const;
 
+	const std::vector<std::vector<Light>>& getLightsByChunks() const;
+
 protected:
 	VoxelMapType _type;
 
