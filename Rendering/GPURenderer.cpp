@@ -4,6 +4,6 @@ GPURenderer::GPURenderer()
 {
 }
 
-void GPURenderer::render(const VoxelMap& map, Camera& cam)
+void GPURenderer::render(const VoxelMap& map, Camera& cam) const
 {
 }

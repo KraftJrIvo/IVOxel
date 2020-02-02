@@ -4,13 +4,13 @@
 
 VoxelMap::VoxelMap()
 {
-	_maxMinChunk.resize(DIMENSIONS, { -1,1 });
+	_maxMinChunk.resize(DIMENSIONS, { 0,0 });
 }
 
 VoxelMap::VoxelMap(const VoxelMapType& type) :
 	_type(type)
 {
-	_maxMinChunk.resize(DIMENSIONS, { -1,1 });
+	_maxMinChunk.resize(DIMENSIONS, { 0,0 });
 }
 
 void VoxelMap::buildPyramid()
@@ -33,8 +33,8 @@ VoxelChunk& VoxelMap::_addChunk(const std::vector<int32_t>& pos, const std::vect
 {
 	for (uint8_t j = 0; j < DIMENSIONS; ++j)
 	{
-		_maxMinChunk[j].first = std::min(_maxMinChunk[j].first, pos[j]);
-		_maxMinChunk[j].second = std::max(_maxMinChunk[j].second, pos[j]);
+		_maxMinChunk[j].first = std::min(_maxMinChunk[j].first, pos[j] - 1);
+		_maxMinChunk[j].second = std::max(_maxMinChunk[j].second, pos[j] + 1);
 	}
 
 	_chunksIds[pos[X]][pos[Y]][pos[Z]] = _chunks.size();
@@ -64,5 +64,11 @@ VoxelMapType VoxelMap::getType() const
 const std::vector<std::vector<Light>>& VoxelMap::getLightsByChunks() const
 {
 	return _lightsByChunks;
+}
+
+void VoxelMap::moveLight(uint32_t chunkID, uint32_t lightID, const std::vector<float>& pos)
+{
+	if (chunkID < _chunks.size() && lightID < _lightsByChunks[chunkID].size())
+		_lightsByChunks[chunkID][lightID].position = pos;
 }
 

@@ -41,25 +41,27 @@ void TextFileMap::load()
 
 	uint32_t offset = 0;
 
-	uint32_t nChunks = std::stoi(txtFileNumbers[offset++]);
-	std::vector<uint32_t> chunkSize(3);
-	for (uint8_t i = 0; i < DIMENSIONS; ++i)
-		chunkSize[i] = std::stoi(txtFileNumbers[offset++]);
+	auto it = txtFileNumbers.begin();
 
-	const uint32_t voxelCount = chunkSize[X] * chunkSize[Y] * chunkSize[Z];
-
+	uint32_t nChunks = std::stoi(*it++);
+	std::vector<uint32_t> chunkSize(DIMENSIONS);
 	std::vector<int32_t> chunkPos(DIMENSIONS);
+
 	for (uint32_t i = 0; i < nChunks; ++i)
 	{
 		for (uint8_t j = 0; j < DIMENSIONS; ++j)
-			chunkPos[j] = std::stoi(txtFileNumbers[offset++]);
+			chunkSize[j] = std::stoi(*it++);
+
+		const uint32_t voxelCount = chunkSize[X] * chunkSize[Y] * chunkSize[Z];
+
+		for (uint8_t j = 0; j < DIMENSIONS; ++j)
+			chunkPos[j] = std::stoi(*it++);
 
 		VoxelChunk& chunk = _addChunk(chunkPos, chunkSize);
 
 		chunk.vTypes.reserve(voxelCount);
 
-		// parsing voxels
-		auto it = txtFileNumbers.begin() + offset;
+		// parsing voxels		
 		for (uint32_t j = 0; j < voxelCount; ++j)
 		{
 			auto& voxTxt = *it++;
@@ -98,7 +100,7 @@ void TextFileMap::load()
 			for (uint32_t k = 0; k < chunkSize[Y]; ++k)
 				for (uint32_t l = 0; l < chunkSize[X]; ++l)
 				{
-					uint8_t offset = chunkSize[X] * chunkSize[Y] * j + chunkSize[X] * (chunkSize[Y] - k - 1) + l;
+					uint32_t offset = chunkSize[X] * chunkSize[Y] * j + chunkSize[X] * (chunkSize[Y] - k - 1) + l;
 					uint8_t r = colors[R][offset];
 					uint8_t g = colors[G][offset];
 					uint8_t b = colors[B][offset];

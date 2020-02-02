@@ -22,6 +22,7 @@ public:
 	const std::vector<std::pair<int32_t, int32_t>>& getMinMaxChunks() const;
 	VoxelChunk* getChunk(const std::vector<int32_t>& pos) const;
 	VoxelMapType getType() const;
+	void moveLight(uint32_t chunkID, uint32_t lightID, const std::vector<float>& pos);
 
 	const std::vector<std::vector<Light>>& getLightsByChunks() const;
 

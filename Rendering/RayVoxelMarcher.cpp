@@ -30,7 +30,7 @@ std::vector<float> RayVoxelMarcher::marchAndGetNextDir(const std::vector<std::pa
 	for (uint8_t i = 0; i < DIMENSIONS; ++i)
 	{
 		path[i] = isNegative[i] ? -vecStart[i] : (1 - vecStart[i]);
-		path[i] = (path[i] == 0) ? 0.001f : path[i];
+		path[i] = (path[i] == 0) ? 0.000001f : path[i];
 	}
 
 	std::vector<float> diffs(3);
@@ -41,7 +41,7 @@ std::vector<float> RayVoxelMarcher::marchAndGetNextDir(const std::vector<std::pa
 
 	std::vector<float> result(3, 0);
 	for (uint8_t i = 0; i < DIMENSIONS; ++i)
-		result[i] = char((1 - 2 * isNegative[i]) * (fabs(maxDiff - diffs[i]) < 0.001f));
+		result[i] = char((1 - 2 * isNegative[i]) * (fabs(maxDiff - diffs[i]) < 0.000001f));
 
 	std::vector<float> intersection(3);
 	for (uint8_t i = 0; i < DIMENSIONS; ++i)
@@ -54,13 +54,9 @@ std::vector<float> RayVoxelMarcher::marchAndGetNextDir(const std::vector<std::pa
 				(path[otherCoord1] * _direction[i] / _direction[otherCoord1]) : 
 				(path[otherCoord2] * _direction[i] / _direction[otherCoord2]));
 		_curPos[i] += intersection[i] * side;
+		if (isNegative[i])
+			_curPos[i] -= 0.00001f;
 		_finished |= ((_curPos[i] <= maxMins[i].first && _direction[i] < 0) || _curPos[i] >= maxMins[i].second && _direction[i] > 0);
-	}
-
-	for (uint8_t i = 0; i < DIMENSIONS; ++i)
-	{
-		uint32_t voxStart = floor(vecStart[i] * side);
-		if (result[i] == 0) result[i] = (floor((vecStart[i] + intersection[i]) * side) - voxStart) / side;
 	}
 
 	_lastResult = result;
@@ -77,7 +73,7 @@ std::vector<float> RayVoxelMarcher::getCurEntryPoint(float side)
 	for (uint8_t i = 0; i < DIMENSIONS; ++i)
 	{
 		while (curPos[i] < 0) curPos[i]++;
-		result[i] = (_lastResult[i] == -1) ? 0.999f : (curPos[i] - floor(curPos[i]));
+		result[i] = (_lastResult[i] == -1) ? 0.999999f : (curPos[i] - floor(curPos[i]));
 	}
 
 	return result;

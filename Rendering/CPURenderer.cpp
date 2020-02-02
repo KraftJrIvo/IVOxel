@@ -2,11 +2,13 @@
 
 #include <algorithm>
 
+#include <opencv2/videoio.hpp>
+
 CPURenderer::CPURenderer()
 {
 }
 
-void CPURenderer::render(const VoxelMap& map, Camera& cam)
+void CPURenderer::render(const VoxelMap& map, Camera& cam) const
 {
 	while (true)
 	{
@@ -17,7 +19,7 @@ void CPURenderer::render(const VoxelMap& map, Camera& cam)
 			{
 				//std::cout << i << " " << j << std::endl;
 				auto pixel = _renderPixel(map, cam, i, j);
-				result.at<cv::Vec3b>(j, i) = { pixel[0], pixel[1], pixel[2] };
+				result.at<cv::Vec3b>(j, i) = { pixel[2], pixel[1], pixel[0] };
 			}
 
 		cv::imshow("result", result);
@@ -39,7 +41,31 @@ void CPURenderer::render(const VoxelMap& map, Camera& cam)
 	}
 }
 
-std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera& cam, uint32_t x, uint32_t y)
+void CPURenderer::renderVideo(VoxelMap& map, Camera& cam)
+{
+	cv::Mat result(cam.resolution[1], cam.resolution[0], CV_8UC3, cv::Scalar(0, 0, 0));
+
+	cv::VideoWriter vid("render.mp4", -1, 60, cv::Size(cam.resolution[0], cam.resolution[1]));
+	for (int i = 0; i < 360; ++i)
+	{
+		std::vector<float> pos(3, 0);
+		float angle = 3.14159f * (float(i) / 180.0f);
+		pos = { 2.0f * cos(angle), 0.75f, 2.0f * sin(angle) };
+		map.moveLight(1, 0, pos);
+		for (uint32_t i = 0; i < cam.resolution[0]; ++i)
+			for (uint32_t j = 0; j < cam.resolution[1]; ++j)
+			{
+				//std::cout << i << " " << j << std::endl;
+				auto pixel = _renderPixel(map, cam, i, j);
+				result.at<cv::Vec3b>(j, i) = { pixel[2], pixel[1], pixel[0] };
+			}
+		vid.write(result);
+		std::cout << i << "/360\n";
+	}
+}
+
+
+std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera& cam, uint32_t x, uint32_t y) const
 {
 	std::vector<uint8_t> rgb = {0,0,0};
 
@@ -66,7 +92,7 @@ std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera
 	return _rayTraceMap(map, ray);
 }
 
-std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray)
+std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray) const
 {
 	std::vector<uint8_t> resultColor = { 0, 0, 0 };
 
@@ -110,7 +136,7 @@ std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray)
 	return resultColor;
 }
 
-std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const VoxelChunk& chunk, Ray& ray, const std::vector<int32_t>& curChunkPos)
+std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const VoxelChunk& chunk, Ray& ray, const std::vector<int32_t>& curChunkPos) const
 {
 	ray.color = { 10, 10, 10 };
 
@@ -144,12 +170,11 @@ std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const Voxe
 
 			if (vox.type != -1)
 			{
-				//stepsToTake = 1;
+				//stepsToTake = 1; // for size 1 render
 
 				Ray voxRay = ray;
 				voxRay.start = marcher.getCurEntryPoint(stepsToTake);
 				// TODO ray.bounce();
-				ray.bouncesLeft--;
 
 				std::vector<float> absPose(3);
 				for (uint8_t i = 0; i < DIMENSIONS; ++i)
@@ -161,23 +186,21 @@ std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const Voxe
 				{
 					ray.length += _calculateDepth(ray.start, marcher.getAbsPos(), float(sideSteps));
 					ray.length += (voxRay.length * stepsToTake) / float(sideSteps);
+					ray.bouncesLeft--;
 					return color;
 				}
 			}
 
-			{
-				auto off = marcher.marchAndGetNextDir(minMaxs, stepsToTake);
+			auto ppose = marcher.getAbsPos();
+			marcher.marchAndGetNextDir(minMaxs, stepsToTake);
 				
-				// for dbg
-				//return { ((off[0] != 0) ? (unsigned char)255 : (unsigned char)0), ((off[1] != 0) ? (unsigned char)255 : (unsigned char)0), ((off[2] != 0) ? (unsigned char)255 : (unsigned char)0) };
+			// for dbg
+			//return { ((off[0] != 0) ? (unsigned char)255 : (unsigned char)0), ((off[1] != 0) ? (unsigned char)255 : (unsigned char)0), ((off[2] != 0) ? (unsigned char)255 : (unsigned char)0) };
 				
-				for (uint8_t i = 0; i < DIMENSIONS; ++i)
-					if (off[i] < 0)
-						curVoxPos[i] += off[i] * (1 + curVoxPos[i] % stepsToTake);
-					else
-						curVoxPos[i] += off[i] * (stepsToTake - (curVoxPos[i] % stepsToTake));
+			auto pose = marcher.getAbsPos();
+			for (uint8_t i = 0; i < DIMENSIONS; ++i)
+				curVoxPos[i] = floor(pose[i]);
 
-			}
 			keepTracing = !marcher.checkFinished();
 	}
 
@@ -226,14 +249,14 @@ float intersectSphereDist(const Eigen::Vector3f& orig, const Eigen::Vector3f& di
 
 	float t = t0;
 
-	return t / 2.0f;
+	return t;
 }
 
-std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const VoxelChunk& chunk, const Voxel& vox, Ray& ray, const std::vector<float>& absPose, float voxSide)
+std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const VoxelChunk& chunk, const Voxel& vox, Ray& ray, const std::vector<float>& absPose, float voxSide) const
 {
 	Eigen::Vector3f orig = { ray.start[X], ray.start[Y], ray.start[Z] };
 	Eigen::Vector3f dir = { ray.direction[X], ray.direction[Y], ray.direction[Z] };
-	//dir.normalize();
+	dir.normalize();
 
 	Eigen::Vector3f hit;
 	Eigen::Vector3f normal;
@@ -286,7 +309,7 @@ std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const Voxe
 				_rayTraceMap(map, lightRay);
 
 				float lightStr = 0;
-				if (lightRay.length + 0.1f >= lightDist)
+				if (lightRay.length + 0.01f >= lightDist)
 				{
 					float dotVal = dirToLight.dot(normal);
 					lightStr = (dotVal < 0) ? 0 : dotVal;
@@ -313,20 +336,20 @@ std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const Voxe
 	return color;
 }
 
-std::vector<uint8_t> CPURenderer::mixRayColor(const std::vector<uint8_t>& color, const Ray& ray)
+std::vector<uint8_t> CPURenderer::mixRayColor(const std::vector<uint8_t>& color, const Ray& ray) const
 {
 	return std::vector<uint8_t>();
 }
 
-Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, const std::vector<uint32_t>& pos)
+Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, const std::vector<uint32_t>& pos) const
 {
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	std::vector<uint16_t> bytesForLayers;
 	for (uint32_t i = 0; i < pyram.power + 1; ++i)
 	{
 		uint32_t vol = std::pow(std::pow(pyram.base, i), DIMENSIONS);
-		uint16_t bytesForThis = uint16_t(std::ceil(std::log2(vol) / std::log2(pyram.base) / 8));
-		bytesForThis = (bytesForThis == 1 || bytesForThis == 2) ? bytesForThis : (bytesForThis == 0 ? 1 : 4);
+		uint16_t bytesForThis = uint16_t(std::ceil(std::log2(vol) / 8.0f));
+		bytesForThis = 2;// (bytesForThis == 1 || bytesForThis == 2) ? bytesForThis : (bytesForThis == 0 ? 1 : 4);
 		bytesForLayers.push_back(bytesForThis);
 	}
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -382,8 +405,7 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 		uint32_t sidePart = curSide / pyram.base;
 		curPwrLayerPos = ((pos[Z] % curSide) / sidePart) * zLayerLen + ((pos[Y] % curSide) / sidePart) * yRowLen + ((pos[X] % curSide) / sidePart);
 
-		uint32_t fff = val * std::pow(pyram.base, DIMENSIONS);
-		ptr += fff; // skipping to the end of current layer
+		ptr += bytesForLayers[curPwr] * uint32_t(val * std::pow(pyram.base, DIMENSIONS)); // skipping to the end of current layer
 		ptr += bytesForLayers[curPwr] * curPwrLayerPos;  // skipping to the start of current offset
 
 		curLayerLen -= leavesOnLayers[curPwr];
@@ -395,8 +417,6 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 
 	ptr += voxSizeInBytes * nLeavesBeforeCurrent;
 
-	//std::cout << pos[X] << pos[Y] << pos[Z] << std::endl;
-
 	auto voxData = map.getType().unformatVoxelData(ptr);
 	vox.type = std::get<0>(voxData);
 	vox.color = std::get<1>(voxData);
@@ -406,7 +426,7 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 	return vox;
 }
 
-float CPURenderer::_calculateDepth(const std::vector<float>& start, const std::vector<float>& end, float div)
+float CPURenderer::_calculateDepth(const std::vector<float>& start, const std::vector<float>& end, float div) const
 {
 	cv::Vec3f pos = cv::Vec3f(end[X], end[Y], end[Z]) - cv::Vec3f(start[X], start[Y], start[Z]);
 

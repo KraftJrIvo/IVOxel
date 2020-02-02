@@ -46,8 +46,8 @@ void VoxelPyramid::build(const std::vector<uint32_t>& size, const std::vector<ui
 	for (uint32_t i = 0; i < nLayers; ++i)
 	{
 		uint32_t vol = std::pow(std::pow(base, i), DIMENSIONS);
-		uint16_t bytesForThis = uint16_t(std::ceil(std::log2(vol) / std::log2(base) / 8));
-		bytesForThis = (bytesForThis == 1 || bytesForThis == 2) ? bytesForThis : (bytesForThis == 0 ? 1 : 4);
+		uint16_t bytesForThis = uint16_t(std::ceil(std::log2(vol) / 8.0f));
+		bytesForThis = 2;// (bytesForThis == 1 || bytesForThis == 2) ? bytesForThis : (bytesForThis == 0 ? 1 : 4);
 		bytesForLayers.push_back(bytesForThis);
 	}
 
