@@ -260,30 +260,32 @@ std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const Voxe
 
 	Eigen::Vector3f hit;
 	Eigen::Vector3f normal;
-	// cube
-	//
-	//ray.length = 0;
-	//Eigen::Vector3f g = orig - Eigen::Vector3f(0.5f, 0.5f, 0.5f);
-	//Eigen::Vector3f gabs = { fabs(g[X]), fabs(g[Y]), fabs(g[Z]) };
-	//float maxG = std::max(gabs[X], std::max(gabs[Y], gabs[Z]));
-	//for (uint8_t i = 0; i < DIMENSIONS; ++i)
-	//if (gabs[i] == maxG)
-	//{
-	//	normal[i] = g[i] / 0.5f;
-	//	normal[(i + 1) % DIMENSIONS] = 0;
-	//	normal[(i + 2) % DIMENSIONS] = 0;
-	//	break;
-	//}
-	//hit = orig;
-	//
 
-	// sphere
-	//
-	ray.length = intersectSphereDist(orig, dir);
-	hit = orig + dir * ray.length;
-	Eigen::Vector3f center = { 0.5f, 0.5f, 0.5f };
-	normal = hit - center;
-	//
+	if (vox.type == 0)
+	{
+		// cube
+		ray.length = 0;
+		Eigen::Vector3f g = orig - Eigen::Vector3f(0.5f, 0.5f, 0.5f);
+		Eigen::Vector3f gabs = { fabs(g[X]), fabs(g[Y]), fabs(g[Z]) };
+		float maxG = std::max(gabs[X], std::max(gabs[Y], gabs[Z]));
+		for (uint8_t i = 0; i < DIMENSIONS; ++i)
+			if (gabs[i] == maxG)
+			{
+				normal[i] = g[i] / 0.5f;
+				normal[(i + 1) % DIMENSIONS] = 0;
+				normal[(i + 2) % DIMENSIONS] = 0;
+				break;
+			}
+		hit = orig;
+	}
+	else if (vox.type == 1)
+	{
+		// sphere
+		ray.length = intersectSphereDist(orig, dir);
+		hit = orig + dir * ray.length;
+		Eigen::Vector3f center = { 0.5f, 0.5f, 0.5f };
+		normal = hit - center;
+	}
 
 	normal.normalize();
 
@@ -309,7 +311,7 @@ std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const Voxe
 				_rayTraceMap(map, lightRay);
 
 				float lightStr = 0;
-				if (lightRay.length + 0.01f >= lightDist)
+				if (lightRay.length + 0.001f >= lightDist)
 				{
 					float dotVal = dirToLight.dot(normal);
 					lightStr = (dotVal < 0) ? 0 : dotVal;
@@ -349,7 +351,7 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 	{
 		uint32_t vol = std::pow(std::pow(pyram.base, i), DIMENSIONS);
 		uint16_t bytesForThis = uint16_t(std::ceil(std::log2(vol) / 8.0f));
-		bytesForThis = 2;// (bytesForThis == 1 || bytesForThis == 2) ? bytesForThis : (bytesForThis == 0 ? 1 : 4);
+		bytesForThis = (bytesForThis == 1 || bytesForThis == 2) ? bytesForThis : (bytesForThis == 0 ? 1 : 4);
 		bytesForLayers.push_back(bytesForThis);
 	}
 	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -358,9 +360,7 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 
 	uint32_t nLeavesBeforeCurrent = 0;
 	uint32_t curPwr = 0;
-	//uint32_t curOff = 2;
 	uint32_t curLayerLen = 1;
-	//std::vector<uint32_t> offsets;
 	std::vector<uint32_t> leavesOnLayers;
 	uint32_t nOffsetBytes = *((uint32_t*)pyram.data.data());
 	uint8_t voxSizeInBytes = pyram.data[4];
@@ -393,7 +393,6 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 		bool offsetIsFinal = val < 0;
 		
 		val = offsetIsFinal ? (-val - 1) : val;
-		//offsets.push_back(val);
 		nLeavesBeforeCurrent += (offsetIsFinal ? val : leavesOnLayers[curPwr]);
 
 		if (offsetIsFinal)
@@ -405,15 +404,15 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 		uint32_t sidePart = curSide / pyram.base;
 		curPwrLayerPos = ((pos[Z] % curSide) / sidePart) * zLayerLen + ((pos[Y] % curSide) / sidePart) * yRowLen + ((pos[X] % curSide) / sidePart);
 
-		ptr += bytesForLayers[curPwr] * uint32_t(val * std::pow(pyram.base, DIMENSIONS)); // skipping to the end of current layer
-		ptr += bytesForLayers[curPwr] * curPwrLayerPos;  // skipping to the start of current offset
-
 		curLayerLen -= leavesOnLayers[curPwr];
 		curLayerLen *= std::pow(pyram.base, DIMENSIONS);
+
 		curPwr++;
+		ptr += bytesForLayers[curPwr] * uint32_t(val * std::pow(pyram.base, DIMENSIONS) + curPwrLayerPos); // skipping to the value of interest
 	}
 
-	ptr = (uint8_t*)pyram.data.data() + 5 + leavesOnLayers.size() * sizeof(uint32_t) + nOffsetBytes;
+	ptr = (uint8_t*)pyram.data.data() + sizeof(uint32_t) + sizeof(uint8_t) +
+		leavesOnLayers.size() * sizeof(uint32_t) + nOffsetBytes;
 
 	ptr += voxSizeInBytes * nLeavesBeforeCurrent;
 
