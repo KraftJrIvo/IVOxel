@@ -7,6 +7,8 @@
 #include "Cube.h"
 #include "Sphere.h"
 
+#include <omp.h>
+
 CPURenderer::CPURenderer()
 {
 }
@@ -17,12 +19,20 @@ void CPURenderer::render(const VoxelMap& map, Camera& cam) const
 	{
 		cv::Mat result(cam.resolution[1], cam.resolution[0], CV_8UC3, cv::Scalar(0, 0, 0));
 
-		for (uint32_t i = 0; i < cam.resolution[0]; ++i)
-			for (uint32_t j = 0; j < cam.resolution[1]; ++j)
-			{
-				auto pixel = _renderPixel(map, cam, i, j);
-				result.at<cv::Vec3b>(j, i) = { pixel[2], pixel[1], pixel[0] };
-			}
+		#pragma omp parallel
+		{
+			uint8_t nThreads = omp_get_num_threads();
+			uint8_t threadId = omp_get_thread_num();
+
+			for (uint32_t i = threadId; i < cam.resolution[0]; i += nThreads)
+				for (uint32_t j = 0; j < cam.resolution[1]; ++j)
+				{
+					auto pixel = _renderPixel(map, cam, i, j);
+					result.at<cv::Vec3b>(j, i) = { pixel[2], pixel[1], pixel[0] };
+				}
+			
+			#pragma omp barrier
+		}
 
 		cv::imshow("IVOxel 1.0", result);
 		auto keyCode = cv::waitKey(-1);
