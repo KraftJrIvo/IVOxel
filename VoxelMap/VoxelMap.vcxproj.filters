@@ -39,6 +39,9 @@
     <ClInclude Include="NeighbourConnections.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Voxel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TextFileMap.cpp">
@@ -63,6 +66,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="NeighbourConnections.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Voxel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

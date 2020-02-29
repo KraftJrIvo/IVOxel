@@ -61,14 +61,18 @@ enum class VoxelNeighbourInfoFormat
 	BINARY_26_DIR_INFO			// 4 bytes: 26 bits are used
 };
 
-class WordDelimitedBySpace : public std::string {};
-std::istream& operator>>(std::istream& is, WordDelimitedBySpace& output);
+namespace utils
+{
 
-std::vector<uint8_t> join(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b);
+	class WordDelimitedBySpace : public std::string {};
+	std::istream& operator>>(std::istream& is, WordDelimitedBySpace& output);
 
-uint8_t encodeRGB(uint8_t r, uint8_t g, uint8_t b);
-std::vector<uint8_t> decodeRGB(uint8_t rgb256);
+	std::vector<uint8_t> joinVectors(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b);
 
-uint8_t getPyramLayerBytesCount(uint8_t base, uint8_t power);
+	uint8_t encodeRGB(uint8_t r, uint8_t g, uint8_t b);
+	std::vector<uint8_t> decodeRGB(uint8_t rgb256);
 
-typedef std::tuple<int32_t, std::vector<uint8_t>, NeighbourConnections> VoxelData;
+	float calculateDist(const std::vector<float>& start, const std::vector<float>& end, float div = 1.0f);
+
+	typedef std::tuple<int32_t, std::vector<uint8_t>, NeighbourConnections> VoxelData;
+}

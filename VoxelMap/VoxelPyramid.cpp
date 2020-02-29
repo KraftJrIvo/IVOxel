@@ -1,5 +1,6 @@
 #include "VoxelPyramid.h"
 
+#include <map>
 #include <algorithm>
 #include <functional>
 
@@ -104,7 +105,7 @@ void VoxelPyramid::build(const std::vector<uint32_t>& size, const std::vector<ui
 			int32_t off = curOffset;
 			std::memcpy(offsetBytes.data(), &off, sizeof(int32_t));
 		}
-		data = join(data, offsetBytes);
+		data = utils::joinVectors(data, offsetBytes);
 		nOffsetBytes += bytesForThis;
 	};
 
@@ -144,9 +145,9 @@ void VoxelPyramid::build(const std::vector<uint32_t>& size, const std::vector<ui
 						std::vector<uint8_t> typeData = oob ? emptyType : std::vector<uint8_t>(types.begin() + type.sizeInBytesType * offset, types.begin() + type.sizeInBytesType * (offset + 1));
 						std::vector<uint8_t> colorData = oob ? emptyColor : std::vector<uint8_t>(colors.begin() + type.sizeInBytesColor * offset, colors.begin() + type.sizeInBytesColor * (offset + 1));
 						std::vector<uint8_t> neighData = oob ? emptyNeigh : std::vector<uint8_t>(neighbours.begin() + type.sizeInBytesNeighbourInfo * offset, neighbours.begin() + type.sizeInBytesNeighbourInfo * (offset + 1));
-						std::vector<uint8_t> allData = join(typeData, join(colorData, neighData));
+						std::vector<uint8_t> allData = utils::joinVectors(typeData, utils::joinVectors(colorData, neighData));
 
-						tempData[pwr] = join(tempData[pwr], allData);
+						tempData[pwr] = utils::joinVectors(tempData[pwr], allData);
 					}
 					else
 					{
@@ -181,5 +182,29 @@ void VoxelPyramid::build(const std::vector<uint32_t>& size, const std::vector<ui
 	}
 	std::memcpy(data.data(), &nOffsetBytes, sizeof(uint32_t));
 	for (int i = 0; i < nLayers; ++i)
-		data = join(data, tempData[i]);
+		data = utils::joinVectors(data, tempData[i]);
+}
+
+uint8_t VoxelPyramid::getPyramLayerBytesCount(uint8_t base, uint8_t power)
+{
+	static std::map<uint8_t, std::map<uint8_t, uint8_t>> bytesForPyramLayers;
+
+	auto it1 = bytesForPyramLayers.find(base);
+	bool found = (it1 != bytesForPyramLayers.end());
+
+	if (found)
+	{
+		auto it2 = it1->second.find(power);
+		found = (it2 != bytesForPyramLayers[base].end());
+
+		if (found)
+			return it2->second;
+	}
+
+	uint32_t vol = std::pow(std::pow(base, power), DIMENSIONS);
+	uint16_t bytesForThis = uint16_t(std::ceil(std::log2(vol) / 8.0f));
+	bytesForThis = (bytesForThis == 1 || bytesForThis == 2) ? bytesForThis : (bytesForThis == 0 ? 1 : 4);
+	auto result = bytesForPyramLayers[base][power] = bytesForThis;
+
+	return result;
 }

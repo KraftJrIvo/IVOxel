@@ -14,10 +14,3 @@ Voxel::Voxel(uint8_t _power, int32_t _type, const std::vector<uint8_t>& rgba, co
 	neighs(_neighs)
 {
 }
-
-std::vector<Ray> Voxel::reflect(const Ray& entryRay)
-{
-	//TODO
-
-	return {};
-}

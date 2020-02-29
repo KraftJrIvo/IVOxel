@@ -23,6 +23,7 @@
     <ClInclude Include="NeighbourConnections.h" />
     <ClInclude Include="TextFileMap.h" />
     <ClInclude Include="types.h" />
+    <ClInclude Include="Voxel.h" />
     <ClInclude Include="VoxelChunk.h" />
     <ClInclude Include="VoxelMap.h" />
     <ClInclude Include="VoxelMapType.h" />
@@ -33,6 +34,7 @@
     <ClCompile Include="NeighbourConnections.cpp" />
     <ClCompile Include="TextFileMap.cpp" />
     <ClCompile Include="types.cpp" />
+    <ClCompile Include="Voxel.cpp" />
     <ClCompile Include="VoxelChunk.cpp" />
     <ClCompile Include="VoxelMap.cpp" />
     <ClCompile Include="VoxelMapType.cpp" />

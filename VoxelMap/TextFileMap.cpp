@@ -36,8 +36,8 @@ void TextFileMap::load()
 		if (line.size() && line.at(0) != '#') str << line << " ";
 	}
 
-	std::vector<std::string> txtFileNumbers((std::istream_iterator<WordDelimitedBySpace>(str)),
-		std::istream_iterator<WordDelimitedBySpace>());
+	std::vector<std::string> txtFileNumbers((std::istream_iterator<utils::WordDelimitedBySpace>(str)),
+		std::istream_iterator<utils::WordDelimitedBySpace>());
 
 	uint32_t offset = 0;
 
@@ -68,7 +68,7 @@ void TextFileMap::load()
 			uint8_t vox = (voxTxt[0] == '-') ? 255 : std::stoi(voxTxt);
 
 			auto formattedType = _type.formatType(vox);
-			chunk.vTypes = join(chunk.vTypes, formattedType);
+			chunk.vTypes = utils::joinVectors(chunk.vTypes, formattedType);
 		}
 
 		// reversing Y for convenience
@@ -106,7 +106,7 @@ void TextFileMap::load()
 					uint8_t b = colors[B][offset];
 					uint8_t a = colors[A][offset];
 					auto formattedColor = _type.formatColor(r, g, b, a);
-					chunk.vColors = join(chunk.vColors, formattedColor);
+					chunk.vColors = utils::joinVectors(chunk.vColors, formattedColor);
 				}
 
 		// parsing lights

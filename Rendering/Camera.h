@@ -15,5 +15,4 @@ public:
 	std::vector<uint16_t> resolution;
 	std::vector<float> translation;
 	std::vector<float> rotation;
-
 };

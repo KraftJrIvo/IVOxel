@@ -4,6 +4,9 @@
 
 #include <opencv2/videoio.hpp>
 
+#include "Cube.h"
+#include "Sphere.h"
+
 CPURenderer::CPURenderer()
 {
 }
@@ -17,12 +20,11 @@ void CPURenderer::render(const VoxelMap& map, Camera& cam) const
 		for (uint32_t i = 0; i < cam.resolution[0]; ++i)
 			for (uint32_t j = 0; j < cam.resolution[1]; ++j)
 			{
-				//std::cout << i << " " << j << std::endl;
 				auto pixel = _renderPixel(map, cam, i, j);
 				result.at<cv::Vec3b>(j, i) = { pixel[2], pixel[1], pixel[0] };
 			}
 
-		cv::imshow("result", result);
+		cv::imshow("IVOxel 1.0", result);
 		auto keyCode = cv::waitKey(-1);
 
 		float speed = 0.1f;
@@ -55,7 +57,6 @@ void CPURenderer::renderVideo(VoxelMap& map, Camera& cam)
 		for (uint32_t i = 0; i < cam.resolution[0]; ++i)
 			for (uint32_t j = 0; j < cam.resolution[1]; ++j)
 			{
-				//std::cout << i << " " << j << std::endl;
 				auto pixel = _renderPixel(map, cam, i, j);
 				result.at<cv::Vec3b>(j, i) = { pixel[2], pixel[1], pixel[0] };
 			}
@@ -105,7 +106,7 @@ std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray) co
 	marcher.setStart(ray);
 
 	auto curPos = marcher.getAbsPos();
-	bool notFinish = true;// map.checkIfChunkIsPossible(curPos, ray.direction);
+	bool notFinish = true;
 
 	while (notFinish)
 	{
@@ -115,7 +116,7 @@ std::vector<uint8_t> CPURenderer::_rayTraceMap(const VoxelMap& map, Ray& ray) co
 			Ray entryRay(ray.bouncesLeft, marcher.getCurEntryPoint(), ray.direction, ray.strength, ray.lightRay);
 			resultColor = _rayTraceChunk(map, *chunk, entryRay, curChunkPos);
 			ray.bouncesLeft = entryRay.bouncesLeft;
-			ray.length += _calculateDepth(ray.start, marcher.getAbsPos());
+			ray.length += utils::calculateDist(ray.start, marcher.getAbsPos());
 			ray.length += entryRay.length;
 		}
 
@@ -174,7 +175,6 @@ std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const Voxe
 
 				Ray voxRay = ray;
 				voxRay.start = marcher.getCurEntryPoint(stepsToTake);
-				// TODO ray.bounce();
 
 				std::vector<float> absPose(3);
 				for (uint8_t i = 0; i < DIMENSIONS; ++i)
@@ -184,7 +184,7 @@ std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const Voxe
 
 				if (voxRay.length >= 0)
 				{
-					ray.length += _calculateDepth(ray.start, marcher.getAbsPos(), float(sideSteps));
+					ray.length += utils::calculateDist(ray.start, marcher.getAbsPos(), float(sideSteps));
 					ray.length += (voxRay.length * stepsToTake) / float(sideSteps);
 					ray.bouncesLeft--;
 					return color;
@@ -205,51 +205,9 @@ std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const Voxe
 	}
 
 	// calculate length in chunks
-	ray.length += _calculateDepth(ray.start, marcher.getAbsPos(), float(sideSteps));
+	ray.length += utils::calculateDist(ray.start, marcher.getAbsPos(), float(sideSteps));
 
 	return ray.color;
-}
-
-bool solveQuadratic(const float& a, const float& b, const float& c, float& x0, float& x1)
-{
-	float discr = b * b - 4 * a * c;
-	if (discr < 0) return false;
-	else if (discr == 0) x0 = x1 = -0.5 * b / a;
-	else {
-		float q = (b > 0) ?
-			-0.5 * (b + sqrt(discr)) :
-			-0.5 * (b - sqrt(discr));
-		x0 = q / a;
-		x1 = c / q;
-	}
-	if (x0 > x1) std::swap(x0, x1);
-
-	return true;
-}
-
-float intersectSphereDist(const Eigen::Vector3f& orig, const Eigen::Vector3f& dir)
-{
-	float t0, t1; // solutions for t if the ray intersects 
-
-	Eigen::Vector3f center = { 0.5f, 0.5f, 0.5f };
-	float radius2 = 0.49f * 0.49f;
-
-	Eigen::Vector3f L = orig - center;
-	float a = dir.dot(dir);
-	float b = 2 * dir.dot(L);
-	float c = L.dot(L) - radius2;
-	if (!solveQuadratic(a, b, c, t0, t1)) return -1;
-
-	if (t0 > t1) std::swap(t0, t1);
-
-	if (t0 < 0) {
-		t0 = t1; // if t0 is negative, let's use t1 instead 
-		if (t0 < 0) return -1; // both t0 and t1 are negative 
-	}
-
-	float t = t0;
-
-	return t;
 }
 
 std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const VoxelChunk& chunk, const Voxel& vox, Ray& ray, const std::vector<float>& absPose, float voxSide) const
@@ -262,30 +220,9 @@ std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const Voxe
 	Eigen::Vector3f normal;
 
 	if (vox.type == 0)
-	{
-		// cube
-		ray.length = 0;
-		Eigen::Vector3f g = orig - Eigen::Vector3f(0.5f, 0.5f, 0.5f);
-		Eigen::Vector3f gabs = { fabs(g[X]), fabs(g[Y]), fabs(g[Z]) };
-		float maxG = std::max(gabs[X], std::max(gabs[Y], gabs[Z]));
-		for (uint8_t i = 0; i < DIMENSIONS; ++i)
-			if (gabs[i] == maxG)
-			{
-				normal[i] = g[i] / 0.5f;
-				normal[(i + 1) % DIMENSIONS] = 0;
-				normal[(i + 2) % DIMENSIONS] = 0;
-				break;
-			}
-		hit = orig;
-	}
+		ray.length = Cube::rayTrace(orig, dir, hit, normal);
 	else if (vox.type == 1)
-	{
-		// sphere
-		ray.length = intersectSphereDist(orig, dir);
-		hit = orig + dir * ray.length;
-		Eigen::Vector3f center = { 0.5f, 0.5f, 0.5f };
-		normal = hit - center;
-	}
+		ray.length = Sphere::rayTrace(orig, dir, hit, normal);
 
 	normal.normalize();
 
@@ -338,11 +275,6 @@ std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const Voxe
 	return color;
 }
 
-std::vector<uint8_t> CPURenderer::mixRayColor(const std::vector<uint8_t>& color, const Ray& ray) const
-{
-	return std::vector<uint8_t>();
-}
-
 Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, const std::vector<uint32_t>& pos) const
 {
 	Voxel vox;
@@ -367,7 +299,7 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 	uint32_t zLayerLen = std::pow(pyram.base, DIMENSIONS - 1);
 	uint32_t yRowLen = std::pow(pyram.base, DIMENSIONS - 2);
 
-	uint8_t bytesForThisLayer = getPyramLayerBytesCount(pyram.base, curPwr);
+	uint8_t bytesForThisLayer = VoxelPyramid::getPyramLayerBytesCount(pyram.base, curPwr);
 
 	bool offsetIsFinal = false;
 	while (!offsetIsFinal)
@@ -400,7 +332,7 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 		curLayerLen *= std::pow(pyram.base, DIMENSIONS);
 
 		curPwr++;
-		bytesForThisLayer = getPyramLayerBytesCount(pyram.base, curPwr);
+		bytesForThisLayer = VoxelPyramid::getPyramLayerBytesCount(pyram.base, curPwr);
 		ptr += bytesForThisLayer * uint32_t(val * std::pow(pyram.base, DIMENSIONS) + curPwrLayerPos); // skipping to the value of interest
 	}
 
@@ -417,16 +349,3 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 
 	return vox;
 }
-
-float CPURenderer::_calculateDepth(const std::vector<float>& start, const std::vector<float>& end, float div) const
-{
-	cv::Vec3f pos = cv::Vec3f(end[X], end[Y], end[Z]) - cv::Vec3f(start[X], start[Y], start[Z]);
-
-	float val = sqrt((pos[X] * pos[X]) + (pos[Y] * pos[Y]) + (pos[Z] * pos[Z]));
-	
-	if (div != 1.0f)
-		val /= div;
-
-	return  val;
-}
-

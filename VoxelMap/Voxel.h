@@ -1,14 +1,12 @@
 #pragma once
 
-#include "IReflectiveObject.h"
-#include <NeighbourConnections.h>
+#include "NeighbourConnections.h"
 
-class Voxel : IReflectiveObject
+class Voxel
 {
 public:
 	Voxel();
 	Voxel(uint8_t power, int32_t type, const std::vector<uint8_t>& rgba, const NeighbourConnections& neighs);
-	std::vector<Ray> reflect(const Ray& entryRay);
 
 	uint8_t power;
 	int32_t type;

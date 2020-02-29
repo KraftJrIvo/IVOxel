@@ -21,20 +21,21 @@
   <ItemGroup>
     <ClInclude Include="Camera.h" />
     <ClInclude Include="CPURenderer.h" />
+    <ClInclude Include="Cube.h" />
     <ClInclude Include="GPURenderer.h" />
-    <ClInclude Include="IReflectiveObject.h" />
     <ClInclude Include="IVoxelRenderer.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="RayVoxelMarcher.h" />
-    <ClInclude Include="Voxel.h" />
+    <ClInclude Include="Sphere.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CPURenderer.cpp" />
+    <ClCompile Include="Cube.cpp" />
     <ClCompile Include="GPURenderer.cpp" />
     <ClCompile Include="Ray.cpp" />
     <ClCompile Include="RayVoxelMarcher.cpp" />
-    <ClCompile Include="Voxel.cpp" />
+    <ClCompile Include="Sphere.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

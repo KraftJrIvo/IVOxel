@@ -16,4 +16,6 @@ struct VoxelPyramid
 	std::vector<uint8_t> data;
 
 	void build(const std::vector<uint32_t>& size, const std::vector<uint8_t>& types, const std::vector<uint8_t>& colors, const std::vector<uint8_t>& neighbours);
+
+	static uint8_t getPyramLayerBytesCount(uint8_t base, uint8_t power);
 };
