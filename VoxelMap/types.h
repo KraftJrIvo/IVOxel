@@ -69,4 +69,6 @@ std::vector<uint8_t> join(const std::vector<uint8_t>& a, const std::vector<uint8
 uint8_t encodeRGB(uint8_t r, uint8_t g, uint8_t b);
 std::vector<uint8_t> decodeRGB(uint8_t rgb256);
 
+uint8_t getPyramLayerBytesCount(uint8_t base, uint8_t power);
+
 typedef std::tuple<int32_t, std::vector<uint8_t>, NeighbourConnections> VoxelData;

@@ -345,17 +345,6 @@ std::vector<uint8_t> CPURenderer::mixRayColor(const std::vector<uint8_t>& color,
 
 Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, const std::vector<uint32_t>& pos) const
 {
-	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	std::vector<uint16_t> bytesForLayers;
-	for (uint32_t i = 0; i < pyram.power + 1; ++i)
-	{
-		uint32_t vol = std::pow(std::pow(pyram.base, i), DIMENSIONS);
-		uint16_t bytesForThis = uint16_t(std::ceil(std::log2(vol) / 8.0f));
-		bytesForThis = (bytesForThis == 1 || bytesForThis == 2) ? bytesForThis : (bytesForThis == 0 ? 1 : 4);
-		bytesForLayers.push_back(bytesForThis);
-	}
-	//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 	Voxel vox;
 
 	uint32_t nLeavesBeforeCurrent = 0;
@@ -378,14 +367,17 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 	uint32_t zLayerLen = std::pow(pyram.base, DIMENSIONS - 1);
 	uint32_t yRowLen = std::pow(pyram.base, DIMENSIONS - 2);
 
+	uint8_t bytesForThisLayer = getPyramLayerBytesCount(pyram.base, curPwr);
+
 	bool offsetIsFinal = false;
 	while (!offsetIsFinal)
 	{
 		int8_t* offset = (int8_t*)ptr;
 		int32_t val;
-		if (bytesForLayers[curPwr] == 1)
+
+		if (bytesForThisLayer == 1)
 			val = *(offset);
-		else if (bytesForLayers[curPwr] == 2)
+		else if (bytesForThisLayer == 2)
 			val = *((int16_t*)offset);
 		else
 			val = *((int32_t*)offset);
@@ -398,7 +390,7 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 		if (offsetIsFinal)
 			break;
 
-		ptr += bytesForLayers[curPwr] * uint32_t(curLayerLen - curPwrLayerPos); // skipping to the end of current layer
+		ptr += bytesForThisLayer * uint32_t(curLayerLen - curPwrLayerPos); // skipping to the end of current layer
 
 		uint32_t curSide = totalWidth / std::pow(pyram.base, curPwr);
 		uint32_t sidePart = curSide / pyram.base;
@@ -408,7 +400,8 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 		curLayerLen *= std::pow(pyram.base, DIMENSIONS);
 
 		curPwr++;
-		ptr += bytesForLayers[curPwr] * uint32_t(val * std::pow(pyram.base, DIMENSIONS) + curPwrLayerPos); // skipping to the value of interest
+		bytesForThisLayer = getPyramLayerBytesCount(pyram.base, curPwr);
+		ptr += bytesForThisLayer * uint32_t(val * std::pow(pyram.base, DIMENSIONS) + curPwrLayerPos); // skipping to the value of interest
 	}
 
 	ptr = (uint8_t*)pyram.data.data() + sizeof(uint32_t) + sizeof(uint8_t) +
