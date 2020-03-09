@@ -19,6 +19,12 @@
     <Filter Include="Source Files\Geometry">
       <UniqueIdentifier>{4a2de89b-5659-431b-966f-ed161832a61f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Vulkan">
+      <UniqueIdentifier>{7a365da4-1e52-4eee-a50d-3cfb39460b93}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Vulkan">
+      <UniqueIdentifier>{b50c841f-a3d8-4a44-9bda-7e0d892811d0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="IVoxelRenderer.h">
@@ -45,6 +51,18 @@
     <ClInclude Include="Cube.h">
       <Filter>Header Files\Geometry</Filter>
     </ClInclude>
+    <ClInclude Include="VulkanTypes.h">
+      <Filter>Header Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanErrorChecker.h">
+      <Filter>Header Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanInstance.h">
+      <Filter>Header Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="outputprinter.h">
+      <Filter>Header Files\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CPURenderer.cpp">
@@ -67,6 +85,15 @@
     </ClCompile>
     <ClCompile Include="Sphere.cpp">
       <Filter>Source Files\Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanTypes.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanErrorChecker.cpp">
+      <Filter>Source Files\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanInstance.cpp">
+      <Filter>Source Files\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

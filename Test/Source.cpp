@@ -1,10 +1,11 @@
 #include <CPURenderer.h>
+#include <GPURenderer.h>
 #include <TextFileMap.h>
 #include <Camera.h>
 
 int main()
 {
-	CPURenderer renderer;
+	GPURenderer renderer;
 	
 	VoxelMapType mapType(VoxelTypeFormat::UINT8, VoxelColorFormat::RGB256, VoxelNeighbourInfoFormat::NO_NEIGHBOUR_INFO);
 
