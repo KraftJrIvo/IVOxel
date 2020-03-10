@@ -67,7 +67,11 @@ std::vector<VkPhysicalDevice> VulkanInstance::getAppropriatePhysicalDevices(cons
 bool VulkanInstance::choosePhysicalDevice()
 {
 	auto devices = getAvailablePhysicalDevices();
-	auto appDevices = getAppropriatePhysicalDevices(devices, { VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT }, VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
+	std::vector<uint32_t> queueFamilies = { VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT };
+	auto appDevices = getAppropriatePhysicalDevices(devices, queueFamilies, VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
+	if (!appDevices.size())
+		appDevices = getAppropriatePhysicalDevices(devices, queueFamilies, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU);
+
 
 	if (appDevices.size())
 	{
