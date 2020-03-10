@@ -2,15 +2,21 @@
 
 #include <iostream>
 
-VulkanInstance::VulkanInstance(const VkInstanceCreateInfo& info)
+VulkanInstance::VulkanInstance()
 {
+	VkApplicationInfo app_info = vkTypes::getAppInfo();
+	VkInstanceCreateInfo info = vkTypes::getInstanceCreateInfo(app_info, _layers, _extensions);
+
 	vkCreateInstance(&info, nullptr, &_instance);
 }
 
 VulkanInstance::~VulkanInstance()
 {
 	if (_instance)
+	{
+		if (_deviceChosen) vkDestroyDevice(_device.getDevice(), nullptr);
 		vkDestroyInstance(_instance, nullptr);
+	}
 }
 
 std::vector<VkPhysicalDevice>VulkanInstance::getAvailablePhysicalDevices()
@@ -59,7 +65,7 @@ VkPhysicalDevice VulkanInstance::getFirstAppropriatePhysicalDevice(const std::ve
 	return VK_NULL_HANDLE;
 }
 
-bool VulkanInstance::choosePhysicalDevice()
+bool VulkanInstance::chooseDevice()
 {
 	auto devices = getAvailablePhysicalDevices();
 	std::vector<uint32_t> queueFamilies = { VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT };
@@ -69,9 +75,14 @@ bool VulkanInstance::choosePhysicalDevice()
 
 	if (appDevice != VK_NULL_HANDLE)
 	{
-		_device = VulkanPhysicalDevice(appDevice, queueFamilies);
+		_deviceChosen = true;
 
-		std::cout << "Device was chosen: " << _device.getProps().deviceName << std::endl;
+		_physDevice = VulkanPhysicalDevice(appDevice, queueFamilies);
+		std::cout << "Device was chosen: " << _physDevice.getProps().deviceName << std::endl;
+
+		_device = VulkanDevice(_physDevice, _layers, _extensions);
+		std::cout << "Required queues were created. " << std::endl;
+
 		return true;
 	}
 

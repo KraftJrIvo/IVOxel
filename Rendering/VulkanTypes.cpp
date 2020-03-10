@@ -5,7 +5,7 @@ VkApplicationInfo vkTypes::getAppInfo()
 	VkApplicationInfo info = {};
 
     info.sType              =   VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    info.pNext              =   NULL;
+    info.pNext              =   nullptr;
     info.pApplicationName   =   "test";
     info.applicationVersion =   VK_MAKE_VERSION(0, 0, 1);
     info.pEngineName        =   "IVOxel";
@@ -15,18 +15,51 @@ VkApplicationInfo vkTypes::getAppInfo()
 	return info;
 }
 
-VkInstanceCreateInfo vkTypes::getInstanceCreateInfo(const VkApplicationInfo& appInfo, std::vector<const char*>& layers, std::vector<const char*>& extensions)
+VkInstanceCreateInfo vkTypes::getInstanceCreateInfo(const VkApplicationInfo& appInfo, const std::vector<const char*>& layers, const std::vector<const char*>& extensions)
 {
 	VkInstanceCreateInfo info = {};
     
     info.sType                   =   VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-    info.pNext                   =   NULL;
+    info.pNext                   =   nullptr;
     info.flags                   =   0;
     info.pApplicationInfo        =   &appInfo;
-    info.enabledLayerCount       =   0;//layers.size();
-    info.ppEnabledLayerNames     = NULL;//layers.data();
-    info.enabledExtensionCount   = 0;//extensions.size();
-    info.ppEnabledExtensionNames = NULL;//extensions.data();
+    info.enabledLayerCount       =   layers.size();
+    info.ppEnabledLayerNames     =   layers.data();
+    info.enabledExtensionCount   =   extensions.size();
+    info.ppEnabledExtensionNames =   extensions.data();
 
 	return info;
+}
+
+VkDeviceQueueCreateInfo vkTypes::getQFCreateInfo(uint32_t familyId, float* priority)
+{
+    VkDeviceQueueCreateInfo info = {};
+	
+    info.sType            =     VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    info.pNext            =     nullptr;
+    info.flags            =     0;
+    info.queueCount       =     1;
+    info.queueFamilyIndex =     familyId;
+    info.pQueuePriorities =     priority;
+
+    return info;
+}
+
+VkDeviceCreateInfo vkTypes::getDeviceCreateInfo(const std::vector<VkDeviceQueueCreateInfo>& queueInfos, const VkPhysicalDeviceFeatures* feats,
+    const std::vector<const char*>& layers, const std::vector<const char*>& extensions)
+{
+    VkDeviceCreateInfo info = {};
+
+    info.sType                   = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    info.pNext                   = nullptr;
+    info.flags                   = 0;
+    info.queueCreateInfoCount    = queueInfos.size();
+    info.pQueueCreateInfos       = queueInfos.data();
+    info.enabledLayerCount       = layers.size();
+    info.ppEnabledLayerNames     = layers.data();
+    info.enabledExtensionCount   = extensions.size();
+    info.ppEnabledExtensionNames = extensions.data();
+    info.pEnabledFeatures        = feats;
+
+    return info;
 }

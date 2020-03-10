@@ -4,22 +4,23 @@
 
 #include <vulkan/vulkan.h>
 
-#include "VulkanErrorChecker.h"
-#include "VulkanPhysicalDevice.h"
+#include "VulkanDevice.h"
 
 class VulkanInstance
 {
 public:
-	VulkanInstance() = default;
-	VulkanInstance(const VkInstanceCreateInfo& info);
+	VulkanInstance();
 	~VulkanInstance();
 
-	bool choosePhysicalDevice();
+	bool chooseDevice();
 	VkPhysicalDevice getFirstAppropriatePhysicalDevice(const std::vector<VkPhysicalDevice>& physDevs, std::vector<uint32_t> queueFamilyFlags, VkPhysicalDeviceType type = VK_PHYSICAL_DEVICE_TYPE_OTHER);
 	std::vector<VkPhysicalDevice> getAvailablePhysicalDevices();
 
 private:
+	std::vector<const char*> _layers;
+	std::vector<const char*> _extensions;
 	VkInstance _instance;
-	VulkanPhysicalDevice _device;
-	VulkanErrorChecker _errorChecker;
+	VulkanDevice _device;
+	VulkanPhysicalDevice _physDevice;
+	bool _deviceChosen = false;
 };

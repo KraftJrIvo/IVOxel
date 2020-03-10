@@ -14,6 +14,4 @@ public:
 private:
 	VkInstance _inst;
 	VulkanInstance _vulkan;
-	std::vector<const char*> _layers;
-	std::vector<const char*> _extensions;
 };
