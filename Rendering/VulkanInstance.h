@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.h>
 
 #include "VulkanErrorChecker.h"
+#include "VulkanPhysicalDevice.h"
 
 class VulkanInstance
 {
@@ -13,15 +14,12 @@ public:
 	VulkanInstance(const VkInstanceCreateInfo& info);
 	~VulkanInstance();
 
-	std::vector<VkPhysicalDevice> getAvailablePhysicalDevices();
-	std::vector<VkPhysicalDevice> getAppropriatePhysicalDevices(const std::vector<VkPhysicalDevice>& physDevs, std::vector<uint32_t> queueFamilyFlags, VkPhysicalDeviceType type = VK_PHYSICAL_DEVICE_TYPE_OTHER);
 	bool choosePhysicalDevice();
+	VkPhysicalDevice getFirstAppropriatePhysicalDevice(const std::vector<VkPhysicalDevice>& physDevs, std::vector<uint32_t> queueFamilyFlags, VkPhysicalDeviceType type = VK_PHYSICAL_DEVICE_TYPE_OTHER);
+	std::vector<VkPhysicalDevice> getAvailablePhysicalDevices();
 
 private:
 	VkInstance _instance;
-	VkPhysicalDevice _device;
-	VkPhysicalDeviceProperties _deviceProps;
-	VkPhysicalDeviceFeatures _deviceFeats;
-	VkPhysicalDeviceMemoryProperties _deviceMemProps;
+	VulkanPhysicalDevice _device;
 	VulkanErrorChecker _errorChecker;
 };

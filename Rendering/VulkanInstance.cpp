@@ -24,28 +24,21 @@ std::vector<VkPhysicalDevice>VulkanInstance::getAvailablePhysicalDevices()
 	return devices;
 }
 
-std::vector<VkPhysicalDevice> VulkanInstance::getAppropriatePhysicalDevices(const std::vector<VkPhysicalDevice>& physDevs, std::vector<uint32_t> queueFamilyFlags, VkPhysicalDeviceType type)
+VkPhysicalDevice VulkanInstance::getFirstAppropriatePhysicalDevice(const std::vector<VkPhysicalDevice>& physDevs, std::vector<uint32_t> queueFamilyFlags, VkPhysicalDeviceType type)
 {
 	std::vector<VkPhysicalDevice> appropriateDevices;
 
 	for (auto& device : physDevs)
 	{
-		uint32_t nQueueFamilies;
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &nQueueFamilies, nullptr);
-		std::vector<VkQueueFamilyProperties> queueFams;
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &nQueueFamilies, queueFams.data());
-
 		bool ok = true;
-		for (auto& queueFam : queueFams)
+		for (auto& flag : queueFamilyFlags)
 		{
-			for (auto& flag : queueFamilyFlags)
-				if (!(queueFam.queueFlags & flag))
-				{
-					ok = false;
-					break;
-				}
-			if (!ok)
+			auto ids = VulkanPhysicalDevice::getQueueFamilyIndices(device, { flag });
+			if (!ids.size())
+			{
+				ok = false;
 				break;
+			}
 		}
 
 		if (ok)
@@ -61,28 +54,27 @@ std::vector<VkPhysicalDevice> VulkanInstance::getAppropriatePhysicalDevices(cons
 		}
 	}
 
-	return appropriateDevices;
+	if (appropriateDevices.size())
+		return appropriateDevices[0];
+	return VK_NULL_HANDLE;
 }
 
 bool VulkanInstance::choosePhysicalDevice()
 {
 	auto devices = getAvailablePhysicalDevices();
 	std::vector<uint32_t> queueFamilies = { VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT };
-	auto appDevices = getAppropriatePhysicalDevices(devices, queueFamilies, VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
-	if (!appDevices.size())
-		appDevices = getAppropriatePhysicalDevices(devices, queueFamilies, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU);
+	auto appDevice = getFirstAppropriatePhysicalDevice(devices, queueFamilies, VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
+	if (appDevice == VK_NULL_HANDLE)
+		appDevice = getFirstAppropriatePhysicalDevice(devices, queueFamilies, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU);
 
-
-	if (appDevices.size())
+	if (appDevice != VK_NULL_HANDLE)
 	{
-		_device = appDevices[0];
-		vkGetPhysicalDeviceProperties(_device, &_deviceProps);
-		vkGetPhysicalDeviceFeatures(_device, &_deviceFeats);
-		vkGetPhysicalDeviceMemoryProperties(_device, &_deviceMemProps);
+		_device = VulkanPhysicalDevice(appDevice, queueFamilies);
 
-		std::cout << "Device was chosen: " << _deviceProps.deviceName << std::endl;
+		std::cout << "Device was chosen: " << _device.getProps().deviceName << std::endl;
 		return true;
 	}
+
 	std::cout << "No device was chosen." << std::endl;
 	return false;
 }
