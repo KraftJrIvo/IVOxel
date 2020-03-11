@@ -8,7 +8,7 @@ namespace vkTypes
 
 	VkInstanceCreateInfo getInstanceCreateInfo(const VkApplicationInfo& appInfo, const std::vector<const char*>& layers, const std::vector<const char*>& extensions);
 
-	VkDeviceQueueCreateInfo getQFCreateInfo(uint32_t familyId, float* priority);
+	VkDeviceQueueCreateInfo getQFCreateInfo(uint32_t queueCount, uint32_t familyId, float* priority);
 
 	VkDeviceCreateInfo getDeviceCreateInfo(const std::vector<VkDeviceQueueCreateInfo>& queueInfos, const VkPhysicalDeviceFeatures* feats, 
 		const std::vector<const char*>& layers, const std::vector<const char*>& extensions);

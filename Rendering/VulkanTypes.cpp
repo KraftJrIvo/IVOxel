@@ -31,14 +31,14 @@ VkInstanceCreateInfo vkTypes::getInstanceCreateInfo(const VkApplicationInfo& app
 	return info;
 }
 
-VkDeviceQueueCreateInfo vkTypes::getQFCreateInfo(uint32_t familyId, float* priority)
+VkDeviceQueueCreateInfo vkTypes::getQFCreateInfo(uint32_t queueCount, uint32_t familyId, float* priority)
 {
     VkDeviceQueueCreateInfo info = {};
 	
     info.sType            =     VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     info.pNext            =     nullptr;
     info.flags            =     0;
-    info.queueCount       =     1;
+    info.queueCount       =     queueCount;
     info.queueFamilyIndex =     familyId;
     info.pQueuePriorities =     priority;
 
@@ -50,7 +50,7 @@ VkDeviceCreateInfo vkTypes::getDeviceCreateInfo(const std::vector<VkDeviceQueueC
 {
     VkDeviceCreateInfo info = {};
 
-    info.sType                   =  VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    info.sType                   =  VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     info.pNext                   =  nullptr;
     info.flags                   =  0;
     info.queueCreateInfoCount    =  queueInfos.size();

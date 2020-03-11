@@ -4,7 +4,7 @@
 
 GPURenderer::GPURenderer()
 {
-	std::vector<uint32_t> queueFamilies = { VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT };
+	std::vector<uint32_t> queueFamilies = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT };
 	std::vector<VkPhysicalDeviceType> deviceTypesByPriority = {VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU};
 
 	_vulkan.chooseDevice(queueFamilies, deviceTypesByPriority);
@@ -38,11 +38,11 @@ void GPURenderer::_outputSupportedDeviceExtensions()
 {
 	auto& physDevice = _vulkan.getPhysDevice();
 	uint32_t _extensionCount = 0;
-	vkEnumerateDeviceExtensionProperties(physDevice.getDevice(), NULL, &_extensionCount, NULL);
-	std::vector<VkExtensionProperties> extProps(_extensionCount);
-	vkEnumerateDeviceExtensionProperties(physDevice.getDevice(), NULL, &_extensionCount, extProps.data());
+	vkEnumerateDeviceLayerProperties(physDevice.getDevice(), &_extensionCount, NULL);
+	std::vector<VkLayerProperties> extProps(_extensionCount);
+	vkEnumerateDeviceLayerProperties(physDevice.getDevice(), &_extensionCount, extProps.data());
 	std::cout << "Supported extensions: " << std::endl;
 	for (uint32_t i = 0; i < _extensionCount; i++) {
-		std::cout << "\"" << extProps[i].extensionName << "\"" << std::endl;
+		std::cout << "\"" << extProps[i].layerName << "\"" << std::endl;
 	}
 }

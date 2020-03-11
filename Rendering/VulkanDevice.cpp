@@ -5,10 +5,10 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice& physDev, const std::vecto
 {
 	std::vector<VkDeviceQueueCreateInfo> queInfos;
 
-	float priority = 1.0f;
-	auto families = physDev.getQueueFamilies();
+	auto families = physDev.getQueueFamilyIndices(physDev.getDevice(), );
+	std::vector<float> priorities(families.size());
 	for (auto& fam : families)
-		queInfos.push_back(vkTypes::getQFCreateInfo(fam, &priority));
+		queInfos.push_back(vkTypes::getQFCreateInfo(families.size(), fam, priorities.data()));
 
 	auto deviceCreateInfo = vkTypes::getDeviceCreateInfo(queInfos, &physDev.getFeats(), layers, extensions);
 
