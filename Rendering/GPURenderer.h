@@ -12,6 +12,5 @@ public:
 	virtual void render(const VoxelMap& map, Camera& cam) const;
 
 private:
-	VkInstance _inst;
 	VulkanInstance _vulkan;
 };

@@ -14,10 +14,10 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice& physDev, const std::vecto
 
 	vkCreateDevice(physDev.getDevice(), &deviceCreateInfo, nullptr, &_device);
 
-	_queues.resize(families.size());
 	int i = 0;
+	_queues.resize(families.size());
 	for (auto& fam : families)
-		vkGetDeviceQueue(_device, fam, i, &_queues[i++]);
+		vkGetDeviceQueue(_device, fam, 0, &_queues[i++]);
 }
 
 const VkDevice& VulkanDevice::getDevice()
