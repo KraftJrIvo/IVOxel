@@ -13,4 +13,6 @@ public:
 
 private:
 	VulkanInstance _vulkan;
+
+	void _outputSupportedDeviceExtensions();
 };
