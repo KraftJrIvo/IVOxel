@@ -50,16 +50,41 @@ VkDeviceCreateInfo vkTypes::getDeviceCreateInfo(const std::vector<VkDeviceQueueC
 {
     VkDeviceCreateInfo info = {};
 
-    info.sType                   = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    info.pNext                   = nullptr;
-    info.flags                   = 0;
-    info.queueCreateInfoCount    = queueInfos.size();
-    info.pQueueCreateInfos       = queueInfos.data();
-    info.enabledLayerCount       = layers.size();
-    info.ppEnabledLayerNames     = layers.data();
-    info.enabledExtensionCount   = extensions.size();
-    info.ppEnabledExtensionNames = extensions.data();
-    info.pEnabledFeatures        = feats;
+    info.sType                   =  VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    info.pNext                   =  nullptr;
+    info.flags                   =  0;
+    info.queueCreateInfoCount    =  queueInfos.size();
+    info.pQueueCreateInfos       =  queueInfos.data();
+    info.enabledLayerCount       =  layers.size();
+    info.ppEnabledLayerNames     =  layers.data();
+    info.enabledExtensionCount   =  extensions.size();
+    info.ppEnabledExtensionNames =  extensions.data();
+    info.pEnabledFeatures        =  feats;
+
+    return info;
+}
+
+VkCommandPoolCreateInfo vkTypes::getCPCreateInfo(uint32_t familyId, VkCommandPoolCreateFlags flags)
+{
+    VkCommandPoolCreateInfo info = {};
+    
+    info.sType            =     VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    info.pNext            =     nullptr;
+    info.flags            =     flags;
+    info.queueFamilyIndex =     familyId;
+    
+    return info;
+}
+
+VkCommandBufferAllocateInfo vkTypes::getCBAllocateInfo(const VkCommandPool& pool, uint32_t count, VkCommandBufferLevel level)
+{
+    VkCommandBufferAllocateInfo info = {};
+
+    info.sType              =   VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    info.pNext              =   nullptr;
+    info.level              =   level;
+    info.commandPool        =   pool;
+    info.commandBufferCount =   count;
 
     return info;
 }

@@ -12,9 +12,12 @@ public:
 	VulkanInstance();
 	~VulkanInstance();
 
-	bool chooseDevice();
+	bool chooseDevice(const std::vector<uint32_t>& queueFamilies, const std::vector<VkPhysicalDeviceType>& typesByPriority);
 	VkPhysicalDevice getFirstAppropriatePhysicalDevice(const std::vector<VkPhysicalDevice>& physDevs, std::vector<uint32_t> queueFamilyFlags, VkPhysicalDeviceType type = VK_PHYSICAL_DEVICE_TYPE_OTHER);
 	std::vector<VkPhysicalDevice> getAvailablePhysicalDevices();
+
+	VulkanDevice& getDevice();
+	VulkanPhysicalDevice& getPhysDevice();
 
 private:
 	std::vector<const char*> _layers;

@@ -1,7 +1,5 @@
 #include "VulkanInstance.h"
 
-#include <iostream>
-
 VulkanInstance::VulkanInstance()
 {
 	VkApplicationInfo app_info = vkTypes::getAppInfo();
@@ -14,7 +12,11 @@ VulkanInstance::~VulkanInstance()
 {
 	if (_instance)
 	{
-		if (_deviceChosen) vkDestroyDevice(_device.getDevice(), nullptr);
+		if (_deviceChosen)
+		{
+			_device.destroyPools();
+			vkDestroyDevice(_device.getDevice(), nullptr);
+		}
 		vkDestroyInstance(_instance, nullptr);
 	}
 }
@@ -28,6 +30,16 @@ std::vector<VkPhysicalDevice>VulkanInstance::getAvailablePhysicalDevices()
 	vkEnumeratePhysicalDevices(_instance, &nDevices, devices.data());
 
 	return devices;
+}
+
+VulkanDevice& VulkanInstance::getDevice()
+{
+	return _device;
+}
+
+VulkanPhysicalDevice& VulkanInstance::getPhysDevice()
+{
+	return _physDevice;
 }
 
 VkPhysicalDevice VulkanInstance::getFirstAppropriatePhysicalDevice(const std::vector<VkPhysicalDevice>& physDevs, std::vector<uint32_t> queueFamilyFlags, VkPhysicalDeviceType type)
@@ -65,27 +77,25 @@ VkPhysicalDevice VulkanInstance::getFirstAppropriatePhysicalDevice(const std::ve
 	return VK_NULL_HANDLE;
 }
 
-bool VulkanInstance::chooseDevice()
+bool VulkanInstance::chooseDevice(const std::vector<uint32_t>& queueFamilies, const std::vector<VkPhysicalDeviceType>& typesByPriority)
 {
 	auto devices = getAvailablePhysicalDevices();
-	std::vector<uint32_t> queueFamilies = { VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT };
-	auto appDevice = getFirstAppropriatePhysicalDevice(devices, queueFamilies, VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
-	if (appDevice == VK_NULL_HANDLE)
-		appDevice = getFirstAppropriatePhysicalDevice(devices, queueFamilies, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU);
+
+	int i = 0;
+	VkPhysicalDevice appDevice = VK_NULL_HANDLE;
+	while (appDevice == VK_NULL_HANDLE)
+		appDevice = getFirstAppropriatePhysicalDevice(devices, queueFamilies, typesByPriority[i]);
 
 	if (appDevice != VK_NULL_HANDLE)
 	{
 		_deviceChosen = true;
 
 		_physDevice = VulkanPhysicalDevice(appDevice, queueFamilies);
-		std::cout << "Device was chosen: " << _physDevice.getProps().deviceName << std::endl;
 
 		_device = VulkanDevice(_physDevice, _layers, _extensions);
-		std::cout << "Required queues were created. " << std::endl;
 
 		return true;
 	}
 
-	std::cout << "No device was chosen." << std::endl;
 	return false;
 }
