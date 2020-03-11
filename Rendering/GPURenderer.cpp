@@ -20,12 +20,14 @@ GPURenderer::GPURenderer()
 		_outputSupportedDeviceExtensions();
 
 		VkCommandBuffer* commands = new VkCommandBuffer[3];
-		mainDevice.getCommand(commands, 1, queueFamilies[0]);
-		mainDevice.getCommand(commands + 1, 2, queueFamilies[1]);
+		uint32_t id1 = mainDevice.getQFIdByType(queueFamilies[0]);
+		uint32_t id2 = mainDevice.getQFIdByType(queueFamilies[1]);
+		mainDevice.getCommand(commands, 1, id1);
+		mainDevice.getCommand(commands + 1, 2, id2);
 		std::cout << std::endl << "Allocated 1 compute command and 2 graphics command successfully." << std::endl << std::endl;
 
-		mainDevice.freeCommand(commands, 1, queueFamilies[0]);
-		mainDevice.freeCommand(commands + 1, 2, queueFamilies[1]);
+		mainDevice.freeCommand(commands, 1, id1);
+		mainDevice.freeCommand(commands + 1, 2, id2);
 		std::cout << "Freed all the commands successfully." << std::endl;
 	}
 }
@@ -38,11 +40,11 @@ void GPURenderer::_outputSupportedDeviceExtensions()
 {
 	auto& physDevice = _vulkan.getPhysDevice();
 	uint32_t _extensionCount = 0;
-	vkEnumerateDeviceLayerProperties(physDevice.getDevice(), &_extensionCount, NULL);
-	std::vector<VkLayerProperties> extProps(_extensionCount);
-	vkEnumerateDeviceLayerProperties(physDevice.getDevice(), &_extensionCount, extProps.data());
+	vkEnumerateDeviceExtensionProperties(physDevice.getDevice(), nullptr, &_extensionCount, NULL);
+	std::vector<VkExtensionProperties> extProps(_extensionCount);
+	vkEnumerateDeviceExtensionProperties(physDevice.getDevice(), nullptr, &_extensionCount, extProps.data());
 	std::cout << "Supported extensions: " << std::endl;
 	for (uint32_t i = 0; i < _extensionCount; i++) {
-		std::cout << "\"" << extProps[i].layerName << "\"" << std::endl;
+		std::cout << "\"" << extProps[i].extensionName << "\"" << std::endl;
 	}
 }

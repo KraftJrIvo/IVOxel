@@ -79,7 +79,7 @@ VkPhysicalDevice VulkanInstance::getFirstAppropriatePhysicalDevice(const std::ve
 
 bool VulkanInstance::chooseDevice(const std::vector<uint32_t>& queueFamilies, const std::vector<VkPhysicalDeviceType>& typesByPriority)
 {
-	//_layers.push_back("VK_LAYER_LUNARG_standard_validation");
+	//_layers.push_back("VK_LAYER_KHRONOS_validation");
 	//_extensions.push_back("VK_EXT_debug_report");
 	
 	auto devices = getAvailablePhysicalDevices();

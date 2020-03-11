@@ -8,8 +8,8 @@ VulkanPhysicalDevice::VulkanPhysicalDevice(const VkPhysicalDevice& dev, const st
 	vkGetPhysicalDeviceMemoryProperties(_device, &_deviceMemProps);
 	for (auto& flag : queFamFlags)
 	{
-		_queFams.push_back(flag);
-		_queFamIndicesByFlag[flag] = getQueueFamilyIndices(dev, { flag });
+		_queTypes.push_back(flag);
+		_queFamIndicesByType[flag] = getQueueFamilyIndices(dev, { flag });
 	}
 }
 
@@ -28,9 +28,16 @@ const VkPhysicalDeviceFeatures& VulkanPhysicalDevice::getFeats() const
 	return _deviceFeats;
 }
 
-std::vector<uint32_t> VulkanPhysicalDevice::getQueueFamilies() const
+const std::vector<uint32_t>& VulkanPhysicalDevice::getQueueTypes() const
 {
-	return _queFams;
+	return _queTypes;
+}
+
+const std::vector<uint32_t>& VulkanPhysicalDevice::getQueueIndicesByType(uint32_t type) const
+{
+	if (_queFamIndicesByType.count(type))
+		return _queFamIndicesByType.find(type)->second;
+	return {};
 }
 
 std::vector<uint32_t> VulkanPhysicalDevice::getQueueFamilyIndices(const VkPhysicalDevice& dev, std::vector<uint32_t> queueFamilyFlags)

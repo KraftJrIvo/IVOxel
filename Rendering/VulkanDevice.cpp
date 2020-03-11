@@ -5,20 +5,31 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice& physDev, const std::vecto
 {
 	std::vector<VkDeviceQueueCreateInfo> queInfos;
 
-	auto families = physDev.getQueueFamilyIndices(physDev.getDevice(), );
-	std::vector<float> priorities(families.size());
-	for (auto& fam : families)
-		queInfos.push_back(vkTypes::getQFCreateInfo(families.size(), fam, priorities.data()));
+	auto types = physDev.getQueueTypes();
+	std::vector<float> priorities(types.size());
+	for (auto& type : types)
+	{
+		auto ids = physDev.getQueueIndicesByType(type);
+		uint32_t id = ids[0];
+		if (ids.size())
+		{
+			_uniqueIds[id] = true;
+			_idsByType[type] = id;
+		}
+	}
+
+	for (auto& id : _uniqueIds)
+		queInfos.push_back(vkTypes::getQFCreateInfo(_uniqueIds.size(), id.first, priorities.data()));
 
 	auto deviceCreateInfo = vkTypes::getDeviceCreateInfo(queInfos, &physDev.getFeats(), layers, extensions);
 
 	vkCreateDevice(physDev.getDevice(), &deviceCreateInfo, nullptr, &_device);
 
-	for (auto& fam : families)
+	for (auto& id : _uniqueIds)
 	{
-		vkGetDeviceQueue(_device, fam, 0, &_queues[fam]);
-		auto info = vkTypes::getCPCreateInfo(fam);
-		vkCreateCommandPool(_device, &info, nullptr, &_pools[fam]);
+		vkGetDeviceQueue(_device, id.first, 0, &_queues[id.first]);
+		auto info = vkTypes::getCPCreateInfo(id.first);
+		vkCreateCommandPool(_device, &info, nullptr, &_pools[id.first]);
 	}
 }
 
@@ -31,6 +42,13 @@ void VulkanDevice::destroyPools()
 {
 	for (auto& pool : _pools)
 		vkDestroyCommandPool(_device, pool.second, nullptr);
+}
+
+uint32_t VulkanDevice::getQFIdByType(uint32_t type)
+{
+	if (_idsByType.count(type))
+		return _idsByType.find(type)->second;
+	return -1;
 }
 
 void VulkanDevice::getCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId)
