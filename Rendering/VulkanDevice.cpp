@@ -1,7 +1,7 @@
 #include "VulkanDevice.h"
 #include "VulkanErrorChecker.h"
 
-VulkanDevice::VulkanDevice(const VulkanPhysicalDevice& physDev, const std::vector<const char*>& layers, const std::vector<const char*>& extensions)
+VulkanDevice::VulkanDevice(const VulkanPhysicalDevice& physDev, std::vector<const char*> layers, std::vector<const char*> extensions)
 {
 	std::vector<VkDeviceQueueCreateInfo> queInfos;
 
@@ -21,7 +21,7 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice& physDev, const std::vecto
 	for (auto& id : _uniqueIds)
 		queInfos.push_back(vkTypes::getQFCreateInfo(_uniqueIds.size(), id.first, priorities.data()));
 
-	auto deviceCreateInfo = vkTypes::getDeviceCreateInfo(queInfos, &physDev.getFeats(), layers, extensions);
+	auto deviceCreateInfo = vkTypes::getDeviceCreateInfo(queInfos, &physDev.getFeats(), {}, {});
 
 	vkCreateDevice(physDev.getDevice(), &deviceCreateInfo, nullptr, &_device);
 

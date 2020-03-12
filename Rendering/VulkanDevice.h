@@ -7,7 +7,7 @@ class VulkanDevice
 {
 public:
 	VulkanDevice() = default;
-	VulkanDevice(const VulkanPhysicalDevice& physDev, const std::vector<const char*>& layers, const std::vector<const char*>& extensions);
+	VulkanDevice(const VulkanPhysicalDevice& physDev, std::vector<const char*> layers = {}, std::vector<const char*> extensions = {});
 
 	const VkDevice& getDevice();
 	void destroyPools();

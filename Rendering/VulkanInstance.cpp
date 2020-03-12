@@ -1,9 +1,9 @@
 #include "VulkanInstance.h"
 
-VulkanInstance::VulkanInstance()
+VulkanInstance::VulkanInstance(std::vector<const char*> layers, std::vector<const char*> extensions)
 {
 	VkApplicationInfo app_info = vkTypes::getAppInfo();
-	VkInstanceCreateInfo info = vkTypes::getInstanceCreateInfo(app_info, _layers, _extensions);
+	VkInstanceCreateInfo info = vkTypes::getInstanceCreateInfo(app_info, layers, extensions);
 
 	vkCreateInstance(&info, nullptr, &_instance);
 }
@@ -79,9 +79,6 @@ VkPhysicalDevice VulkanInstance::getFirstAppropriatePhysicalDevice(const std::ve
 
 bool VulkanInstance::chooseDevice(const std::vector<uint32_t>& queueFamilies, const std::vector<VkPhysicalDeviceType>& typesByPriority)
 {
-	//_layers.push_back("VK_LAYER_KHRONOS_validation");
-	//_extensions.push_back("VK_EXT_debug_report");
-	
 	auto devices = getAvailablePhysicalDevices();
 
 	int i = 0;
@@ -95,7 +92,7 @@ bool VulkanInstance::chooseDevice(const std::vector<uint32_t>& queueFamilies, co
 
 		_physDevice = VulkanPhysicalDevice(appDevice, queueFamilies);
 
-		_device = VulkanDevice(_physDevice, _layers, _extensions);
+		_device = VulkanDevice(_physDevice);
 
 		return true;
 	}

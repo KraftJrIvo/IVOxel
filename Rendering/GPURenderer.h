@@ -13,6 +13,10 @@ public:
 
 private:
 	VulkanInstance _vulkan;
-
+	
+	void _outputSupportedInstanceLayers();
+	void _outputSupportedInstanceExtensions(const char* layerName);
+	void _outputSupportedDeviceLayers();
 	void _outputSupportedDeviceExtensions();
+
 };

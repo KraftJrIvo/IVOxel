@@ -9,7 +9,7 @@
 class VulkanInstance
 {
 public:
-	VulkanInstance();
+	VulkanInstance(std::vector<const char*> layers = {}, std::vector<const char*> extensions = {});
 	~VulkanInstance();
 
 	bool chooseDevice(const std::vector<uint32_t>& queueFamilies, const std::vector<VkPhysicalDeviceType>& typesByPriority);
@@ -20,8 +20,6 @@ public:
 	VulkanPhysicalDevice& getPhysDevice();
 
 private:
-	std::vector<const char*> _layers;
-	std::vector<const char*> _extensions;
 	VkInstance _instance;
 	VulkanDevice _device;
 	VulkanPhysicalDevice _physDevice;
