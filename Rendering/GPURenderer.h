@@ -2,21 +2,14 @@
 
 #include "IVoxelRenderer.h"
 
-#include "VulkanInstance.h"
-#include "VulkanTypes.h"
+#include <VulkanRenderer.h>
 
 class GPURenderer : public IVoxelRenderer
 {
 public:
 	GPURenderer();
-	virtual void render(const VoxelMap& map, Camera& cam) const;
+	virtual void render(const VoxelMap& map, Camera& cam);
 
 private:
-	VulkanInstance _vulkan;
-	
-	void _outputSupportedInstanceLayers();
-	void _outputSupportedInstanceExtensions(const char* layerName);
-	void _outputSupportedDeviceLayers();
-	void _outputSupportedDeviceExtensions();
-
+	VulkanRenderer _vulkanRenderer;
 };

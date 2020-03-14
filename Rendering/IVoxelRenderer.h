@@ -7,5 +7,5 @@
 class IVoxelRenderer
 {
 public:
-	virtual void render(const VoxelMap& map, Camera& cam) const = 0;
+	virtual void render(const VoxelMap& map, Camera& cam) = 0;
 };

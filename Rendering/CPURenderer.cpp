@@ -13,7 +13,7 @@ CPURenderer::CPURenderer()
 {
 }
 
-void CPURenderer::render(const VoxelMap& map, Camera& cam) const
+void CPURenderer::render(const VoxelMap& map, Camera& cam)
 {
 	while (true)
 	{
