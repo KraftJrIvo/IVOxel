@@ -23,6 +23,7 @@
     <ClInclude Include="CPURenderer.h" />
     <ClInclude Include="Cube.h" />
     <ClInclude Include="outputprinter.h" />
+    <ClInclude Include="VulkanBuffer.h" />
     <ClInclude Include="VulkanDevice.h" />
     <ClInclude Include="VulkanErrorChecker.h" />
     <ClInclude Include="GPURenderer.h" />
@@ -38,6 +39,7 @@
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="CPURenderer.cpp" />
     <ClCompile Include="Cube.cpp" />
+    <ClCompile Include="VulkanBuffer.cpp" />
     <ClCompile Include="VulkanDevice.cpp" />
     <ClCompile Include="VulkanErrorChecker.cpp" />
     <ClCompile Include="GPURenderer.cpp" />

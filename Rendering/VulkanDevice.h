@@ -9,7 +9,8 @@ public:
 	VulkanDevice() = default;
 	VulkanDevice(const VulkanPhysicalDevice& physDev, std::vector<const char*> layers = {}, std::vector<const char*> extensions = {});
 
-	const VkDevice& getDevice();
+	const VkDevice& getDevice() const;
+	const VulkanPhysicalDevice* getPhysicalDevice() const;
 	void destroyPools();
 	uint32_t getQFIdByType(uint32_t type);
 
@@ -18,6 +19,7 @@ public:
 
 private:
 	VkDevice _device;
+	const VulkanPhysicalDevice* _physDev;
 	std::map<uint32_t, bool> _uniqueIds;
 	std::map<uint32_t, uint32_t> _idsByType;
 	std::map<uint32_t, VkQueue> _queues;

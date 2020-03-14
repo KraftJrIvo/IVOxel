@@ -16,4 +16,8 @@ namespace vkTypes
 	VkCommandPoolCreateInfo getCPCreateInfo(uint32_t familyId, VkCommandPoolCreateFlags flags = 0);
 	
 	VkCommandBufferAllocateInfo getCBAllocateInfo(const VkCommandPool& pool, uint32_t count, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
+	VkBufferCreateInfo getBufCreateInfo(VkDeviceSize size, VkBufferUsageFlags useFlags);
+	
+	VkMemoryAllocateInfo getMemAllocInfo(VkDeviceSize size, uint32_t memTypeId);
 }

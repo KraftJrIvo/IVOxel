@@ -23,6 +23,11 @@ const VkPhysicalDeviceProperties& VulkanPhysicalDevice::getProps() const
 	return _deviceProps;
 }
 
+const VkPhysicalDeviceMemoryProperties& VulkanPhysicalDevice::getMemProps() const
+{
+	return _deviceMemProps;
+}
+
 const VkPhysicalDeviceFeatures& VulkanPhysicalDevice::getFeats() const
 {
 	return _deviceFeats;

@@ -11,6 +11,7 @@ public:
 
 	const VkPhysicalDevice& getDevice() const;
 	const VkPhysicalDeviceProperties& getProps() const;
+	const VkPhysicalDeviceMemoryProperties& getMemProps() const;
 	const VkPhysicalDeviceFeatures& getFeats() const;
 	const std::vector<uint32_t>& getQueueTypes() const;
 	const std::vector<uint32_t>& getQueueIndicesByType(uint32_t type) const;

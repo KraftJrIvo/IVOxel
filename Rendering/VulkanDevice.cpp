@@ -3,6 +3,8 @@
 
 VulkanDevice::VulkanDevice(const VulkanPhysicalDevice& physDev, std::vector<const char*> layers, std::vector<const char*> extensions)
 {
+	_physDev = &physDev;
+
 	std::vector<VkDeviceQueueCreateInfo> queInfos;
 
 	auto types = physDev.getQueueTypes();
@@ -33,9 +35,14 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice& physDev, std::vector<cons
 	}
 }
 
-const VkDevice& VulkanDevice::getDevice()
+const VkDevice& VulkanDevice::getDevice() const
 {
 	return _device;
+}
+
+const VulkanPhysicalDevice* VulkanDevice::getPhysicalDevice() const
+{
+	return _physDev;
 }
 
 void VulkanDevice::destroyPools()

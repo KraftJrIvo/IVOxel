@@ -1,9 +1,15 @@
 #include "GPURenderer.h"
 
+#include "VulkanBuffer.h"
+
 #include <iostream>
 
 GPURenderer::GPURenderer() :
+#ifdef _DEBUG
 	_vulkan({ "VK_LAYER_KHRONOS_validation" }, { "VK_EXT_debug_report" })
+#else
+	_vulkan({}, {})
+#endif
 {
 	_outputSupportedInstanceLayers();
 	_outputSupportedInstanceExtensions("VK_LAYER_KHRONOS_validation");
@@ -29,7 +35,15 @@ GPURenderer::GPURenderer() :
 		uint32_t id2 = mainDevice.getQFIdByType(queueFamilies[1]);
 		mainDevice.getCommand(commands, 1, id1);
 		mainDevice.getCommand(commands + 1, 2, id2);
-		std::cout << std::endl << "Allocated 1 compute command and 2 graphics command successfully." << std::endl << std::endl;
+		std::cout << std::endl << "Allocated 1 compute command and 2 graphics commands successfully." << std::endl << std::endl;
+
+		float arr[3] = { 1.0f, 2.0f, 3.0f };
+		VulkanBuffer buf(mainDevice, &arr, sizeof(float), 3);
+		buf.allocate();
+		std::cout << "Uniform buffer created successfully." << std::endl;
+
+		buf.setData(1, 1);
+		std::cout << "Sample data successfully sent to GPU." << std::endl;
 
 		mainDevice.freeCommand(commands, 1, id1);
 		mainDevice.freeCommand(commands + 1, 2, id2);
