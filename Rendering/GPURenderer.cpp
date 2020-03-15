@@ -11,5 +11,5 @@ GPURenderer::GPURenderer()
 
 void GPURenderer::render(const VoxelMap& map, Camera& cam)
 {
-	_vulkanRenderer.runOnce();
+	_vulkanRenderer.run();
 }

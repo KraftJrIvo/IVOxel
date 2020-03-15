@@ -1,8 +1,10 @@
 #include "VulkanRenderer.h"
-
+#include "Window.h"
 #include "VulkanBuffer.h"
 
 #include <iostream>
+
+Window window(512, 512, L"test");
 
 VulkanRenderer::VulkanRenderer() :
 #ifdef _DEBUG
@@ -58,18 +60,19 @@ void VulkanRenderer::init()
 
 void VulkanRenderer::run()
 {
-	while (_keepGoing)
+	while (runOnce())
 	{
-		runOnce();
 	}
 }
 
-void VulkanRenderer::runOnce()
+bool VulkanRenderer::runOnce()
 {
+	return window.Update();
 }
 
 void VulkanRenderer::stop()
 {
+	window.Close();
 	_keepGoing = false;
 }
 

@@ -26,6 +26,7 @@
     <ClInclude Include="VulkanPhysicalDevice.h" />
     <ClInclude Include="VulkanRenderer.h" />
     <ClInclude Include="VulkanTypes.h" />
+    <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VulkanBuffer.cpp" />
@@ -35,6 +36,7 @@
     <ClCompile Include="VulkanPhysicalDevice.cpp" />
     <ClCompile Include="VulkanRenderer.cpp" />
     <ClCompile Include="VulkanTypes.cpp" />
+    <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

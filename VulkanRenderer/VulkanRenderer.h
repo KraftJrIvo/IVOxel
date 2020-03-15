@@ -9,8 +9,8 @@ public:
 	
 	void init();
 	void run();
-	void runOnce();
 	void stop();
+	bool runOnce();
 
 
 private:
