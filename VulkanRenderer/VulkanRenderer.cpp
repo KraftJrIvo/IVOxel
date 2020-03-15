@@ -8,12 +8,23 @@ Window window(512, 512, L"test");
 
 VulkanRenderer::VulkanRenderer() :
 #ifdef _DEBUG
-	_vulkan({ "VK_LAYER_KHRONOS_validation" }, { "VK_EXT_debug_report" })
+	_vulkan(
+		{ "VK_LAYER_KHRONOS_validation" }, 
+		{ VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME, "VK_EXT_debug_report" }
+	)
 #else
-	_vulkan({}, {})
+	_vulkan(
+		{},
+		{ VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_EXTENSION_NAME }
+	)
 #endif
 {
-	
+	_initSurface();
+}
+
+VulkanRenderer::~VulkanRenderer()
+{
+	vkDestroySurfaceKHR(_vulkan.getInstace(), _surface, nullptr);
 }
 
 void VulkanRenderer::init()
@@ -24,7 +35,7 @@ void VulkanRenderer::init()
 	std::vector<uint32_t> queueFamilies = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT };
 	std::vector<VkPhysicalDeviceType> deviceTypesByPriority = { VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU };
 
-	_vulkan.chooseDevice(queueFamilies, deviceTypesByPriority);
+	_vulkan.chooseDevice(queueFamilies, deviceTypesByPriority, _surface);
 
 	auto mainDevice = _vulkan.getDevice();
 
@@ -36,6 +47,8 @@ void VulkanRenderer::init()
 
 		_outputSupportedDeviceLayers();
 		_outputSupportedDeviceExtensions();
+
+		_setSurfaceFormat(mainDevice);
 
 		VkCommandBuffer* commands = new VkCommandBuffer[3];
 		uint32_t id1 = mainDevice.getQFIdByType(queueFamilies[0]);
@@ -125,5 +138,23 @@ void VulkanRenderer::_outputSupportedInstanceLayers()
 	std::cout << "Supported instance layers: " << std::endl;
 	for (uint32_t i = 0; i < _layerCount; i++)
 		std::cout << "\"" << lProps[i].layerName << "\"" << std::endl;
+}
+
+void VulkanRenderer::_initSurface()
+{
+	auto info = vkTypes::getWin32SurfaceCreateInfo(window.getHInstance(), window.getHWND());
+	vkCreateWin32SurfaceKHR(_vulkan.getInstace(), &info, nullptr, &_surface);
+}
+
+void VulkanRenderer::_setSurfaceFormat(const VulkanDevice& device)
+{
+	VkSurfaceCapabilitiesKHR surfCapabs;
+	auto physDev = device.getPhysicalDevice()->getDevice();
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physDev, _surface, &surfCapabs);
+	uint32_t formatCount;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(physDev, _surface, &formatCount, nullptr);
+	std::vector<VkSurfaceFormatKHR> formats(formatCount);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(physDev, _surface, &formatCount, formats.data());
+	_surfaceFormat = formats[0];
 }
 

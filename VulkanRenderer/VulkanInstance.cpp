@@ -32,6 +32,11 @@ std::vector<VkPhysicalDevice>VulkanInstance::getAvailablePhysicalDevices()
 	return devices;
 }
 
+const VkInstance& VulkanInstance::getInstace()
+{
+	return _instance;
+}
+
 VulkanDevice& VulkanInstance::getDevice()
 {
 	return _device;
@@ -42,16 +47,18 @@ VulkanPhysicalDevice& VulkanInstance::getPhysDevice()
 	return _physDevice;
 }
 
-VkPhysicalDevice VulkanInstance::getFirstAppropriatePhysicalDevice(const std::vector<VkPhysicalDevice>& physDevs, std::vector<uint32_t> queueFamilyFlags, VkPhysicalDeviceType type)
+VkPhysicalDevice VulkanInstance::getFirstAppropriatePhysicalDevice(const std::vector<VkPhysicalDevice>& physDevs, 
+	std::vector<uint32_t> queueFamilyFlags, const VkSurfaceKHR& surface, VkPhysicalDeviceType type)
 {
 	std::vector<VkPhysicalDevice> appropriateDevices;
 
 	for (auto& device : physDevs)
 	{
 		bool ok = true;
+		std::vector<uint32_t> ids;
 		for (auto& flag : queueFamilyFlags)
 		{
-			auto ids = VulkanPhysicalDevice::getQueueFamilyIndices(device, { flag });
+			ids = VulkanPhysicalDevice::getQueueFamilyIndices(device, { flag });
 			if (!ids.size())
 			{
 				ok = false;
@@ -61,14 +68,19 @@ VkPhysicalDevice VulkanInstance::getFirstAppropriatePhysicalDevice(const std::ve
 
 		if (ok)
 		{
-			VkPhysicalDeviceProperties props;
-			if (type != VK_PHYSICAL_DEVICE_TYPE_OTHER)
-				vkGetPhysicalDeviceProperties(device, &props);
-			else
-				props.deviceType = type;
+			VkBool32 supportsWSI;
+			vkGetPhysicalDeviceSurfaceSupportKHR(device, ids[0], surface, &supportsWSI);
+			if (supportsWSI)
+			{
+				VkPhysicalDeviceProperties props;
+				if (type != VK_PHYSICAL_DEVICE_TYPE_OTHER)
+					vkGetPhysicalDeviceProperties(device, &props);
+				else
+					props.deviceType = type;
 
-			if (props.deviceType == type)
-				appropriateDevices.push_back(device);
+				if (props.deviceType == type)
+					appropriateDevices.push_back(device);
+			}
 		}
 	}
 
@@ -77,14 +89,14 @@ VkPhysicalDevice VulkanInstance::getFirstAppropriatePhysicalDevice(const std::ve
 	return VK_NULL_HANDLE;
 }
 
-bool VulkanInstance::chooseDevice(const std::vector<uint32_t>& queueFamilies, const std::vector<VkPhysicalDeviceType>& typesByPriority)
+bool VulkanInstance::chooseDevice(const std::vector<uint32_t>& queueFamilies, const std::vector<VkPhysicalDeviceType>& typesByPriority, const VkSurfaceKHR& surface)
 {
 	auto devices = getAvailablePhysicalDevices();
 
 	int i = 0;
 	VkPhysicalDevice appDevice = VK_NULL_HANDLE;
 	while (appDevice == VK_NULL_HANDLE)
-		appDevice = getFirstAppropriatePhysicalDevice(devices, queueFamilies, typesByPriority[i++]);
+		appDevice = getFirstAppropriatePhysicalDevice(devices, queueFamilies, surface, typesByPriority[i++]);
 
 	if (appDevice != VK_NULL_HANDLE)
 	{

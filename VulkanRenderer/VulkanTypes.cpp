@@ -93,11 +93,11 @@ VkBufferCreateInfo vkTypes::getBufCreateInfo(VkDeviceSize size, VkBufferUsageFla
 {
     VkBufferCreateInfo info = {};
 
-    info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    info.pNext = nullptr;
-    info.size = size;
-    info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    info.usage = usageFlags;
+    info.sType       =  VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    info.pNext       =  nullptr;
+    info.size        =  size;
+    info.sharingMode =  VK_SHARING_MODE_EXCLUSIVE;
+    info.usage       =  usageFlags;
 
     return info;
 }
@@ -106,10 +106,22 @@ VkMemoryAllocateInfo vkTypes::getMemAllocInfo(VkDeviceSize size, uint32_t memTyp
 {
     VkMemoryAllocateInfo info = {};
 
-    info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    info.pNext = nullptr;
-    info.allocationSize = size;
-    info.memoryTypeIndex = memTypeId;
+    info.sType           =  VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    info.pNext           =  nullptr;
+    info.allocationSize  =  size;
+    info.memoryTypeIndex =  memTypeId;
+
+    return info;
+}
+
+VkWin32SurfaceCreateInfoKHR vkTypes::getWin32SurfaceCreateInfo(const HINSTANCE& hinstance, const HWND& hwnd)
+{
+    VkWin32SurfaceCreateInfoKHR info = {};
+
+    info.sType     =    VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    info.pNext     =    nullptr;
+    info.hinstance =    hinstance;
+    info.hwnd      =    hwnd;
 
     return info;
 }

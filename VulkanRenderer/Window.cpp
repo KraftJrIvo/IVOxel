@@ -27,6 +27,16 @@ bool Window::Update()
 	return _window_should_run;
 }
 
+const HINSTANCE& Window::getHInstance()
+{
+	return _win32_instance;
+}
+
+const HWND& Window::getHWND()
+{
+	return _win32_window;
+}
+
 #include <assert.h>
 
 #if VK_USE_PLATFORM_WIN32_KHR

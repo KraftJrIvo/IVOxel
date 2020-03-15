@@ -1,8 +1,8 @@
 #pragma once
 
-#include "IVoxelRenderer.h"
-
 #include <VulkanRenderer.h>
+
+#include "IVoxelRenderer.h"
 
 class GPURenderer : public IVoxelRenderer
 {

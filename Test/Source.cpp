@@ -1,5 +1,5 @@
-#include <CPURenderer.h>
 #include <GPURenderer.h>
+//#include <CPURenderer.h>
 #include <TextFileMap.h>
 #include <Camera.h>
 
