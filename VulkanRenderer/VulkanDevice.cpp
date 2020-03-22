@@ -23,7 +23,7 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice& physDev, std::vector<cons
 	for (auto& id : _uniqueIds)
 		queInfos.push_back(vkTypes::getQFCreateInfo(_uniqueIds.size(), id.first, priorities.data()));
 
-	auto deviceCreateInfo = vkTypes::getDeviceCreateInfo(queInfos, &physDev.getFeats(), {}, {});
+	auto deviceCreateInfo = vkTypes::getDeviceCreateInfo(queInfos, &physDev.getFeats(), {}, {VK_KHR_SWAPCHAIN_EXTENSION_NAME});
 
 	vkCreateDevice(physDev.getDevice(), &deviceCreateInfo, nullptr, &_device);
 

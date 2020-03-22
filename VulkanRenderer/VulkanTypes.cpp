@@ -114,7 +114,7 @@ VkMemoryAllocateInfo vkTypes::getMemAllocInfo(VkDeviceSize size, uint32_t memTyp
     return info;
 }
 
-VkWin32SurfaceCreateInfoKHR vkTypes::getWin32SurfaceCreateInfo(const HINSTANCE& hinstance, const HWND& hwnd)
+VkWin32SurfaceCreateInfoKHR vkTypes::getSurfaceCreateInfo(const HINSTANCE& hinstance, const HWND& hwnd)
 {
     VkWin32SurfaceCreateInfoKHR info = {};
 
@@ -122,6 +122,32 @@ VkWin32SurfaceCreateInfoKHR vkTypes::getWin32SurfaceCreateInfo(const HINSTANCE& 
     info.pNext     =    nullptr;
     info.hinstance =    hinstance;
     info.hwnd      =    hwnd;
+
+    return info;
+}
+
+VkSwapchainCreateInfoKHR vkTypes::getSwapchainCreateInfo(const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& format, const VkPresentModeKHR& pm,
+    uint32_t bufferSz, uint32_t width, uint32_t height)
+{
+    VkSwapchainCreateInfoKHR info = {};
+    info.sType                 =    VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    //info.pNext                 =    nullptr;
+    info.surface               =    surface;
+    info.minImageCount         =    bufferSz;
+    info.imageFormat           =    format.format;
+    info.imageColorSpace       =    format.colorSpace;
+    info.imageExtent.width     =    width;
+    info.imageExtent.height    =    height;
+    info.imageArrayLayers      =    1;
+    info.imageUsage            =    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    info.imageSharingMode      =    VK_SHARING_MODE_EXCLUSIVE;
+    info.queueFamilyIndexCount =    0;
+    info.pQueueFamilyIndices   =    nullptr;
+    info.preTransform          =    VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+    info.compositeAlpha        =    VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    info.presentMode           =    pm;
+    info.clipped               =    VK_TRUE;
+    info.oldSwapchain          =    VK_NULL_HANDLE;
 
     return info;
 }

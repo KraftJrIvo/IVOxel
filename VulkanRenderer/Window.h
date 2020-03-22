@@ -11,6 +11,8 @@ public:
 
 	void Close();
 	bool Update();
+	void setSurfaceSize(uint32_t w, uint32_t h);
+	std::pair<uint32_t, uint32_t> getSize();
 
 	const HINSTANCE& getHInstance();
 	const HWND& getHWND();

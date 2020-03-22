@@ -24,6 +24,7 @@ VulkanRenderer::VulkanRenderer() :
 
 VulkanRenderer::~VulkanRenderer()
 {
+	vkDestroySwapchainKHR(_vulkan.getDevice().getDevice(), _swapchain, nullptr);
 	vkDestroySurfaceKHR(_vulkan.getInstace(), _surface, nullptr);
 }
 
@@ -49,6 +50,7 @@ void VulkanRenderer::init()
 		_outputSupportedDeviceExtensions();
 
 		_setSurfaceFormat(mainDevice);
+		_initSwapchain();
 
 		VkCommandBuffer* commands = new VkCommandBuffer[3];
 		uint32_t id1 = mainDevice.getQFIdByType(queueFamilies[0]);
@@ -142,15 +144,39 @@ void VulkanRenderer::_outputSupportedInstanceLayers()
 
 void VulkanRenderer::_initSurface()
 {
-	auto info = vkTypes::getWin32SurfaceCreateInfo(window.getHInstance(), window.getHWND());
+	auto info = vkTypes::getSurfaceCreateInfo(window.getHInstance(), window.getHWND());
 	vkCreateWin32SurfaceKHR(_vulkan.getInstace(), &info, nullptr, &_surface);
+}
+
+void VulkanRenderer::_initSwapchain()
+{
+	uint32_t bufferSz = 2;
+	if (bufferSz < _surfaceCapabs.minImageCount + 1) bufferSz = _surfaceCapabs.minImageCount + 1;
+	if (_surfaceCapabs.maxImageCount > 0 && bufferSz > _surfaceCapabs.maxImageCount) bufferSz = _surfaceCapabs.maxImageCount;
+
+	VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
+	{
+		uint32_t nPresentModes = 0;
+		vkGetPhysicalDeviceSurfacePresentModesKHR(_vulkan.getPhysDevice().getDevice(), _surface, &nPresentModes, nullptr);
+		std::vector<VkPresentModeKHR> presentModes(nPresentModes);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(_vulkan.getPhysDevice().getDevice(), _surface, &nPresentModes, presentModes.data());
+		for (auto pm : presentModes)
+			if (pm == VK_PRESENT_MODE_MAILBOX_KHR) 
+				present_mode = pm;
+	}
+
+	auto info = vkTypes::getSwapchainCreateInfo(_surface, _surfaceFormat, present_mode, bufferSz, window.getSize().first, window.getSize().second);
+
+	vkCreateSwapchainKHR(_vulkan.getDevice().getDevice(), &info, nullptr, &_swapchain);
+	vkGetSwapchainImagesKHR(_vulkan.getDevice().getDevice(), _swapchain, &_swapchainImgCount, nullptr);
 }
 
 void VulkanRenderer::_setSurfaceFormat(const VulkanDevice& device)
 {
-	VkSurfaceCapabilitiesKHR surfCapabs;
 	auto physDev = device.getPhysicalDevice()->getDevice();
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physDev, _surface, &surfCapabs);
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physDev, _surface, &_surfaceCapabs);
+	if (_surfaceCapabs.currentExtent.width < UINT32_MAX)
+		window.setSurfaceSize(_surfaceCapabs.currentExtent.width, _surfaceCapabs.currentExtent.height);
 	uint32_t formatCount;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(physDev, _surface, &formatCount, nullptr);
 	std::vector<VkSurfaceFormatKHR> formats(formatCount);

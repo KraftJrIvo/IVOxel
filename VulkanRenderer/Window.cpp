@@ -27,6 +27,17 @@ bool Window::Update()
 	return _window_should_run;
 }
 
+void Window::setSurfaceSize(uint32_t w, uint32_t h)
+{
+	_surface_size_x = w;
+	_surface_size_y = h;
+}
+
+std::pair<uint32_t, uint32_t> Window::getSize()
+{
+	return {_surface_size_x, _surface_size_y};
+}
+
 const HINSTANCE& Window::getHInstance()
 {
 	return _win32_instance;

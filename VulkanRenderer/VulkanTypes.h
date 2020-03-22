@@ -23,5 +23,7 @@ namespace vkTypes
 	
 	VkMemoryAllocateInfo getMemAllocInfo(VkDeviceSize size, uint32_t memTypeId);
 
-	VkWin32SurfaceCreateInfoKHR getWin32SurfaceCreateInfo(const HINSTANCE& hinstance, const HWND& hwnd);
+	VkWin32SurfaceCreateInfoKHR getSurfaceCreateInfo(const HINSTANCE& hinstance, const HWND& hwnd);
+
+	VkSwapchainCreateInfoKHR getSwapchainCreateInfo(const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& format, const VkPresentModeKHR& pm, uint32_t bufferSz, uint32_t width, uint32_t height);
 }
