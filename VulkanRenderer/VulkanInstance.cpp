@@ -104,7 +104,7 @@ bool VulkanInstance::chooseDevice(const std::vector<uint32_t>& queueFamilies, co
 
 		_physDevice = VulkanPhysicalDevice(appDevice, queueFamilies);
 
-		_device = VulkanDevice(_physDevice);
+		_device = VulkanDevice(_physDevice, {}, {VK_KHR_SWAPCHAIN_EXTENSION_NAME});
 
 		return true;
 	}
