@@ -27,5 +27,9 @@ namespace vkTypes
 
 	VkSwapchainCreateInfoKHR getSwapchainCreateInfo(const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& format, const VkPresentModeKHR& pm, uint32_t bufferSz, uint32_t width, uint32_t height);
 	
-	VkImageViewCreateInfo getImageViewCreateInfo(const VkImage& img, const VkSurfaceFormatKHR& format, const VkComponentMapping& mapping, const VkImageSubresourceRange& subRng, VkImageViewType type);
+	VkImageCreateInfo getImageCreateInfo(VkImageType type, VkFormat format, VkImageUsageFlagBits usage, uint32_t w, uint32_t h);
+	
+	VkImageViewCreateInfo getImageViewCreateInfo(const VkImage& img, const VkComponentMapping& mapping, const VkImageSubresourceRange& subRng, VkFormat format, VkImageViewType type);
+	
+	VkRenderPassCreateInfo getRenderPassCreateInfo(const std::vector<VkAttachmentDescription>& attachments, const std::vector<VkSubpassDescription>& subPasses);
 }

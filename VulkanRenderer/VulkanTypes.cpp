@@ -152,7 +152,30 @@ VkSwapchainCreateInfoKHR vkTypes::getSwapchainCreateInfo(const VkSurfaceKHR& sur
     return info;
 }
 
-VkImageViewCreateInfo vkTypes::getImageViewCreateInfo(const VkImage& img, const VkSurfaceFormatKHR& format, const VkComponentMapping& mapping, const VkImageSubresourceRange& subRng, VkImageViewType type)
+VkImageCreateInfo vkTypes::getImageCreateInfo(VkImageType type, VkFormat format, VkImageUsageFlagBits usage, uint32_t w, uint32_t h)
+{
+    VkImageCreateInfo info = {};
+
+    info.sType                 =    VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    info.pNext                 =    nullptr;
+    info.flags                 =    0;
+    info.imageType             =    type;
+    info.format                =    format;
+    info.extent                =    {w, h, 1};
+    info.mipLevels             =    1;
+    info.arrayLayers           =    1;
+    info.samples               =    VK_SAMPLE_COUNT_1_BIT;
+    info.tiling                =    VK_IMAGE_TILING_OPTIMAL;
+    info.usage                 =    usage;
+    info.sharingMode           =    VK_SHARING_MODE_EXCLUSIVE;
+    info.queueFamilyIndexCount =    VK_QUEUE_FAMILY_IGNORED;
+    info.pQueueFamilyIndices   =    nullptr;
+    info.initialLayout         =    VK_IMAGE_LAYOUT_UNDEFINED;
+
+    return info;
+}
+
+VkImageViewCreateInfo vkTypes::getImageViewCreateInfo(const VkImage& img, const VkComponentMapping& mapping, const VkImageSubresourceRange& subRng, VkFormat format, VkImageViewType type)
 {
     VkImageViewCreateInfo info = {};
     
@@ -161,9 +184,26 @@ VkImageViewCreateInfo vkTypes::getImageViewCreateInfo(const VkImage& img, const 
     info.flags            =     0;
     info.image            =     img;
     info.viewType         =     type;
-    info.format           =     format.format;
+    info.format           =     format;
     info.components       =     mapping;
     info.subresourceRange =     subRng;
+
+    return info;
+}
+
+VkRenderPassCreateInfo vkTypes::getRenderPassCreateInfo(const std::vector<VkAttachmentDescription>& attachments, const std::vector<VkSubpassDescription>& subPasses)
+{
+    VkRenderPassCreateInfo info = {};
+
+    info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    info.pNext = nullptr;
+    info.flags = 0;
+    info.attachmentCount = attachments.size();
+    info.pAttachments = attachments.data();
+    info.subpassCount = subPasses.size();
+    info.pSubpasses = subPasses.data();
+    //info.dependencyCount;
+    //info.pDependencies;
 
     return info;
 }
