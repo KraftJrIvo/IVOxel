@@ -207,3 +207,20 @@ VkRenderPassCreateInfo vkTypes::getRenderPassCreateInfo(const std::vector<VkAtta
 
     return info;
 }
+
+VkFramebufferCreateInfo vkTypes::getFramebufferCreateInfo(const VkRenderPass& renderPass, const std::vector<VkImageView>& attachments, uint32_t w, uint32_t h, uint32_t layers)
+{
+    VkFramebufferCreateInfo info = {};
+
+    info.sType           =  VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    info.pNext           =  nullptr;
+    info.flags           =  0;
+    info.renderPass      =  renderPass;
+    info.attachmentCount =  attachments.size();
+    info.pAttachments    =  attachments.data();
+    info.width           =  w;
+    info.height          =  h;
+    info.layers          =  layers;
+
+    return info;
+}

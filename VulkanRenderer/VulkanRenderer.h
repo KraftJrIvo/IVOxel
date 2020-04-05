@@ -25,6 +25,7 @@ private:
 
 	std::vector<VkImage> _swapchainImgs;
 	std::vector<VkImageView> _swapchainImgViews;
+	std::vector<VkFramebuffer> _frameBuffs;
 
 	VkImage _depthStencilImg;
 	VkDeviceMemory _depthStencilImgMem;
@@ -37,6 +38,7 @@ private:
 	void _initSwapchainImages();
 	void _initDepthStencilImage(const VulkanDevice&);
 	void _initRenderPass(const VulkanDevice&);
+	void _initFrameBuffers(const VulkanDevice&);
 	void _setSurfaceFormat(const VulkanDevice&);
 
 	uint32_t _getMemoryId(const VulkanDevice& device, const VkMemoryRequirements& memReq, VkMemoryPropertyFlagBits reqFlags);

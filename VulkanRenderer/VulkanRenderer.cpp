@@ -25,6 +25,9 @@ VulkanRenderer::VulkanRenderer() :
 VulkanRenderer::~VulkanRenderer()
 {
 	auto device = _vulkan.getDevice().getDevice();
+
+	for (uint32_t i = 0; i < _swapchainImgCount; ++i)
+		vkDestroyFramebuffer(device, _frameBuffs[i], nullptr);
 	
 	vkDestroyRenderPass(device, _renderPass, nullptr);
 
@@ -59,6 +62,7 @@ void VulkanRenderer::init()
 		_initDepthStencilImage(mainDevice);
 
 		_initRenderPass(mainDevice);
+		_initFrameBuffers(mainDevice);
 
 		VkCommandBuffer* commands = new VkCommandBuffer[3];
 		uint32_t id1 = mainDevice.getQFIdByType(queueFamilies[0]);
@@ -108,8 +112,10 @@ void VulkanRenderer::_initSurface()
 void VulkanRenderer::_initSwapchain()
 {
 	uint32_t bufferSz = 2;
-	if (bufferSz < _surfaceCapabs.minImageCount + 1) bufferSz = _surfaceCapabs.minImageCount + 1;
-	if (_surfaceCapabs.maxImageCount > 0 && bufferSz > _surfaceCapabs.maxImageCount) bufferSz = _surfaceCapabs.maxImageCount;
+	if (bufferSz < _surfaceCapabs.minImageCount) 
+		bufferSz = _surfaceCapabs.minImageCount;
+	else if (_surfaceCapabs.maxImageCount > 0 && bufferSz > _surfaceCapabs.maxImageCount) 
+		bufferSz = _surfaceCapabs.maxImageCount;
 
 	VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
 	{
@@ -164,19 +170,19 @@ void VulkanRenderer::_initDepthStencilImage(const VulkanDevice& device)
 		VK_FORMAT_S8_UINT
 	};
 
-	VkFormat chosenFormat = VK_FORMAT_UNDEFINED;
+	_depthStencilFormat = VK_FORMAT_UNDEFINED;
 	VkFormatProperties fProps;
 	for (auto& format : formatsToTry)
 	{
 		vkGetPhysicalDeviceFormatProperties(device.getPhysicalDevice()->getDevice(), format, &fProps);
 		if (fProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
 		{
-			chosenFormat = format;
+			_depthStencilFormat = format;
 			break;
 		}
 	}
 	
-	auto imgInfo = vkTypes::getImageCreateInfo(VK_IMAGE_TYPE_2D, chosenFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
+	auto imgInfo = vkTypes::getImageCreateInfo(VK_IMAGE_TYPE_2D, _depthStencilFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		_surfaceCapabs.currentExtent.width, _surfaceCapabs.currentExtent.height);
 
 	vkCreateImage(device.getDevice(), &imgInfo, nullptr, &_depthStencilImg);
@@ -198,7 +204,7 @@ void VulkanRenderer::_initDepthStencilImage(const VulkanDevice& device)
 	subRng.baseArrayLayer = 0;
 	subRng.layerCount	  = 1;
 
-	auto viewInfo = vkTypes::getImageViewCreateInfo(_depthStencilImg, mapping, subRng, chosenFormat, VK_IMAGE_VIEW_TYPE_2D);
+	auto viewInfo = vkTypes::getImageViewCreateInfo(_depthStencilImg, mapping, subRng, _depthStencilFormat, VK_IMAGE_VIEW_TYPE_2D);
 
 	vkCreateImageView(device.getDevice(), &viewInfo, nullptr, &_depthStencilImgView);
 }
@@ -241,6 +247,22 @@ void VulkanRenderer::_initRenderPass(const VulkanDevice& device)
 	auto info = vkTypes::getRenderPassCreateInfo(attachments, subpasses);
 
 	vkCreateRenderPass(device.getDevice(), &info, nullptr, &_renderPass);
+}
+
+void VulkanRenderer::_initFrameBuffers(const VulkanDevice& device)
+{
+	_frameBuffs.resize(_swapchainImgCount);
+
+	std::vector<VkImageView> attachments(2);
+	attachments[0] = _depthStencilImgView;
+
+	for (uint32_t i = 0; i < _swapchainImgCount; ++i)
+	{
+		attachments[1] = _swapchainImgViews[i];
+		auto info = vkTypes::getFramebufferCreateInfo(_renderPass, attachments, window.getSize().first, window.getSize().second, 1);
+
+		vkCreateFramebuffer(device.getDevice(), &info, nullptr, &_frameBuffs[i]);
+	}
 }
 
 void VulkanRenderer::_setSurfaceFormat(const VulkanDevice& device)

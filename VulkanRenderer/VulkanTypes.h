@@ -32,4 +32,6 @@ namespace vkTypes
 	VkImageViewCreateInfo getImageViewCreateInfo(const VkImage& img, const VkComponentMapping& mapping, const VkImageSubresourceRange& subRng, VkFormat format, VkImageViewType type);
 	
 	VkRenderPassCreateInfo getRenderPassCreateInfo(const std::vector<VkAttachmentDescription>& attachments, const std::vector<VkSubpassDescription>& subPasses);
+	
+	VkFramebufferCreateInfo getFramebufferCreateInfo(const VkRenderPass& renderPass, const std::vector<VkImageView>& attachments, uint32_t w, uint32_t h, uint32_t layers);
 }
