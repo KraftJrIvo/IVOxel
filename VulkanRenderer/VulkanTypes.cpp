@@ -151,3 +151,19 @@ VkSwapchainCreateInfoKHR vkTypes::getSwapchainCreateInfo(const VkSurfaceKHR& sur
 
     return info;
 }
+
+VkImageViewCreateInfo vkTypes::getImageViewCreateInfo(const VkImage& img, const VkSurfaceFormatKHR& format, const VkComponentMapping& mapping, const VkImageSubresourceRange& subRng, VkImageViewType type)
+{
+    VkImageViewCreateInfo info = {};
+    
+    info.sType            =     VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    info.pNext            =     nullptr;
+    info.flags            =     0;
+    info.image            =     img;
+    info.viewType         =     type;
+    info.format           =     format.format;
+    info.components       =     mapping;
+    info.subresourceRange =     subRng;
+
+    return info;
+}

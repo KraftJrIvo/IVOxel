@@ -26,4 +26,6 @@ namespace vkTypes
 	VkWin32SurfaceCreateInfoKHR getSurfaceCreateInfo(const HINSTANCE& hinstance, const HWND& hwnd);
 
 	VkSwapchainCreateInfoKHR getSwapchainCreateInfo(const VkSurfaceKHR& surface, const VkSurfaceFormatKHR& format, const VkPresentModeKHR& pm, uint32_t bufferSz, uint32_t width, uint32_t height);
+	
+	VkImageViewCreateInfo getImageViewCreateInfo(const VkImage& img, const VkSurfaceFormatKHR& format, const VkComponentMapping& mapping, const VkImageSubresourceRange& subRng, VkImageViewType type);
 }

@@ -24,15 +24,15 @@ VulkanRenderer::VulkanRenderer() :
 
 VulkanRenderer::~VulkanRenderer()
 {
-	vkDestroySwapchainKHR(_vulkan.getDevice().getDevice(), _swapchain, nullptr);
+	auto device = _vulkan.getDevice().getDevice();
+	for (uint32_t i = 0; i < _swapchainImgCount; ++i)
+		vkDestroyImageView(device, _swapchainImgViews[i], nullptr);
+	vkDestroySwapchainKHR(device, _swapchain, nullptr);
 	vkDestroySurfaceKHR(_vulkan.getInstace(), _surface, nullptr);
 }
 
 void VulkanRenderer::init()
 {
-	_outputSupportedInstanceLayers();
-	_outputSupportedInstanceExtensions("VK_LAYER_KHRONOS_validation");
-
 	std::vector<uint32_t> queueFamilies = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT };
 	std::vector<VkPhysicalDeviceType> deviceTypesByPriority = { VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU };
 
@@ -46,11 +46,9 @@ void VulkanRenderer::init()
 	{
 		std::cout << std::endl << "Device was chosen: " << _vulkan.getPhysDevice().getProps().deviceName << std::endl;
 
-		_outputSupportedDeviceLayers();
-		_outputSupportedDeviceExtensions();
-
 		_setSurfaceFormat(mainDevice);
 		_initSwapchain();
+		_initSwapchainImages();
 
 		VkCommandBuffer* commands = new VkCommandBuffer[3];
 		uint32_t id1 = mainDevice.getQFIdByType(queueFamilies[0]);
@@ -91,57 +89,6 @@ void VulkanRenderer::stop()
 	_keepGoing = false;
 }
 
-void VulkanRenderer::_outputSupportedDeviceExtensions()
-{
-	auto& physDevice = _vulkan.getPhysDevice();
-	uint32_t _extensionCount = 0;
-	vkEnumerateDeviceExtensionProperties(physDevice.getDevice(), nullptr, &_extensionCount, NULL);
-	std::vector<VkExtensionProperties> extProps(_extensionCount);
-	vkEnumerateDeviceExtensionProperties(physDevice.getDevice(), nullptr, &_extensionCount, extProps.data());
-	std::cout << "Supported extensions: " << std::endl;
-	for (uint32_t i = 0; i < _extensionCount; i++) {
-		std::cout << "\"" << extProps[i].extensionName << "\"" << std::endl;
-	}
-}
-
-void VulkanRenderer::_outputSupportedDeviceLayers()
-{
-	auto& physDevice = _vulkan.getPhysDevice();
-	uint32_t _layerCount = 0;
-	vkEnumerateDeviceLayerProperties(physDevice.getDevice(), &_layerCount, NULL);
-	std::vector<VkLayerProperties> lProps(_layerCount);
-	vkEnumerateDeviceLayerProperties(physDevice.getDevice(), &_layerCount, lProps.data());
-	std::cout << "Supported layers: " << std::endl;
-	for (uint32_t i = 0; i < _layerCount; i++) {
-		std::cout << "\"" << lProps[i].layerName << "\"" << std::endl;
-	}
-}
-
-void VulkanRenderer::_outputSupportedInstanceExtensions(const char* layerName)
-{
-	auto& physDevice = _vulkan.getPhysDevice();
-	uint32_t _extensionCount = 0;
-	vkEnumerateInstanceExtensionProperties(layerName, &_extensionCount, NULL);
-	std::vector<VkExtensionProperties> extProps(_extensionCount);
-	vkEnumerateInstanceExtensionProperties(layerName, &_extensionCount, extProps.data());
-	std::cout << "Supported instance extensions: " << std::endl;
-	for (uint32_t i = 0; i < _extensionCount; i++) {
-		std::cout << "\"" << extProps[i].extensionName << "\"" << std::endl;
-	}
-}
-
-void VulkanRenderer::_outputSupportedInstanceLayers()
-{
-	auto& physDevice = _vulkan.getPhysDevice();
-	uint32_t _layerCount = 0;
-	vkEnumerateInstanceLayerProperties(&_layerCount, NULL);
-	std::vector<VkLayerProperties> lProps(_layerCount);
-	vkEnumerateInstanceLayerProperties(&_layerCount, lProps.data());
-	std::cout << "Supported instance layers: " << std::endl;
-	for (uint32_t i = 0; i < _layerCount; i++)
-		std::cout << "\"" << lProps[i].layerName << "\"" << std::endl;
-}
-
 void VulkanRenderer::_initSurface()
 {
 	auto info = vkTypes::getSurfaceCreateInfo(window.getHInstance(), window.getHWND());
@@ -169,6 +116,29 @@ void VulkanRenderer::_initSwapchain()
 
 	vkCreateSwapchainKHR(_vulkan.getDevice().getDevice(), &info, nullptr, &_swapchain);
 	vkGetSwapchainImagesKHR(_vulkan.getDevice().getDevice(), _swapchain, &_swapchainImgCount, nullptr);
+}
+
+void VulkanRenderer::_initSwapchainImages()
+{
+	_swapchainImgs.resize(_swapchainImgCount);
+	_swapchainImgViews.resize(_swapchainImgCount);
+
+	vkGetSwapchainImagesKHR(_vulkan.getDevice().getDevice(), _swapchain, &_swapchainImgCount, _swapchainImgs.data());
+
+	auto rgba = VK_COMPONENT_SWIZZLE_IDENTITY;
+	VkComponentMapping mapping = { rgba, rgba, rgba, rgba };
+	VkImageSubresourceRange subRng;
+	subRng.aspectMask	  = VK_IMAGE_ASPECT_COLOR_BIT;
+	subRng.baseMipLevel	  = 0;
+	subRng.levelCount	  = 1;
+	subRng.baseArrayLayer = 0;
+	subRng.layerCount	  = 1;
+
+	for (uint32_t i = 0; i < _swapchainImgCount; ++i)
+	{
+		auto info = vkTypes::getImageViewCreateInfo(_swapchainImgs[i], _surfaceFormat, mapping, subRng, VK_IMAGE_VIEW_TYPE_2D);
+		vkCreateImageView(_vulkan.getDevice().getDevice(), &info, nullptr, &_swapchainImgViews[i]);
+	}
 }
 
 void VulkanRenderer::_setSurfaceFormat(const VulkanDevice& device)

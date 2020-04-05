@@ -21,15 +21,15 @@ private:
 	VkSurfaceCapabilitiesKHR _surfaceCapabs;
 	VkSwapchainKHR _swapchain;
 
+	std::vector<VkImage> _swapchainImgs;
+	std::vector<VkImageView> _swapchainImgViews;
+
 	uint32_t _swapchainImgCount;
 
 	void _initSurface();
 	void _initSwapchain();
+	void _initSwapchainImages();
 	void _setSurfaceFormat(const VulkanDevice&);
-	void _outputSupportedInstanceLayers();
-	void _outputSupportedInstanceExtensions(const char* layerName);
-	void _outputSupportedDeviceLayers();
-	void _outputSupportedDeviceExtensions();
 
 	bool _keepGoing = true;
 };
