@@ -2,6 +2,8 @@
 #include "Window.h"
 #include "VulkanBuffer.h"
 
+#include "VulkanErrorChecker.h"
+
 #include <iostream>
 
 Window window(512, 512, L"test");
@@ -26,6 +28,10 @@ VulkanRenderer::~VulkanRenderer()
 {
 	auto device = _vulkan.getDevice().getDevice();
 
+	vkQueueWaitIdle(_vulkan.getDevice().getQueueByType(VK_QUEUE_GRAPHICS_BIT));
+
+	vkDestroyFence(device, _swapchainImgAvailable, nullptr);
+
 	for (uint32_t i = 0; i < _swapchainImgCount; ++i)
 		vkDestroyFramebuffer(device, _frameBuffs[i], nullptr);
 	
@@ -48,53 +54,107 @@ void VulkanRenderer::init()
 
 	_vulkan.chooseDevice(queueFamilies, deviceTypesByPriority, _surface);
 
-	auto mainDevice = _vulkan.getDevice();
+	_mainDevice = &_vulkan.getDevice();
 
-	if (mainDevice.getDevice() == VK_NULL_HANDLE)
+	if (_mainDevice->getDevice() == VK_NULL_HANDLE)
 		std::cout << std::endl << "No device was chosen." << std::endl;
 	else
 	{
 		std::cout << std::endl << "Device was chosen: " << _vulkan.getPhysDevice().getProps().deviceName << std::endl;
 
-		_setSurfaceFormat(mainDevice);
+		_setSurfaceFormat(*_mainDevice);
 		_initSwapchain();
 		_initSwapchainImages();
-		_initDepthStencilImage(mainDevice);
+		_initDepthStencilImage(*_mainDevice);
 
-		_initRenderPass(mainDevice);
-		_initFrameBuffers(mainDevice);
+		_initRenderPass(*_mainDevice);
+		_initFrameBuffers(*_mainDevice);
 
-		VkCommandBuffer* commands = new VkCommandBuffer[3];
-		uint32_t id1 = mainDevice.getQFIdByType(queueFamilies[0]);
-		uint32_t id2 = mainDevice.getQFIdByType(queueFamilies[1]);
-		mainDevice.getCommand(commands, 1, id1);
-		mainDevice.getCommand(commands + 1, 2, id2);
-		std::cout << std::endl << "Allocated 1 compute command and 2 graphics commands successfully." << std::endl << std::endl;
+		_initSync(*_mainDevice);
 
-		float arr[3] = { 1.0f, 2.0f, 3.0f };
-		VulkanBuffer buf(mainDevice, &arr, sizeof(float), 3);
-		buf.allocate();
-		std::cout << "Uniform buffer created successfully." << std::endl;
-
-		buf.setData(1, 1);
-		std::cout << "Sample data successfully sent to GPU." << std::endl;
-
-		mainDevice.freeCommand(commands, 1, id1);
-		mainDevice.freeCommand(commands + 1, 2, id2);
-		std::cout << "Freed all the commands successfully." << std::endl;
+		_currentSwapchainImgID = -1;
 	}
 }
 
 void VulkanRenderer::run()
 {
+	auto queue = _mainDevice->getQueueByType(VK_QUEUE_GRAPHICS_BIT);
+
+	VkCommandBuffer commands;
+	_mainDevice->getCommand(&commands, 1, _mainDevice->getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
+
+	auto cbBeginInfo = vkTypes::getCBBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+	VkRect2D renderArea;
+	renderArea.offset = { 0,0 };
+	auto wSz = window.getSize();
+	renderArea.extent = {wSz.first, wSz.second};
+	std::vector<VkClearValue> clearVals(2);
+	clearVals[0].depthStencil.depth = 0.0f;
+	clearVals[0].depthStencil.stencil = 0;
+	clearVals[1].color.float32[0] = 1.0f;
+	clearVals[1].color.float32[1] = 0.0f;
+	clearVals[1].color.float32[2] = 0.0f;
+	clearVals[1].color.float32[3] = 0.0f;
+
+	VkRenderPassBeginInfo rpBeginInfo;
+
+	auto semaphoreInfo = vkTypes::getSemaphoreCreateInfo();
+	std::vector<VkSemaphore> semaphores(1);
+	auto& renderCompleteSemaphore = semaphores[0];
+	vkCreateSemaphore(_mainDevice->getDevice(), &semaphoreInfo, nullptr, &renderCompleteSemaphore);
+
+	std::vector<VkSemaphore> waitSemaphores;
+	std::vector<VkSemaphore> signalSemaphores = { renderCompleteSemaphore };
+	std::vector<VkCommandBuffer> cmdBuffs = { commands };
+	VkSubmitInfo submitInfo = vkTypes::getSubmitInfo(waitSemaphores, signalSemaphores, cmdBuffs, nullptr);
+
 	while (runOnce())
 	{
+		beginRender(*_mainDevice);
+		
+		vkBeginCommandBuffer(commands, &cbBeginInfo);
+
+		rpBeginInfo = vkTypes::getRPBeginInfo(_renderPass, _getCurrentFrameBuffer(), renderArea, clearVals);
+		vkCmdBeginRenderPass(commands, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		vkCmdEndRenderPass(commands);
+
+		vkEndCommandBuffer(commands);
+
+		vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+
+		endRender(*_mainDevice, semaphores);
 	}
+
+	vkQueueWaitIdle(queue);
+
+	vkDestroySemaphore(_mainDevice->getDevice(), renderCompleteSemaphore, nullptr);
 }
 
 bool VulkanRenderer::runOnce()
 {
 	return window.Update();
+}
+
+void VulkanRenderer::beginRender(const VulkanDevice& device)
+{
+	auto& dev = device.getDevice();
+	vkAcquireNextImageKHR(dev, _swapchain, UINT64_MAX, VK_NULL_HANDLE, _swapchainImgAvailable, &_currentSwapchainImgID);
+	vkWaitForFences(dev, 1, &_swapchainImgAvailable, VK_TRUE, UINT64_MAX);
+	vkResetFences(dev, 1, &_swapchainImgAvailable);
+	vkQueueWaitIdle(device.getQueueByType(VK_QUEUE_GRAPHICS_BIT));
+}
+
+void VulkanRenderer::endRender(const VulkanDevice& device, const std::vector<VkSemaphore>& waitSemaphores)
+{
+	std::vector<VkSwapchainKHR> swapchains = {_swapchain};
+	std::vector<uint32_t> imgIds = {_currentSwapchainImgID};
+	std::vector<VkResult> results(1);
+
+	auto info = vkTypes::getPresentInfo(waitSemaphores, swapchains, imgIds, results);
+
+	vkQueuePresentKHR(device.getQueueByType(VK_QUEUE_COMPUTE_BIT), &info);
 }
 
 void VulkanRenderer::stop()
@@ -244,7 +304,7 @@ void VulkanRenderer::_initRenderPass(const VulkanDevice& device)
 	subpasses[0].pColorAttachments		 =	colorAttachments.data();		// layout(location=0) out vec4 FinalColor;
 	subpasses[0].pDepthStencilAttachment =	&depthAttachmentRef;
 
-	auto info = vkTypes::getRenderPassCreateInfo(attachments, subpasses);
+	auto info = vkTypes::getRPCreateInfo(attachments, subpasses);
 
 	vkCreateRenderPass(device.getDevice(), &info, nullptr, &_renderPass);
 }
@@ -265,6 +325,13 @@ void VulkanRenderer::_initFrameBuffers(const VulkanDevice& device)
 	}
 }
 
+void VulkanRenderer::_initSync(const VulkanDevice& device)
+{
+	auto info = vkTypes::getFenceCreateInfo();
+
+	vkCreateFence(device.getDevice(), &info, nullptr, &_swapchainImgAvailable);
+}
+
 void VulkanRenderer::_setSurfaceFormat(const VulkanDevice& device)
 {
 	auto physDev = device.getPhysicalDevice()->getDevice();
@@ -276,6 +343,11 @@ void VulkanRenderer::_setSurfaceFormat(const VulkanDevice& device)
 	std::vector<VkSurfaceFormatKHR> formats(formatCount);
 	vkGetPhysicalDeviceSurfaceFormatsKHR(physDev, _surface, &formatCount, formats.data());
 	_surfaceFormat = formats[0];
+}
+
+VkFramebuffer& VulkanRenderer::_getCurrentFrameBuffer()
+{
+	return _frameBuffs[_currentSwapchainImgID];
 }
 
 uint32_t VulkanRenderer::_getMemoryId(const VulkanDevice& device, const VkMemoryRequirements& memReq, VkMemoryPropertyFlagBits reqFlags)

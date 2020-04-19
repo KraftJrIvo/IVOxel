@@ -89,6 +89,18 @@ VkCommandBufferAllocateInfo vkTypes::getCBAllocateInfo(const VkCommandPool& pool
     return info;
 }
 
+VkCommandBufferBeginInfo vkTypes::getCBBeginInfo(VkCommandBufferUsageFlags flags)
+{
+    VkCommandBufferBeginInfo info = {};
+
+    info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    info.pNext = nullptr;
+    info.flags = flags;
+    //info.pInheritanceInfo;
+
+    return info;
+}
+
 VkBufferCreateInfo vkTypes::getBufCreateInfo(VkDeviceSize size, VkBufferUsageFlags usageFlags)
 {
     VkBufferCreateInfo info = {};
@@ -191,20 +203,35 @@ VkImageViewCreateInfo vkTypes::getImageViewCreateInfo(const VkImage& img, const 
     return info;
 }
 
-VkRenderPassCreateInfo vkTypes::getRenderPassCreateInfo(const std::vector<VkAttachmentDescription>& attachments, const std::vector<VkSubpassDescription>& subPasses)
+VkRenderPassCreateInfo vkTypes::getRPCreateInfo(const std::vector<VkAttachmentDescription>& attachments, const std::vector<VkSubpassDescription>& subPasses)
 {
     VkRenderPassCreateInfo info = {};
 
-    info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    info.pNext = nullptr;
-    info.flags = 0;
-    info.attachmentCount = attachments.size();
-    info.pAttachments = attachments.data();
-    info.subpassCount = subPasses.size();
-    info.pSubpasses = subPasses.data();
+    info.sType           =  VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    info.pNext           =  nullptr;
+    info.flags           =  0;
+    info.attachmentCount =  attachments.size();
+    info.pAttachments    =  attachments.data();
+    info.subpassCount    =  subPasses.size();
+    info.pSubpasses      =  subPasses.data();
     //info.dependencyCount;
     //info.pDependencies;
 
+    return info;
+}
+
+VkRenderPassBeginInfo vkTypes::getRPBeginInfo(const VkRenderPass& renderPass, const VkFramebuffer& frameBuff, const VkRect2D& area, const std::vector<VkClearValue>& clearVals)
+{
+    VkRenderPassBeginInfo info = {};
+
+    info.sType           =   VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    info.pNext           =   nullptr;
+    info.renderPass      =   renderPass;
+    info.framebuffer     =   frameBuff;
+    info.renderArea      =   area;
+    info.clearValueCount =   clearVals.size();
+    info.pClearValues    =   clearVals.data();
+    
     return info;
 }
 
@@ -221,6 +248,62 @@ VkFramebufferCreateInfo vkTypes::getFramebufferCreateInfo(const VkRenderPass& re
     info.width           =  w;
     info.height          =  h;
     info.layers          =  layers;
+
+    return info;
+}
+
+VkFenceCreateInfo vkTypes::getFenceCreateInfo()
+{
+    VkFenceCreateInfo info = {};
+
+    info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    info.pNext = nullptr;
+    info.flags = 0;
+
+    return info;
+}
+
+VkPresentInfoKHR vkTypes::getPresentInfo(const std::vector<VkSemaphore>& semaphores, const std::vector<VkSwapchainKHR>& swapchains, 
+    const std::vector<uint32_t>& imageIds, std::vector<VkResult>& results)
+{
+    VkPresentInfoKHR info = {};
+
+    info.sType              =   VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    info.pNext              =   nullptr;
+    info.waitSemaphoreCount =   semaphores.size();
+    info.pWaitSemaphores    =   semaphores.data();
+    info.swapchainCount     =   swapchains.size();
+    info.pSwapchains        =   swapchains.data();
+    info.pImageIndices      =   imageIds.data();
+    info.pResults           =   results.data();
+
+    return info;
+}
+
+VkSubmitInfo vkTypes::getSubmitInfo(const std::vector<VkSemaphore>& waitSemaphores, const std::vector<VkSemaphore>& signalSemaphores, const std::vector<VkCommandBuffer>& cmdBuffs, uint32_t* dstStageMaskFlags)
+{
+    VkSubmitInfo info = {};
+
+    info.sType                =     VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    info.pNext                =     nullptr;
+    info.waitSemaphoreCount   =     waitSemaphores.size();
+    info.pWaitSemaphores      =     waitSemaphores.data();
+    info.pWaitDstStageMask    =     dstStageMaskFlags;
+    info.commandBufferCount   =     cmdBuffs.size();
+    info.pCommandBuffers      =     cmdBuffs.data();
+    info.signalSemaphoreCount =     signalSemaphores.size();
+    info.pSignalSemaphores    =     signalSemaphores.data();
+
+    return info;
+}
+
+VkSemaphoreCreateInfo vkTypes::getSemaphoreCreateInfo()
+{
+    VkSemaphoreCreateInfo info = {};
+
+    info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;;
+    info.pNext = nullptr;
+    info.flags = 0;
 
     return info;
 }

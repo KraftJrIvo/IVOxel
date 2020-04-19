@@ -19,6 +19,8 @@ namespace vkTypes
 	
 	VkCommandBufferAllocateInfo getCBAllocateInfo(const VkCommandPool& pool, uint32_t count, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
+	VkCommandBufferBeginInfo getCBBeginInfo(VkCommandBufferUsageFlags flags);
+
 	VkBufferCreateInfo getBufCreateInfo(VkDeviceSize size, VkBufferUsageFlags useFlags);
 	
 	VkMemoryAllocateInfo getMemAllocInfo(VkDeviceSize size, uint32_t memTypeId);
@@ -31,7 +33,17 @@ namespace vkTypes
 	
 	VkImageViewCreateInfo getImageViewCreateInfo(const VkImage& img, const VkComponentMapping& mapping, const VkImageSubresourceRange& subRng, VkFormat format, VkImageViewType type);
 	
-	VkRenderPassCreateInfo getRenderPassCreateInfo(const std::vector<VkAttachmentDescription>& attachments, const std::vector<VkSubpassDescription>& subPasses);
+	VkRenderPassCreateInfo getRPCreateInfo(const std::vector<VkAttachmentDescription>& attachments, const std::vector<VkSubpassDescription>& subPasses);
+	
+	VkRenderPassBeginInfo getRPBeginInfo(const VkRenderPass& renderPass, const VkFramebuffer& frameBuff, const VkRect2D& area, const std::vector<VkClearValue>& clearVals);
 	
 	VkFramebufferCreateInfo getFramebufferCreateInfo(const VkRenderPass& renderPass, const std::vector<VkImageView>& attachments, uint32_t w, uint32_t h, uint32_t layers);
+	
+	VkFenceCreateInfo getFenceCreateInfo();
+
+	VkPresentInfoKHR getPresentInfo(const std::vector<VkSemaphore>& semaphores, const std::vector<VkSwapchainKHR>& swapchains, const std::vector<uint32_t>& imageIds, std::vector<VkResult>& results);
+
+	VkSubmitInfo getSubmitInfo(const std::vector<VkSemaphore>& waitSemaphores, const std::vector<VkSemaphore>& signalSemaphores, const std::vector<VkCommandBuffer>& cmdBuffs, uint32_t* dstStageMaskFlags);
+
+	VkSemaphoreCreateInfo getSemaphoreCreateInfo();
 }

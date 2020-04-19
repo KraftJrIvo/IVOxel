@@ -30,7 +30,7 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice& physDev, std::vector<cons
 	for (auto& id : _uniqueIds)
 	{
 		vkGetDeviceQueue(_device, id.first, 0, &_queues[id.first]);
-		auto info = vkTypes::getCPCreateInfo(id.first);
+		auto info = vkTypes::getCPCreateInfo(id.first, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 		vkCreateCommandPool(_device, &info, nullptr, &_pools[id.first]);
 	}
 }
@@ -51,11 +51,24 @@ void VulkanDevice::destroyPools()
 		vkDestroyCommandPool(_device, pool.second, nullptr);
 }
 
-uint32_t VulkanDevice::getQFIdByType(uint32_t type)
+uint32_t VulkanDevice::getQFIdByType(uint32_t type) const
 {
 	if (_idsByType.count(type))
 		return _idsByType.find(type)->second;
 	return -1;
+}
+
+VkQueue VulkanDevice::getQueueById(uint32_t id) const
+{
+	if (_queues.count(id))
+		return _queues.find(id)->second;
+	return VK_NULL_HANDLE;
+}
+
+VkQueue VulkanDevice::getQueueByType(uint32_t type) const
+{
+	auto id = getQFIdByType(type);
+	return getQueueById(id);
 }
 
 void VulkanDevice::getCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId)

@@ -12,7 +12,9 @@ public:
 	const VkDevice& getDevice() const;
 	const VulkanPhysicalDevice* getPhysicalDevice() const;
 	void destroyPools();
-	uint32_t getQFIdByType(uint32_t type);
+	uint32_t getQFIdByType(uint32_t type) const;
+	VkQueue getQueueById(uint32_t id) const;
+	VkQueue getQueueByType(uint32_t type) const;
 
 	void getCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId);
 	void freeCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId);
