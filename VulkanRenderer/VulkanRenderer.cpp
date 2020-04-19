@@ -4,6 +4,8 @@
 
 #include "VulkanErrorChecker.h"
 
+#include "FPSCounter.h"
+
 #include <iostream>
 
 Window window(512, 512, L"test");
@@ -108,9 +110,13 @@ void VulkanRenderer::run()
 	std::vector<VkSemaphore> signalSemaphores = { renderCompleteSemaphore };
 	std::vector<VkCommandBuffer> cmdBuffs = { commands };
 	VkSubmitInfo submitInfo = vkTypes::getSubmitInfo(waitSemaphores, signalSemaphores, cmdBuffs, nullptr);
+	
+	FPSCounter fpsCounter;
 
 	while (runOnce())
 	{
+		fpsCounter.tellFPS(1000);
+
 		beginRender(*_mainDevice);
 		
 		vkBeginCommandBuffer(commands, &cbBeginInfo);
