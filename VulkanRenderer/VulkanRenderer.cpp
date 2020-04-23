@@ -30,6 +30,9 @@ VulkanRenderer::~VulkanRenderer()
 {
 	auto device = _vulkan.getDevice().getDevice();
 
+	_fragmentShader.destroy(device);
+	_vertexShader.destroy(device);
+
 	vkQueueWaitIdle(_vulkan.getDevice().getQueueByType(VK_QUEUE_GRAPHICS_BIT));
 
 	vkDestroyFence(device, _swapchainImgAvailable, nullptr);
@@ -56,23 +59,24 @@ void VulkanRenderer::init()
 
 	_vulkan.chooseDevice(queueFamilies, deviceTypesByPriority, _surface);
 
-	_mainDevice = &_vulkan.getDevice();
+	_mainDevice = _vulkan.getDevice();
 
-	if (_mainDevice->getDevice() == VK_NULL_HANDLE)
+	if (_mainDevice.getDevice() == VK_NULL_HANDLE)
 		std::cout << std::endl << "No device was chosen." << std::endl;
 	else
 	{
 		std::cout << std::endl << "Device was chosen: " << _vulkan.getPhysDevice().getProps().deviceName << std::endl;
 
-		_setSurfaceFormat(*_mainDevice);
+		_setSurfaceFormat();
 		_initSwapchain();
 		_initSwapchainImages();
-		_initDepthStencilImage(*_mainDevice);
+		_initDepthStencilImage();
+		_initShaders();
+		_initRenderPass();
+		_initFrameBuffers();
 
-		_initRenderPass(*_mainDevice);
-		_initFrameBuffers(*_mainDevice);
+		_initSync();
 
-		_initSync(*_mainDevice);
 
 		_currentSwapchainImgID = -1;
 	}
@@ -80,10 +84,10 @@ void VulkanRenderer::init()
 
 void VulkanRenderer::run()
 {
-	auto queue = _mainDevice->getQueueByType(VK_QUEUE_GRAPHICS_BIT);
+	auto queue = _mainDevice.getQueueByType(VK_QUEUE_GRAPHICS_BIT);
 
 	VkCommandBuffer commands;
-	_mainDevice->getCommand(&commands, 1, _mainDevice->getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
+	_mainDevice.getCommand(&commands, 1, _mainDevice.getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
 
 	auto cbBeginInfo = vkTypes::getCBBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -104,7 +108,7 @@ void VulkanRenderer::run()
 	auto semaphoreInfo = vkTypes::getSemaphoreCreateInfo();
 	std::vector<VkSemaphore> semaphores(1);
 	auto& renderCompleteSemaphore = semaphores[0];
-	vkCreateSemaphore(_mainDevice->getDevice(), &semaphoreInfo, nullptr, &renderCompleteSemaphore);
+	vkCreateSemaphore(_mainDevice.getDevice(), &semaphoreInfo, nullptr, &renderCompleteSemaphore);
 
 	std::vector<VkSemaphore> waitSemaphores;
 	std::vector<VkSemaphore> signalSemaphores = { renderCompleteSemaphore };
@@ -117,7 +121,7 @@ void VulkanRenderer::run()
 	{
 		fpsCounter.tellFPS(1000);
 
-		beginRender(*_mainDevice);
+		beginRender();
 		
 		vkBeginCommandBuffer(commands, &cbBeginInfo);
 
@@ -130,12 +134,12 @@ void VulkanRenderer::run()
 
 		vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
 
-		endRender(*_mainDevice, semaphores);
+		endRender(semaphores);
 	}
 
 	vkQueueWaitIdle(queue);
 
-	vkDestroySemaphore(_mainDevice->getDevice(), renderCompleteSemaphore, nullptr);
+	vkDestroySemaphore(_mainDevice.getDevice(), renderCompleteSemaphore, nullptr);
 }
 
 bool VulkanRenderer::runOnce()
@@ -143,16 +147,16 @@ bool VulkanRenderer::runOnce()
 	return window.Update();
 }
 
-void VulkanRenderer::beginRender(const VulkanDevice& device)
+void VulkanRenderer::beginRender()
 {
-	auto& dev = device.getDevice();
+	auto& dev = _mainDevice.getDevice();
 	vkAcquireNextImageKHR(dev, _swapchain, UINT64_MAX, VK_NULL_HANDLE, _swapchainImgAvailable, &_currentSwapchainImgID);
 	vkWaitForFences(dev, 1, &_swapchainImgAvailable, VK_TRUE, UINT64_MAX);
 	vkResetFences(dev, 1, &_swapchainImgAvailable);
-	vkQueueWaitIdle(device.getQueueByType(VK_QUEUE_GRAPHICS_BIT));
+	vkQueueWaitIdle(_mainDevice.getQueueByType(VK_QUEUE_GRAPHICS_BIT));
 }
 
-void VulkanRenderer::endRender(const VulkanDevice& device, const std::vector<VkSemaphore>& waitSemaphores)
+void VulkanRenderer::endRender(const std::vector<VkSemaphore>& waitSemaphores)
 {
 	std::vector<VkSwapchainKHR> swapchains = {_swapchain};
 	std::vector<uint32_t> imgIds = {_currentSwapchainImgID};
@@ -160,7 +164,7 @@ void VulkanRenderer::endRender(const VulkanDevice& device, const std::vector<VkS
 
 	auto info = vkTypes::getPresentInfo(waitSemaphores, swapchains, imgIds, results);
 
-	vkQueuePresentKHR(device.getQueueByType(VK_QUEUE_COMPUTE_BIT), &info);
+	vkQueuePresentKHR(_mainDevice.getQueueByType(VK_QUEUE_COMPUTE_BIT), &info);
 }
 
 void VulkanRenderer::stop()
@@ -223,7 +227,7 @@ void VulkanRenderer::_initSwapchainImages()
 	}
 }
 
-void VulkanRenderer::_initDepthStencilImage(const VulkanDevice& device)
+void VulkanRenderer::_initDepthStencilImage()
 {
 	std::vector<VkFormat> formatsToTry =
 	{
@@ -240,7 +244,7 @@ void VulkanRenderer::_initDepthStencilImage(const VulkanDevice& device)
 	VkFormatProperties fProps;
 	for (auto& format : formatsToTry)
 	{
-		vkGetPhysicalDeviceFormatProperties(device.getPhysicalDevice()->getDevice(), format, &fProps);
+		vkGetPhysicalDeviceFormatProperties(_mainDevice.getPhysicalDevice()->getDevice(), format, &fProps);
 		if (fProps.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
 		{
 			_depthStencilFormat = format;
@@ -251,15 +255,15 @@ void VulkanRenderer::_initDepthStencilImage(const VulkanDevice& device)
 	auto imgInfo = vkTypes::getImageCreateInfo(VK_IMAGE_TYPE_2D, _depthStencilFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		_surfaceCapabs.currentExtent.width, _surfaceCapabs.currentExtent.height);
 
-	vkCreateImage(device.getDevice(), &imgInfo, nullptr, &_depthStencilImg);
+	vkCreateImage(_mainDevice.getDevice(), &imgInfo, nullptr, &_depthStencilImg);
 
 	VkMemoryRequirements memReq;
-	vkGetImageMemoryRequirements(device.getDevice(), _depthStencilImg, &memReq);
+	vkGetImageMemoryRequirements(_mainDevice.getDevice(), _depthStencilImg, &memReq);
 
-	uint32_t memId = _getMemoryId(device, memReq, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+	uint32_t memId = _getMemoryId(memReq, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	auto allocInfo = vkTypes::getMemAllocInfo(memReq.size, memId);
-	vkAllocateMemory(device.getDevice(), &allocInfo, nullptr, &_depthStencilImgMem);
-	vkBindImageMemory(device.getDevice(), _depthStencilImg, _depthStencilImgMem, 0);
+	vkAllocateMemory(_mainDevice.getDevice(), &allocInfo, nullptr, &_depthStencilImgMem);
+	vkBindImageMemory(_mainDevice.getDevice(), _depthStencilImg, _depthStencilImgMem, 0);
 
 	auto rgba = VK_COMPONENT_SWIZZLE_IDENTITY;
 	VkComponentMapping mapping = { rgba, rgba, rgba, rgba };
@@ -272,10 +276,10 @@ void VulkanRenderer::_initDepthStencilImage(const VulkanDevice& device)
 
 	auto viewInfo = vkTypes::getImageViewCreateInfo(_depthStencilImg, mapping, subRng, _depthStencilFormat, VK_IMAGE_VIEW_TYPE_2D);
 
-	vkCreateImageView(device.getDevice(), &viewInfo, nullptr, &_depthStencilImgView);
+	vkCreateImageView(_mainDevice.getDevice(), &viewInfo, nullptr, &_depthStencilImgView);
 }
 
-void VulkanRenderer::_initRenderPass(const VulkanDevice& device)
+void VulkanRenderer::_initRenderPass()
 {
 	std::vector<VkAttachmentDescription> attachments(2);
 	attachments[0].flags          =		0;
@@ -312,10 +316,10 @@ void VulkanRenderer::_initRenderPass(const VulkanDevice& device)
 
 	auto info = vkTypes::getRPCreateInfo(attachments, subpasses);
 
-	vkCreateRenderPass(device.getDevice(), &info, nullptr, &_renderPass);
+	vkCreateRenderPass(_mainDevice.getDevice(), &info, nullptr, &_renderPass);
 }
 
-void VulkanRenderer::_initFrameBuffers(const VulkanDevice& device)
+void VulkanRenderer::_initFrameBuffers()
 {
 	_frameBuffs.resize(_swapchainImgCount);
 
@@ -327,20 +331,27 @@ void VulkanRenderer::_initFrameBuffers(const VulkanDevice& device)
 		attachments[1] = _swapchainImgViews[i];
 		auto info = vkTypes::getFramebufferCreateInfo(_renderPass, attachments, window.getSize().first, window.getSize().second, 1);
 
-		vkCreateFramebuffer(device.getDevice(), &info, nullptr, &_frameBuffs[i]);
+		vkCreateFramebuffer(_mainDevice.getDevice(), &info, nullptr, &_frameBuffs[i]);
 	}
 }
 
-void VulkanRenderer::_initSync(const VulkanDevice& device)
+void VulkanRenderer::_initSync()
 {
 	auto info = vkTypes::getFenceCreateInfo();
 
-	vkCreateFence(device.getDevice(), &info, nullptr, &_swapchainImgAvailable);
+	vkCreateFence(_mainDevice.getDevice(), &info, nullptr, &_swapchainImgAvailable);
 }
 
-void VulkanRenderer::_setSurfaceFormat(const VulkanDevice& device)
+void VulkanRenderer::_initShaders()
 {
-	auto physDev = device.getPhysicalDevice()->getDevice();
+	auto& dev = _mainDevice.getDevice();
+	_vertexShader = VulkanShader(dev, "vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
+	_fragmentShader = VulkanShader(dev, "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+}
+
+void VulkanRenderer::_setSurfaceFormat()
+{
+	auto physDev = _mainDevice.getPhysicalDevice()->getDevice();
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physDev, _surface, &_surfaceCapabs);
 	if (_surfaceCapabs.currentExtent.width < UINT32_MAX)
 		window.setSurfaceSize(_surfaceCapabs.currentExtent.width, _surfaceCapabs.currentExtent.height);
@@ -356,9 +367,9 @@ VkFramebuffer& VulkanRenderer::_getCurrentFrameBuffer()
 	return _frameBuffs[_currentSwapchainImgID];
 }
 
-uint32_t VulkanRenderer::_getMemoryId(const VulkanDevice& device, const VkMemoryRequirements& memReq, VkMemoryPropertyFlagBits reqFlags)
+uint32_t VulkanRenderer::_getMemoryId(const VkMemoryRequirements& memReq, VkMemoryPropertyFlagBits reqFlags)
 {
-	auto devMemProps = device.getPhysicalDevice()->getMemProps();	
+	auto devMemProps = _mainDevice.getPhysicalDevice()->getMemProps();
 	for (uint32_t i = 0; i < devMemProps.memoryTypeCount; ++i)
 		if (memReq.memoryTypeBits & (1 << i))
 			if ((devMemProps.memoryTypes[i].propertyFlags & reqFlags) == reqFlags)
