@@ -13,6 +13,7 @@ public:
 	bool Update();
 	void setSurfaceSize(uint32_t w, uint32_t h);
 	std::pair<uint32_t, uint32_t> getSize();
+	VkRect2D getRenderArea();
 
 	const HINSTANCE& getHInstance();
 	const HWND& getHWND();
@@ -21,7 +22,6 @@ private:
 	void								_InitOSWindow();
 	void								_DeInitOSWindow();
 	void								_UpdateOSWindow();
-	void								_InitOSSurface();
 
 	uint32_t							_surface_size_x = 512;
 	uint32_t							_surface_size_y = 512;

@@ -50,6 +50,7 @@ private:
 	void _initRenderPass();
 	void _initFrameBuffers();
 	void _initSync();
+	void _initPipeline();
 	void _initShaders();
 	void _setSurfaceFormat();
 	

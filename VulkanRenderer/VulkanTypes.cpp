@@ -307,3 +307,46 @@ VkSemaphoreCreateInfo vkTypes::getSemaphoreCreateInfo()
 
     return info;
 }
+
+VkPipelineVertexInputStateCreateInfo vkTypes::getPipelineVertexISCreateInfo(const std::vector<VkVertexInputBindingDescription>& vibDescrs, const std::vector<VkVertexInputAttributeDescription>& vaDescrs)
+{
+    VkPipelineVertexInputStateCreateInfo info = {};
+
+    info.sType                           =  VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    info.pNext                           =  nullptr;
+    info.flags                           =  0;
+    info.vertexBindingDescriptionCount   =  vibDescrs.size();
+    info.pVertexBindingDescriptions      =  vibDescrs.data();
+    info.vertexAttributeDescriptionCount =  vaDescrs.size();
+    info.pVertexAttributeDescriptions    =  vaDescrs.data;
+
+    return info;
+}
+
+VkPipelineInputAssemblyStateCreateInfo vkTypes::getPipelineInputAssemblyISCreateInfo(VkPrimitiveTopology topology, VkBool32 primitiveRestartEnabled)
+{
+    VkPipelineInputAssemblyStateCreateInfo info = {};
+
+    info.sType                  =   VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    info.pNext                  =   nullptr;
+    info.flags                  =   0;
+    info.topology               =   topology;
+    info.primitiveRestartEnable =   primitiveRestartEnabled;
+
+    return info;
+}
+
+VkPipelineViewportStateCreateInfo vkTypes::getPipelineViewportSCreateInfo(const std::vector<VkViewport>& viewports, const std::vector<VkRect2D>& scissors)
+{
+    VkPipelineViewportStateCreateInfo info = {};
+
+    info.sType         =    VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    info.pNext         =    nullptr;
+    info.flags         =    0;
+    info.viewportCount =    viewports.size();
+    info.pViewports    =    viewports.data();
+    info.scissorCount  =    scissors.size();
+    info.pScissors     =    scissors.data();
+
+    return info;
+}

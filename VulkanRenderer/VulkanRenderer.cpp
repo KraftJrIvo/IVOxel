@@ -91,10 +91,7 @@ void VulkanRenderer::run()
 
 	auto cbBeginInfo = vkTypes::getCBBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-	VkRect2D renderArea;
-	renderArea.offset = { 0,0 };
-	auto wSz = window.getSize();
-	renderArea.extent = {wSz.first, wSz.second};
+	VkRect2D renderArea = window.getRenderArea();
 	std::vector<VkClearValue> clearVals(2);
 	clearVals[0].depthStencil.depth = 0.0f;
 	clearVals[0].depthStencil.stencil = 0;
@@ -340,6 +337,24 @@ void VulkanRenderer::_initSync()
 	auto info = vkTypes::getFenceCreateInfo();
 
 	vkCreateFence(_mainDevice.getDevice(), &info, nullptr, &_swapchainImgAvailable);
+}
+
+void VulkanRenderer::_initPipeline()
+{
+	auto vertexISCreateInfo		 = vkTypes::getPipelineVertexISCreateInfo({}, {});
+	auto inputAssemblyCreateInfo = vkTypes::getPipelineInputAssemblyISCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+	auto renderArea = window.getRenderArea();
+
+	VkViewport viewport{};
+	viewport.x		  = 0.0f;
+	viewport.y		  = 0.0f;
+	viewport.width	  = renderArea.extent.width;
+	viewport.height	  = renderArea.extent.height;
+	viewport.minDepth = 0.0f;
+	viewport.maxDepth = 1.0f;
+
+
 }
 
 void VulkanRenderer::_initShaders()

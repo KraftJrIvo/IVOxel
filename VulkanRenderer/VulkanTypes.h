@@ -46,4 +46,10 @@ namespace vkTypes
 	VkSubmitInfo getSubmitInfo(const std::vector<VkSemaphore>& waitSemaphores, const std::vector<VkSemaphore>& signalSemaphores, const std::vector<VkCommandBuffer>& cmdBuffs, uint32_t* dstStageMaskFlags);
 
 	VkSemaphoreCreateInfo getSemaphoreCreateInfo();
+
+	VkPipelineVertexInputStateCreateInfo getPipelineVertexISCreateInfo(const std::vector<VkVertexInputBindingDescription>& vibDescrs, const std::vector<VkVertexInputAttributeDescription>& vaDescrs);
+	
+	VkPipelineInputAssemblyStateCreateInfo getPipelineInputAssemblyISCreateInfo(VkPrimitiveTopology topology, VkBool32 primitiveRestartEnabled = VK_FALSE);
+
+	VkPipelineViewportStateCreateInfo getPipelineViewportSCreateInfo(const std::vector<VkViewport>& viewports, const std::vector<VkRect2D>& scissors);
 }

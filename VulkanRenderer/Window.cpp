@@ -38,6 +38,16 @@ std::pair<uint32_t, uint32_t> Window::getSize()
 	return {_surface_size_x, _surface_size_y};
 }
 
+VkRect2D Window::getRenderArea()
+{
+	VkRect2D renderArea;
+	renderArea.offset = { 0,0 };
+	auto wSz		  = getSize();
+	renderArea.extent = { wSz.first, wSz.second };
+
+	return renderArea;
+}
+
 const HINSTANCE& Window::getHInstance()
 {
 	return _win32_instance;
