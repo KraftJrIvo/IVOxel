@@ -318,7 +318,7 @@ VkPipelineVertexInputStateCreateInfo vkTypes::getPipelineVertexISCreateInfo(cons
     info.vertexBindingDescriptionCount   =  vibDescrs.size();
     info.pVertexBindingDescriptions      =  vibDescrs.data();
     info.vertexAttributeDescriptionCount =  vaDescrs.size();
-    info.pVertexAttributeDescriptions    =  vaDescrs.data;
+    info.pVertexAttributeDescriptions    =  vaDescrs.data();
 
     return info;
 }
@@ -347,6 +347,120 @@ VkPipelineViewportStateCreateInfo vkTypes::getPipelineViewportSCreateInfo(const 
     info.pViewports    =    viewports.data();
     info.scissorCount  =    scissors.size();
     info.pScissors     =    scissors.data();
+
+    return info;
+}
+
+VkPipelineRasterizationStateCreateInfo vkTypes::getPipelineRasterizationSCreateInfo(VkPolygonMode polyMode, VkCullModeFlags cullMode, uint32_t lineWidth, VkFrontFace frontFace)
+{
+    VkPipelineRasterizationStateCreateInfo info = {};
+
+    info.sType                   =  VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    info.pNext                   =  nullptr;
+    info.flags                   =  0;
+    info.polygonMode             =  polyMode;
+    info.lineWidth               =  lineWidth;
+    info.cullMode                =  cullMode;
+    info.frontFace               =  frontFace;
+    info.depthBiasEnable         =  VK_FALSE;
+    info.depthBiasConstantFactor =  0.0f;
+    info.depthBiasClamp          =  0.0f;
+    info.depthBiasSlopeFactor    =  0.0f;
+
+    return info;
+}
+
+VkPipelineMultisampleStateCreateInfo vkTypes::getPipelineMultisampleSCreateInfo(VkBool32 shading, VkSampleCountFlagBits sampleFlags, float minSampleShading, const VkSampleMask* pMask, VkBool32 alphaToCoverageEnable, VkBool32 alphaToOneEnable)
+{
+    VkPipelineMultisampleStateCreateInfo info = {};
+
+    info.sType                 =    VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    info.pNext                 =    nullptr;
+    info.flags                 =    0;
+    info.sampleShadingEnable   =    shading;
+    info.rasterizationSamples  =    sampleFlags;
+    info.minSampleShading      =    minSampleShading;
+    info.pSampleMask           =    pMask;
+    info.alphaToCoverageEnable =    alphaToCoverageEnable;
+    info.alphaToOneEnable      =    alphaToOneEnable;
+
+    return info;
+}
+
+VkPipelineColorBlendStateCreateInfo vkTypes::getPipelineColorBlendSCreateInfo(const std::vector<VkPipelineColorBlendAttachmentState>& attachments, VkBool32 logicOpEnable, VkLogicOp logicOp, std::vector<float> blendConsts)
+{
+    VkPipelineColorBlendStateCreateInfo info = {};
+
+    info.sType           =    VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    info.pNext           =    nullptr;
+    info.flags           =    0;
+    info.logicOpEnable   =    logicOpEnable;
+    info.logicOp         =    logicOp;
+    info.attachmentCount =    attachments.size();
+    info.pAttachments    =    attachments.data();
+    
+    std::memcpy(info.blendConstants, blendConsts.data(), 4 * sizeof(float));
+
+    return info;
+}
+
+VkPipelineDepthStencilStateCreateInfo vkTypes::getPipelineDepthStencilSCreateInfo(VkBool32 depthTest, VkBool32 depthWrite, VkCompareOp compareOp, VkBool32 depthBoundsTest, VkBool32 stencilTest, VkStencilOpState front, VkStencilOpState back, float minBound, float maxBound)
+{
+    VkPipelineDepthStencilStateCreateInfo info = {};
+
+    info.sType                 =    VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    info.pNext                 =    nullptr;
+    info.flags                 =    0;
+    info.depthTestEnable       =    depthTest;
+    info.depthWriteEnable      =    depthWrite;
+    info.depthCompareOp        =    compareOp;
+    info.depthBoundsTestEnable =    depthBoundsTest;
+    info.stencilTestEnable     =    stencilTest;
+    info.front                 =    front;
+    info.back                  =    back;
+    info.minDepthBounds        =    minBound;
+    info.maxDepthBounds        =    maxBound;
+
+    return info;
+}
+
+VkPipelineLayoutCreateInfo vkTypes::getPipelineLayoutCreateInfo(const std::vector<VkDescriptorSetLayout> layouts, const std::vector<VkPushConstantRange> constantRanges)
+{
+    VkPipelineLayoutCreateInfo info = {};
+
+    info.sType                  =   VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    info.pNext                  =   nullptr;
+    info.flags                  =   0;
+    info.setLayoutCount         =   layouts.size();
+    info.pSetLayouts            =   layouts.data();
+    info.pushConstantRangeCount =   constantRanges.size();
+    info.pPushConstantRanges    =   constantRanges.data();
+
+    return info;
+}
+
+VkGraphicsPipelineCreateInfo vkTypes::getGraphicsPipelineCreateInfo(const VkPipelineLayout& layout, const VkRenderPass& renderPass, uint32_t subpass, const std::vector<VkPipelineShaderStageCreateInfo>& stages, const VkPipelineVertexInputStateCreateInfo& vertexInputSCI, const VkPipelineInputAssemblyStateCreateInfo& inputAssemblySCI, const VkPipelineViewportStateCreateInfo& viewportSCI, const VkPipelineRasterizationStateCreateInfo& rasterizationSCI, const VkPipelineMultisampleStateCreateInfo& multisampleSCI, const VkPipelineColorBlendStateCreateInfo& colorBlendSCI, const VkPipelineDepthStencilStateCreateInfo* depthStencilSCI, const VkPipelineDynamicStateCreateInfo* dynamicSCI, VkPipeline basePipeline, uint32_t basePipelineId)
+{
+    VkGraphicsPipelineCreateInfo info = {};
+
+    info.sType               =  VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    info.pNext               =  nullptr;
+    info.flags               =  0;
+    info.stageCount          =  stages.size();
+    info.pStages             =  stages.data();
+    info.pVertexInputState   =  &vertexInputSCI;
+    info.pInputAssemblyState =  &inputAssemblySCI;
+    info.pViewportState      =  &viewportSCI;
+    info.pRasterizationState =  &rasterizationSCI;
+    info.pMultisampleState   =  &multisampleSCI;
+    info.pColorBlendState    =  &colorBlendSCI;
+    info.pDepthStencilState  =  depthStencilSCI;
+    info.pDynamicState       =  dynamicSCI;
+    info.layout              =  layout;
+    info.renderPass          =  renderPass;
+    info.subpass             =  subpass;
+    info.basePipelineHandle  =  basePipeline; 
+    info.basePipelineIndex   =  basePipelineId;
 
     return info;
 }

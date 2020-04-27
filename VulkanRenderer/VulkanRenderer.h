@@ -43,6 +43,9 @@ private:
 	VulkanShader _vertexShader;
 	VulkanShader _fragmentShader;
 
+	VkPipeline _pipeline;
+	VkPipelineLayout _pipelineLayout;
+
 	void _initSurface();
 	void _initSwapchain();
 	void _initSwapchainImages();

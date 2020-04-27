@@ -25,6 +25,11 @@ const VkShaderModule& VulkanShader::getShaderModule()
     return _shader;
 }
 
+const VkPipelineShaderStageCreateInfo& VulkanShader::getShaderStageCreateInfo()
+{
+    return _pssci;
+}
+
 void VulkanShader::destroy(const VkDevice& device)
 {
     vkDestroyShaderModule(device, _shader, nullptr);

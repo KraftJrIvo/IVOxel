@@ -30,6 +30,9 @@ VulkanRenderer::~VulkanRenderer()
 {
 	auto device = _vulkan.getDevice().getDevice();
 
+	vkDestroyPipeline(device, _pipeline, nullptr);
+	vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
+
 	_fragmentShader.destroy(device);
 	_vertexShader.destroy(device);
 
@@ -73,6 +76,7 @@ void VulkanRenderer::init()
 		_initDepthStencilImage();
 		_initShaders();
 		_initRenderPass();
+		_initPipeline();
 		_initFrameBuffers();
 
 		_initSync();
@@ -354,7 +358,46 @@ void VulkanRenderer::_initPipeline()
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
+	std::vector<VkViewport> viewports = { viewport };
+	std::vector<VkRect2D> scissors = { window.getRenderArea() };
+	auto viewportInfo	   = vkTypes::getPipelineViewportSCreateInfo(viewports, scissors);
+	auto rasterizationInfo = vkTypes::getPipelineRasterizationSCreateInfo();
+	auto multisampleInfo   = vkTypes::getPipelineMultisampleSCreateInfo();
 
+	VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
+	colorBlendAttachment.colorWriteMask		 =	VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	colorBlendAttachment.blendEnable		 =	VK_FALSE;
+	colorBlendAttachment.srcColorBlendFactor =	VK_BLEND_FACTOR_ONE;
+	colorBlendAttachment.dstColorBlendFactor =	VK_BLEND_FACTOR_ZERO;
+	colorBlendAttachment.colorBlendOp		 =	VK_BLEND_OP_ADD;
+	colorBlendAttachment.srcAlphaBlendFactor =	VK_BLEND_FACTOR_ONE;
+	colorBlendAttachment.dstAlphaBlendFactor =	VK_BLEND_FACTOR_ZERO;
+	colorBlendAttachment.alphaBlendOp		 =	VK_BLEND_OP_ADD;
+	
+	// for alpha
+	//colorBlendAttachment.blendEnable		 =	VK_TRUE;
+	//colorBlendAttachment.srcColorBlendFactor =	VK_BLEND_FACTOR_SRC_ALPHA;
+	//colorBlendAttachment.dstColorBlendFactor =	VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	//colorBlendAttachment.colorBlendOp		 =	VK_BLEND_OP_ADD;
+	//colorBlendAttachment.srcAlphaBlendFactor =	VK_BLEND_FACTOR_ONE;
+	//colorBlendAttachment.dstAlphaBlendFactor =	VK_BLEND_FACTOR_ZERO;
+	//colorBlendAttachment.alphaBlendOp		 =	VK_BLEND_OP_ADD;
+
+	std::vector<VkPipelineColorBlendAttachmentState> attachments = { colorBlendAttachment };
+	
+	auto colorBlendInfo	  = vkTypes::getPipelineColorBlendSCreateInfo(attachments);
+	auto depthStencilInfo = vkTypes::getPipelineDepthStencilSCreateInfo();
+
+	auto& device = _mainDevice.getDevice();
+
+	auto layoutInfo = vkTypes::getPipelineLayoutCreateInfo({}, {});
+	vkCreatePipelineLayout(_mainDevice.getDevice(), &layoutInfo, nullptr, &_pipelineLayout);
+
+	std::vector<VkPipelineShaderStageCreateInfo> shaderInfos = { _vertexShader.getShaderStageCreateInfo(), _fragmentShader.getShaderStageCreateInfo() };
+
+	auto pipelineInfo = vkTypes::getGraphicsPipelineCreateInfo(_pipelineLayout, _renderPass, 0, shaderInfos, 
+		vertexISCreateInfo, inputAssemblyCreateInfo, viewportInfo, rasterizationInfo, multisampleInfo, colorBlendInfo, &depthStencilInfo);
+	vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_pipeline);
 }
 
 void VulkanRenderer::_initShaders()

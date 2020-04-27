@@ -52,4 +52,16 @@ namespace vkTypes
 	VkPipelineInputAssemblyStateCreateInfo getPipelineInputAssemblyISCreateInfo(VkPrimitiveTopology topology, VkBool32 primitiveRestartEnabled = VK_FALSE);
 
 	VkPipelineViewportStateCreateInfo getPipelineViewportSCreateInfo(const std::vector<VkViewport>& viewports, const std::vector<VkRect2D>& scissors);
+	
+	VkPipelineRasterizationStateCreateInfo getPipelineRasterizationSCreateInfo(VkPolygonMode polyMode = VK_POLYGON_MODE_FILL, VkCullModeFlags cullMode = VK_CULL_MODE_BACK_BIT, uint32_t lineWidth = 1.0f, VkFrontFace frontFace = VK_FRONT_FACE_CLOCKWISE);
+	
+	VkPipelineMultisampleStateCreateInfo getPipelineMultisampleSCreateInfo(VkBool32 shading = VK_FALSE, VkSampleCountFlagBits sampleFlags = VK_SAMPLE_COUNT_1_BIT, float minSampleShading = 1.0f, const VkSampleMask* pMask = nullptr, VkBool32 alphaToCoverageEnable = VK_FALSE, VkBool32 alphaToOneEnable = VK_FALSE);
+
+	VkPipelineColorBlendStateCreateInfo getPipelineColorBlendSCreateInfo(const std::vector<VkPipelineColorBlendAttachmentState>& attachments, VkBool32 logicOpEnable = VK_FALSE, VkLogicOp logicOp = VK_LOGIC_OP_COPY, std::vector<float> blendConsts = {0,0,0,0});
+
+	VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilSCreateInfo(VkBool32 depthTest = VK_TRUE, VkBool32 depthWrite = VK_TRUE, VkCompareOp compareOp = VK_COMPARE_OP_LESS, VkBool32 depthBoundsTest = VK_FALSE, VkBool32 stencilTest = VK_FALSE, VkStencilOpState front = {}, VkStencilOpState back = {}, float minBound = 0.0f, float maxBound = 1.0f);
+
+	VkPipelineLayoutCreateInfo getPipelineLayoutCreateInfo(const std::vector<VkDescriptorSetLayout> layouts, const std::vector<VkPushConstantRange> constantRanges);
+
+	VkGraphicsPipelineCreateInfo getGraphicsPipelineCreateInfo(const VkPipelineLayout& layout, const VkRenderPass& renderPass, uint32_t subpass, const std::vector<VkPipelineShaderStageCreateInfo>& stages, const VkPipelineVertexInputStateCreateInfo& vertexInputSCI, const VkPipelineInputAssemblyStateCreateInfo& inputAssemblySCI, const VkPipelineViewportStateCreateInfo& viewportSCI, const VkPipelineRasterizationStateCreateInfo& rasterizationSCI, const VkPipelineMultisampleStateCreateInfo& multisampleSCI, const VkPipelineColorBlendStateCreateInfo& colorBlendSCI, const VkPipelineDepthStencilStateCreateInfo* depthStencilSCI = nullptr, const VkPipelineDynamicStateCreateInfo* dynamicSCI = nullptr, VkPipeline basePipeline = VK_NULL_HANDLE, uint32_t basePipelineId = -1);
 }

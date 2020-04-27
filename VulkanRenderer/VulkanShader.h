@@ -11,6 +11,7 @@ public:
 	VulkanShader(const VkDevice& device, std::string path, VkShaderStageFlagBits type);
 
 	const VkShaderModule& getShaderModule();
+	const VkPipelineShaderStageCreateInfo& getShaderStageCreateInfo();
 	void destroy(const VkDevice& device);
 
 private:
