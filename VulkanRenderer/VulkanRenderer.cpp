@@ -97,9 +97,9 @@ void VulkanRenderer::run()
 
 	VkRect2D renderArea = window.getRenderArea();
 	std::vector<VkClearValue> clearVals(2);
-	clearVals[0].depthStencil.depth = 0.0f;
+	clearVals[0].depthStencil.depth = 1.0f;
 	clearVals[0].depthStencil.stencil = 0;
-	clearVals[1].color.float32[0] = 1.0f;
+	clearVals[1].color.float32[0] = 0.0f;
 	clearVals[1].color.float32[1] = 0.0f;
 	clearVals[1].color.float32[2] = 0.0f;
 	clearVals[1].color.float32[3] = 0.0f;
@@ -128,6 +128,10 @@ void VulkanRenderer::run()
 
 		rpBeginInfo = vkTypes::getRPBeginInfo(_renderPass, _getCurrentFrameBuffer(), renderArea, clearVals);
 		vkCmdBeginRenderPass(commands, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
+
+		vkCmdDraw(commands, 3, 1, 0, 0);
 
 		vkCmdEndRenderPass(commands);
 
