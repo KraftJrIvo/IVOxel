@@ -14,8 +14,8 @@ public:
 	void stop();
 	bool runOnce();
 
-	void beginRender();
-	void endRender(const std::vector<VkSemaphore>& waitSemaphores);
+	void beginRender(uint32_t frameID);
+	void endRender(uint32_t frameID);
 
 private:
 	VulkanInstance _vulkan;
@@ -38,7 +38,10 @@ private:
 	uint32_t _swapchainImgCount;
 	uint32_t _currentSwapchainImgID;
 
-	VkFence _swapchainImgAvailable;
+	std::vector<VkSemaphore> _semImgAvailable;
+	std::vector<VkSemaphore> _semRenderDone;
+	std::vector<VkFence> _frameFences;
+	std::vector<bool> _imgsInFlight;
 
 	VulkanShader _vertexShader;
 	VulkanShader _fragmentShader;

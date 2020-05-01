@@ -30,6 +30,13 @@ VulkanRenderer::~VulkanRenderer()
 {
 	auto device = _vulkan.getDevice().getDevice();
 
+	for (uint32_t i = 0; i < _swapchainImgCount; ++i)
+	{
+		vkDestroySemaphore(_mainDevice.getDevice(), _semImgAvailable[i], nullptr);
+		vkDestroySemaphore(_mainDevice.getDevice(), _semRenderDone[i], nullptr);
+		vkDestroyFence(_mainDevice.getDevice(), _frameFences[i], nullptr);
+	}
+
 	vkDestroyPipeline(device, _pipeline, nullptr);
 	vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
 
@@ -37,8 +44,6 @@ VulkanRenderer::~VulkanRenderer()
 	_vertexShader.destroy(device);
 
 	vkQueueWaitIdle(_vulkan.getDevice().getQueueByType(VK_QUEUE_GRAPHICS_BIT));
-
-	vkDestroyFence(device, _swapchainImgAvailable, nullptr);
 
 	for (uint32_t i = 0; i < _swapchainImgCount; ++i)
 		vkDestroyFramebuffer(device, _frameBuffs[i], nullptr);
@@ -90,10 +95,11 @@ void VulkanRenderer::run()
 {
 	auto queue = _mainDevice.getQueueByType(VK_QUEUE_GRAPHICS_BIT);
 
-	VkCommandBuffer commands;
-	_mainDevice.getCommand(&commands, 1, _mainDevice.getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
+	std::vector<VkCommandBuffer> commandBufs(_swapchainImgCount);
+	_mainDevice.getCommand(commandBufs.data(), _swapchainImgCount, _mainDevice.getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
 
 	auto cbBeginInfo = vkTypes::getCBBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
 	VkRect2D renderArea = window.getRenderArea();
 	std::vector<VkClearValue> clearVals(2);
@@ -106,45 +112,49 @@ void VulkanRenderer::run()
 
 	VkRenderPassBeginInfo rpBeginInfo;
 
-	auto semaphoreInfo = vkTypes::getSemaphoreCreateInfo();
-	std::vector<VkSemaphore> semaphores(1);
-	auto& renderCompleteSemaphore = semaphores[0];
-	vkCreateSemaphore(_mainDevice.getDevice(), &semaphoreInfo, nullptr, &renderCompleteSemaphore);
-
-	std::vector<VkSemaphore> waitSemaphores;
-	std::vector<VkSemaphore> signalSemaphores = { renderCompleteSemaphore };
-	std::vector<VkCommandBuffer> cmdBuffs = { commands };
-	VkSubmitInfo submitInfo = vkTypes::getSubmitInfo(waitSemaphores, signalSemaphores, cmdBuffs, nullptr);
-	
 	FPSCounter fpsCounter;
+
+	uint32_t curFrameID = 0;
 
 	while (runOnce())
 	{
 		fpsCounter.tellFPS(1000);
 
-		beginRender();
+		beginRender(curFrameID);
+
+		if (_imgsInFlight[curFrameID]) {
+			vkWaitForFences(_mainDevice.getDevice(), 1, &_frameFences[curFrameID], VK_TRUE, UINT64_MAX);
+		}
+
+		_imgsInFlight[curFrameID] = true;
 		
-		vkBeginCommandBuffer(commands, &cbBeginInfo);
+		vkBeginCommandBuffer(commandBufs[curFrameID], &cbBeginInfo);
 
 		rpBeginInfo = vkTypes::getRPBeginInfo(_renderPass, _getCurrentFrameBuffer(), renderArea, clearVals);
-		vkCmdBeginRenderPass(commands, &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(commandBufs[curFrameID], &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(commands, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
+		vkCmdBindPipeline(commandBufs[curFrameID], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
 
-		vkCmdDraw(commands, 3, 1, 0, 0);
+		vkCmdDraw(commandBufs[curFrameID], 3, 1, 0, 0);
 
-		vkCmdEndRenderPass(commands);
+		vkCmdEndRenderPass(commandBufs[curFrameID]);
 
-		vkEndCommandBuffer(commands);
+		vkEndCommandBuffer(commandBufs[curFrameID]);
 
-		vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		vkResetFences(_mainDevice.getDevice(), 1, &_frameFences[curFrameID]);
 
-		endRender(semaphores);
+		std::vector<VkSemaphore> waitSemaphores = {_semImgAvailable[curFrameID]};
+		std::vector<VkSemaphore> signalSemaphores = {_semRenderDone[curFrameID]};
+		std::vector<VkCommandBuffer> cmdBufs = { commandBufs[curFrameID] };
+		VkSubmitInfo submitInfo = vkTypes::getSubmitInfo(waitSemaphores, signalSemaphores, cmdBufs, waitStages);
+		vkQueueSubmit(queue, 1, &submitInfo, _frameFences[curFrameID]);
+
+		endRender(curFrameID);
+
+		curFrameID = (curFrameID + 1) % _swapchainImgCount;
 	}
 
 	vkQueueWaitIdle(queue);
-
-	vkDestroySemaphore(_mainDevice.getDevice(), renderCompleteSemaphore, nullptr);
 }
 
 bool VulkanRenderer::runOnce()
@@ -152,21 +162,20 @@ bool VulkanRenderer::runOnce()
 	return window.Update();
 }
 
-void VulkanRenderer::beginRender()
+void VulkanRenderer::beginRender(uint32_t frameID)
 {
 	auto& dev = _mainDevice.getDevice();
-	vkAcquireNextImageKHR(dev, _swapchain, UINT64_MAX, VK_NULL_HANDLE, _swapchainImgAvailable, &_currentSwapchainImgID);
-	vkWaitForFences(dev, 1, &_swapchainImgAvailable, VK_TRUE, UINT64_MAX);
-	vkResetFences(dev, 1, &_swapchainImgAvailable);
-	vkQueueWaitIdle(_mainDevice.getQueueByType(VK_QUEUE_GRAPHICS_BIT));
+	vkWaitForFences(dev, 1, &_frameFences[frameID], VK_TRUE, UINT64_MAX);
+	vkAcquireNextImageKHR(dev, _swapchain, UINT64_MAX, _semImgAvailable[frameID], VK_NULL_HANDLE, &_currentSwapchainImgID);
 }
 
-void VulkanRenderer::endRender(const std::vector<VkSemaphore>& waitSemaphores)
+void VulkanRenderer::endRender(uint32_t frameID)
 {
 	std::vector<VkSwapchainKHR> swapchains = {_swapchain};
 	std::vector<uint32_t> imgIds = {_currentSwapchainImgID};
 	std::vector<VkResult> results(1);
 
+	std::vector<VkSemaphore> waitSemaphores = {_semRenderDone[frameID]};
 	auto info = vkTypes::getPresentInfo(waitSemaphores, swapchains, imgIds, results);
 
 	vkQueuePresentKHR(_mainDevice.getQueueByType(VK_QUEUE_COMPUTE_BIT), &info);
@@ -342,9 +351,19 @@ void VulkanRenderer::_initFrameBuffers()
 
 void VulkanRenderer::_initSync()
 {
-	auto info = vkTypes::getFenceCreateInfo();
+	auto fenceInfo = vkTypes::getFenceCreateInfo();
+	auto semaphoreInfo = vkTypes::getSemaphoreCreateInfo();
 
-	vkCreateFence(_mainDevice.getDevice(), &info, nullptr, &_swapchainImgAvailable);
+	_semImgAvailable.resize(_swapchainImgCount);
+	_semRenderDone.resize(_swapchainImgCount);
+	_frameFences.resize(_swapchainImgCount);
+	_imgsInFlight.resize(_swapchainImgCount, false);
+	for (uint32_t i = 0; i < _swapchainImgCount; ++i)
+	{
+		vkCreateSemaphore(_mainDevice.getDevice(), &semaphoreInfo, nullptr, &_semImgAvailable[i]);
+		vkCreateSemaphore(_mainDevice.getDevice(), &semaphoreInfo, nullptr, &_semRenderDone[i]);
+		vkCreateFence(_mainDevice.getDevice(), &fenceInfo, nullptr, &_frameFences[i]);
+	}
 }
 
 void VulkanRenderer::_initPipeline()

@@ -258,7 +258,7 @@ VkFenceCreateInfo vkTypes::getFenceCreateInfo()
 
     info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     info.pNext = nullptr;
-    info.flags = 0;
+    info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
     return info;
 }
