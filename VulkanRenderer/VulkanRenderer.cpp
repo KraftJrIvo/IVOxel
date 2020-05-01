@@ -407,8 +407,12 @@ void VulkanRenderer::_initPipeline()
 void VulkanRenderer::_initShaders()
 {
 	auto& dev = _mainDevice.getDevice();
-	_vertexShader = VulkanShader(dev, "vert.spv", VK_SHADER_STAGE_VERTEX_BIT);
-	_fragmentShader = VulkanShader(dev, "frag.spv", VK_SHADER_STAGE_FRAGMENT_BIT);
+	_vertexShader = VulkanShader("triangle.vert", VK_SHADER_STAGE_VERTEX_BIT);
+	_fragmentShader = VulkanShader("triangle.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+	_vertexShader.compile();
+	_fragmentShader.compile();
+	_vertexShader.create(dev);
+	_fragmentShader.create(dev);
 }
 
 void VulkanRenderer::_setSurfaceFormat()

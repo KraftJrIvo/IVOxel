@@ -1,9 +1,44 @@
 #include "VulkanShader.h"
 
-VulkanShader::VulkanShader(const VkDevice& device, std::string path, VkShaderStageFlagBits type)
-{
-	_readFile(path, bytes);
+#include <iostream>
+#include <shaderc/shaderc.hpp>
 
+VulkanShader::VulkanShader(std::string path, VkShaderStageFlagBits type) :
+    _path(path),
+    _type(type)
+{
+}
+
+void VulkanShader::compile()
+{
+    shaderc::Compiler compiler;
+    shaderc::CompileOptions options;
+
+    _readFile(_path, bytes);
+    bytes.push_back(0);
+
+    // Like -DMY_DEFINE=1
+    options.AddMacroDefinition("MY_DEFINE", "1");
+    options.SetOptimizationLevel(shaderc_optimization_level_size);
+
+    shaderc_shader_kind kind = (_type == VK_SHADER_STAGE_VERTEX_BIT) ? shaderc_vertex_shader : shaderc_fragment_shader;
+
+    shaderc::SpvCompilationResult module =
+        compiler.CompileGlslToSpv(bytes.data(), kind, _path.c_str(), options);
+
+    if (module.GetCompilationStatus() != shaderc_compilation_status_success) {
+        std::cout << module.GetErrorMessage();
+    }
+
+    std::vector<uint32_t> result = { module.cbegin(), module.cend() };
+
+    size_t sz = result.size() * sizeof(uint32_t);
+    bytes.resize(sz);
+    std::memcpy(bytes.data(), result.data(), sz);
+}
+
+void VulkanShader::create(const VkDevice& device)
+{
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = bytes.size();
@@ -15,7 +50,7 @@ VulkanShader::VulkanShader(const VkDevice& device, std::string path, VkShaderSta
 
     _pssci = {};
     _pssci.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    _pssci.stage = type;
+    _pssci.stage = _type;
     _pssci.module = _shader;
     _pssci.pName = "main";
 }
