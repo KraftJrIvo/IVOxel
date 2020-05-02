@@ -4,19 +4,17 @@
 
 FPSCounter::FPSCounter()
 {
-	std::chrono::steady_clock timer = std::chrono::steady_clock();
-	std::chrono::time_point<std::chrono::steady_clock> last_time = timer.now();
-	uint64_t frame_counter = 0;
-	uint64_t fps = 0;
+	_timer = std::chrono::steady_clock();
+	_lastTime = _timer.now();
+	_frameCounter = 0;
 }
 
 void FPSCounter::tellFPS(uint32_t rateInMillis)
 {
-	++frame_counter;
-	if (last_time + std::chrono::milliseconds(rateInMillis) < timer.now()) {
-		last_time = timer.now();
-		fps = frame_counter;
-		frame_counter = 0;
-		std::cout << "FPS: " << fps << std::endl;
+	++_frameCounter;
+	if (_lastTime + std::chrono::milliseconds(rateInMillis) < _timer.now()) {
+		_lastTime = _timer.now();
+		std::cout << "FPS: " << _frameCounter << std::endl;
+		_frameCounter = 0;
 	}
 }

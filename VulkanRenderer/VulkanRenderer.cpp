@@ -5,11 +5,14 @@
 #include "VulkanErrorChecker.h"
 
 #include "FPSCounter.h"
+#include "FPSLimiter.h"
 
 #include <iostream>
 #include <thread>
 
 Window window(512, 512, L"test");
+
+#define FPS_LIMIT 144
 
 VulkanRenderer::VulkanRenderer() :
 #ifdef _DEBUG
@@ -88,6 +91,8 @@ void VulkanRenderer::run()
 	VkRenderPassBeginInfo rpBeginInfo;
 
 	FPSCounter fpsCounter;
+	FPSLimiter fpsLimiter(FPS_LIMIT);
+	fpsLimiter.reset();
 
 	uint32_t curFrameID = 0;
 
@@ -102,7 +107,8 @@ void VulkanRenderer::run()
 				renderArea = window.getRenderArea();
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 				window.Update();
-			} while (!renderArea.extent.width || !renderArea.extent.height);
+			} 
+			while (!renderArea.extent.width || !renderArea.extent.height);
 			_recreateEnv();
 		}
 
@@ -138,6 +144,9 @@ void VulkanRenderer::run()
 		endRender(curFrameID);
 
 		curFrameID = (curFrameID + 1) % _swapchainImgCount;
+
+		if (FPS_LIMIT)
+			fpsLimiter.tick();
 	}
 
 	vkQueueWaitIdle(queue);
