@@ -31,11 +31,22 @@ void Window::setSurfaceSize(uint32_t w, uint32_t h)
 {
 	_surface_size_x = w;
 	_surface_size_y = h;
+	_wasResized = true;
 }
 
 std::pair<uint32_t, uint32_t> Window::getSize()
 {
 	return {_surface_size_x, _surface_size_y};
+}
+
+bool Window::wasResized()
+{
+	if (_wasResized)
+	{
+		_wasResized = false;
+		return true;
+	}
+	return false;
 }
 
 VkRect2D Window::getRenderArea()
@@ -73,9 +84,7 @@ LRESULT CALLBACK WindowsEventHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 		window->Close();
 		return 0;
 	case WM_SIZE:
-		// we get here if the window has changed size, we should rebuild most
-		// of our window resources before rendering to this window again.
-		// ( no need for this because our window sizing by hand is disabled )
+		window->setSurfaceSize(LOWORD(lParam), HIWORD(lParam));
 		break;
 	default:
 		break;
@@ -117,7 +126,7 @@ void Window::_InitOSWindow()
 	}
 
 	DWORD ex_style = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
-	DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
+	DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_THICKFRAME;
 
 	// Create window with the registered class:
 	RECT wr = { 0, 0, LONG(_surface_size_x), LONG(_surface_size_y) };

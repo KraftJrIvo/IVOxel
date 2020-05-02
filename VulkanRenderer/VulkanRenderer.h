@@ -43,6 +43,8 @@ private:
 	std::vector<VkFence> _frameFences;
 	std::vector<bool> _imgsInFlight;
 
+	std::vector<VkCommandBuffer> _commandBufs;
+
 	VulkanShader _vertexShader;
 	VulkanShader _fragmentShader;
 
@@ -55,11 +57,16 @@ private:
 	void _initDepthStencilImage();
 	void _initRenderPass();
 	void _initFrameBuffers();
+	void _initCommandBuffers();
 	void _initSync();
 	void _initPipeline();
 	void _initShaders();
 	void _setSurfaceFormat();
-	
+
+	void _clearEnv();
+	void _initEnv();
+	void _recreateEnv();
+
 	VkFramebuffer& _getCurrentFrameBuffer();
 
 	uint32_t _getMemoryId(const VkMemoryRequirements& memReq, VkMemoryPropertyFlagBits reqFlags);

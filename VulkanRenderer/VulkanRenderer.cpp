@@ -7,6 +7,7 @@
 #include "FPSCounter.h"
 
 #include <iostream>
+#include <thread>
 
 Window window(512, 512, L"test");
 
@@ -37,26 +38,11 @@ VulkanRenderer::~VulkanRenderer()
 		vkDestroyFence(_mainDevice.getDevice(), _frameFences[i], nullptr);
 	}
 
-	vkDestroyPipeline(device, _pipeline, nullptr);
-	vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
-
 	_fragmentShader.destroy(device);
 	_vertexShader.destroy(device);
 
-	vkQueueWaitIdle(_vulkan.getDevice().getQueueByType(VK_QUEUE_GRAPHICS_BIT));
+	_clearEnv();
 
-	for (uint32_t i = 0; i < _swapchainImgCount; ++i)
-		vkDestroyFramebuffer(device, _frameBuffs[i], nullptr);
-	
-	vkDestroyRenderPass(device, _renderPass, nullptr);
-
-	vkDestroyImageView(device, _depthStencilImgView, nullptr);
-	vkFreeMemory(device, _depthStencilImgMem, nullptr);
-	vkDestroyImage(device, _depthStencilImg, nullptr);
-
-	for (uint32_t i = 0; i < _swapchainImgCount; ++i)
-		vkDestroyImageView(device, _swapchainImgViews[i], nullptr);
-	vkDestroySwapchainKHR(device, _swapchain, nullptr);
 	vkDestroySurfaceKHR(_vulkan.getInstace(), _surface, nullptr);
 }
 
@@ -75,17 +61,9 @@ void VulkanRenderer::init()
 	{
 		std::cout << std::endl << "Device was chosen: " << _vulkan.getPhysDevice().getProps().deviceName << std::endl;
 
-		_setSurfaceFormat();
-		_initSwapchain();
-		_initSwapchainImages();
-		_initDepthStencilImage();
 		_initShaders();
-		_initRenderPass();
-		_initPipeline();
-		_initFrameBuffers();
-
+		_initEnv();
 		_initSync();
-
 
 		_currentSwapchainImgID = -1;
 	}
@@ -94,9 +72,6 @@ void VulkanRenderer::init()
 void VulkanRenderer::run()
 {
 	auto queue = _mainDevice.getQueueByType(VK_QUEUE_GRAPHICS_BIT);
-
-	std::vector<VkCommandBuffer> commandBufs(_swapchainImgCount);
-	_mainDevice.getCommand(commandBufs.data(), _swapchainImgCount, _mainDevice.getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
 
 	auto cbBeginInfo = vkTypes::getCBBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
@@ -120,6 +95,17 @@ void VulkanRenderer::run()
 	{
 		fpsCounter.tellFPS(1000);
 
+		if (window.wasResized())
+		{
+			do
+			{
+				renderArea = window.getRenderArea();
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				window.Update();
+			} while (!renderArea.extent.width || !renderArea.extent.height);
+			_recreateEnv();
+		}
+
 		beginRender(curFrameID);
 
 		if (_imgsInFlight[curFrameID]) {
@@ -128,24 +114,24 @@ void VulkanRenderer::run()
 
 		_imgsInFlight[curFrameID] = true;
 		
-		vkBeginCommandBuffer(commandBufs[curFrameID], &cbBeginInfo);
+		vkBeginCommandBuffer(_commandBufs[curFrameID], &cbBeginInfo);
 
 		rpBeginInfo = vkTypes::getRPBeginInfo(_renderPass, _getCurrentFrameBuffer(), renderArea, clearVals);
-		vkCmdBeginRenderPass(commandBufs[curFrameID], &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(_commandBufs[curFrameID], &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(commandBufs[curFrameID], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
+		vkCmdBindPipeline(_commandBufs[curFrameID], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
 
-		vkCmdDraw(commandBufs[curFrameID], 3, 1, 0, 0);
+		vkCmdDraw(_commandBufs[curFrameID], 3, 1, 0, 0);
 
-		vkCmdEndRenderPass(commandBufs[curFrameID]);
+		vkCmdEndRenderPass(_commandBufs[curFrameID]);
 
-		vkEndCommandBuffer(commandBufs[curFrameID]);
+		vkEndCommandBuffer(_commandBufs[curFrameID]);
 
 		vkResetFences(_mainDevice.getDevice(), 1, &_frameFences[curFrameID]);
 
 		std::vector<VkSemaphore> waitSemaphores = {_semImgAvailable[curFrameID]};
 		std::vector<VkSemaphore> signalSemaphores = {_semRenderDone[curFrameID]};
-		std::vector<VkCommandBuffer> cmdBufs = { commandBufs[curFrameID] };
+		std::vector<VkCommandBuffer> cmdBufs = { _commandBufs[curFrameID] };
 		VkSubmitInfo submitInfo = vkTypes::getSubmitInfo(waitSemaphores, signalSemaphores, cmdBufs, waitStages);
 		vkQueueSubmit(queue, 1, &submitInfo, _frameFences[curFrameID]);
 
@@ -349,6 +335,12 @@ void VulkanRenderer::_initFrameBuffers()
 	}
 }
 
+void VulkanRenderer::_initCommandBuffers()
+{
+	_commandBufs.resize(_swapchainImgCount);
+	_mainDevice.getCommand(_commandBufs.data(), _swapchainImgCount, _mainDevice.getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
+}
+
 void VulkanRenderer::_initSync()
 {
 	auto fenceInfo = vkTypes::getFenceCreateInfo();
@@ -438,13 +430,58 @@ void VulkanRenderer::_setSurfaceFormat()
 {
 	auto physDev = _mainDevice.getPhysicalDevice()->getDevice();
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physDev, _surface, &_surfaceCapabs);
-	if (_surfaceCapabs.currentExtent.width < UINT32_MAX)
-		window.setSurfaceSize(_surfaceCapabs.currentExtent.width, _surfaceCapabs.currentExtent.height);
+	//if (_surfaceCapabs.currentExtent.width < UINT32_MAX)
+	//	window.setSurfaceSize(_surfaceCapabs.currentExtent.width, _surfaceCapabs.currentExtent.height);
 	uint32_t formatCount;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(physDev, _surface, &formatCount, nullptr);
 	std::vector<VkSurfaceFormatKHR> formats(formatCount);
 	vkGetPhysicalDeviceSurfaceFormatsKHR(physDev, _surface, &formatCount, formats.data());
 	_surfaceFormat = formats[0];
+}
+
+void VulkanRenderer::_clearEnv()
+{
+	auto& device = _mainDevice.getDevice();
+
+	_mainDevice.freeCommand(_commandBufs.data(), _swapchainImgCount, _mainDevice.getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
+
+	vkDestroyPipeline(device, _pipeline, nullptr);
+	vkDestroyPipelineLayout(device, _pipelineLayout, nullptr);
+
+	vkQueueWaitIdle(_vulkan.getDevice().getQueueByType(VK_QUEUE_GRAPHICS_BIT));
+
+	for (uint32_t i = 0; i < _swapchainImgCount; ++i)
+		vkDestroyFramebuffer(device, _frameBuffs[i], nullptr);
+
+	vkDestroyRenderPass(device, _renderPass, nullptr);
+
+	vkDestroyImageView(device, _depthStencilImgView, nullptr);
+	vkFreeMemory(device, _depthStencilImgMem, nullptr);
+	vkDestroyImage(device, _depthStencilImg, nullptr);
+
+	for (uint32_t i = 0; i < _swapchainImgCount; ++i)
+		vkDestroyImageView(device, _swapchainImgViews[i], nullptr);
+	vkDestroySwapchainKHR(device, _swapchain, nullptr);
+}
+
+void VulkanRenderer::_initEnv()
+{
+	_setSurfaceFormat();
+
+	_initSwapchain();
+	_initSwapchainImages();
+	_initDepthStencilImage();
+	_initRenderPass();
+	_initPipeline();
+	_initFrameBuffers();
+	_initCommandBuffers();
+}
+
+void VulkanRenderer::_recreateEnv()
+{
+	vkDeviceWaitIdle(_mainDevice.getDevice());
+
+	_initEnv();
 }
 
 VkFramebuffer& VulkanRenderer::_getCurrentFrameBuffer()
