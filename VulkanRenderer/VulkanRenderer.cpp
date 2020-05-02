@@ -164,7 +164,7 @@ void VulkanRenderer::endRender(uint32_t frameID)
 	std::vector<VkSemaphore> waitSemaphores = {_semRenderDone[frameID]};
 	auto info = vkTypes::getPresentInfo(waitSemaphores, swapchains, imgIds, results);
 
-	vkQueuePresentKHR(_mainDevice.getQueueByType(VK_QUEUE_COMPUTE_BIT), &info);
+	vkQueuePresentKHR(_mainDevice.getQueueByType(VK_QUEUE_GRAPHICS_BIT), &info);
 }
 
 void VulkanRenderer::stop()
@@ -481,6 +481,7 @@ void VulkanRenderer::_recreateEnv()
 {
 	vkDeviceWaitIdle(_mainDevice.getDevice());
 
+	_clearEnv();
 	_initEnv();
 }
 
