@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="FPSCounter.h" />
     <ClInclude Include="FPSLimiter.h" />
+    <ClInclude Include="Vertex.h" />
     <ClInclude Include="VulkanBuffer.h" />
     <ClInclude Include="VulkanDevice.h" />
     <ClInclude Include="VulkanErrorChecker.h" />
@@ -34,6 +35,7 @@
   <ItemGroup>
     <ClCompile Include="FPSCounter.cpp" />
     <ClCompile Include="FPSLimiter.cpp" />
+    <ClCompile Include="Vertex.cpp" />
     <ClCompile Include="VulkanBuffer.cpp" />
     <ClCompile Include="VulkanDevice.cpp" />
     <ClCompile Include="VulkanErrorChecker.cpp" />

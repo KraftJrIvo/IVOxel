@@ -16,8 +16,8 @@ public:
 	VkQueue getQueueById(uint32_t id) const;
 	VkQueue getQueueByType(uint32_t type) const;
 
-	void getCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId);
-	void freeCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId);
+	void getCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId) const;
+	void freeCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId) const;
 
 private:
 	VkDevice _device;

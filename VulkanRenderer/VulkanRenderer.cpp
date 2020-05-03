@@ -1,8 +1,6 @@
 #include "VulkanRenderer.h"
 #include "Window.h"
-#include "VulkanBuffer.h"
-
-#include "VulkanErrorChecker.h"
+#include "Vertex.h"
 
 #include "FPSCounter.h"
 #include "FPSLimiter.h"
@@ -51,7 +49,7 @@ VulkanRenderer::~VulkanRenderer()
 
 void VulkanRenderer::init()
 {
-	std::vector<uint32_t> queueFamilies = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT };
+	std::vector<uint32_t> queueFamilies = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT };
 	std::vector<VkPhysicalDeviceType> deviceTypesByPriority = { VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU };
 
 	_vulkan.chooseDevice(queueFamilies, deviceTypesByPriority, _surface);
@@ -66,6 +64,7 @@ void VulkanRenderer::init()
 
 		_initShaders();
 		_initEnv();
+		_initVertexBuffer();
 		_initSync();
 
 		_currentSwapchainImgID = -1;
@@ -126,6 +125,10 @@ void VulkanRenderer::run()
 		vkCmdBeginRenderPass(_commandBufs[curFrameID], &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 		vkCmdBindPipeline(_commandBufs[curFrameID], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
+
+		std::vector<VkBuffer> vertexBuffers = { _vertexBuff.getBuffer() };
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(_commandBufs[curFrameID], 0, 1, vertexBuffers.data(), offsets);
 
 		vkCmdDraw(_commandBufs[curFrameID], 3, 1, 0, 0);
 
@@ -350,6 +353,32 @@ void VulkanRenderer::_initCommandBuffers()
 	_mainDevice.getCommand(_commandBufs.data(), _swapchainImgCount, _mainDevice.getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
 }
 
+void VulkanRenderer::_initVertexBuffer()
+{
+	auto& device = _mainDevice.getDevice();
+
+	const std::vector<Vertex> vertices = {
+		{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, 0.5f}, {1.0f, 1.0f, 0.0f}},
+		{{-0.5f, 0.5f}, {0.0f, 1.0f, 1.0f}}
+	};
+
+	uint32_t vertSz = sizeof(Vertex);
+	uint32_t nVerts = 3;
+	uint32_t totalSize = vertSz * nVerts;
+
+	VulkanBuffer stagingBuf;
+	auto stagingBufType = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	stagingBuf.create(_mainDevice, vertSz, nVerts, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingBufType);
+	stagingBuf.setData((void*)vertices.data(), 0, nVerts);
+
+	auto vertexBufUse = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	auto vertexBufType = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	_vertexBuff.create(_mainDevice, vertSz, nVerts, vertexBufUse, vertexBufType);
+
+	stagingBuf.copyTo(_vertexBuff);
+}
+
 void VulkanRenderer::_initSync()
 {
 	auto fenceInfo = vkTypes::getFenceCreateInfo();
@@ -369,7 +398,10 @@ void VulkanRenderer::_initSync()
 
 void VulkanRenderer::_initPipeline()
 {
-	auto vertexISCreateInfo		 = vkTypes::getPipelineVertexISCreateInfo({}, {});
+	auto vertexBindingsDescr	= Vertex::getBindingDescriptions();
+	auto vertexAttribDescr		= Vertex::getAttributeDescriptions();
+	auto vertexISCreateInfo		= vkTypes::getPipelineVertexISCreateInfo(vertexBindingsDescr, vertexAttribDescr);
+	
 	auto inputAssemblyCreateInfo = vkTypes::getPipelineInputAssemblyISCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
 	auto renderArea = window.getRenderArea();
@@ -447,7 +479,6 @@ void VulkanRenderer::_setSurfaceFormat()
 	vkGetPhysicalDeviceSurfaceFormatsKHR(physDev, _surface, &formatCount, formats.data());
 	_surfaceFormat = formats[0];
 }
-
 void VulkanRenderer::_clearEnv()
 {
 	auto& device = _mainDevice.getDevice();
@@ -463,7 +494,6 @@ void VulkanRenderer::_clearEnv()
 		vkDestroyFramebuffer(device, _frameBuffs[i], nullptr);
 
 	vkDestroyRenderPass(device, _renderPass, nullptr);
-
 	vkDestroyImageView(device, _depthStencilImgView, nullptr);
 	vkFreeMemory(device, _depthStencilImgMem, nullptr);
 	vkDestroyImage(device, _depthStencilImg, nullptr);
@@ -499,7 +529,7 @@ VkFramebuffer& VulkanRenderer::_getCurrentFrameBuffer()
 	return _frameBuffs[_currentSwapchainImgID];
 }
 
-uint32_t VulkanRenderer::_getMemoryId(const VkMemoryRequirements& memReq, VkMemoryPropertyFlagBits reqFlags)
+uint32_t VulkanRenderer::_getMemoryId(const VkMemoryRequirements& memReq, VkMemoryPropertyFlags reqFlags)
 {
 	auto devMemProps = _mainDevice.getPhysicalDevice()->getMemProps();
 	for (uint32_t i = 0; i < devMemProps.memoryTypeCount; ++i)

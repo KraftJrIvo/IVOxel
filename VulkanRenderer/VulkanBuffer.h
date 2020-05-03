@@ -6,24 +6,25 @@
 class VulkanBuffer
 {
 public:
-	VulkanBuffer(const VulkanDevice& device, void* ptr, uint32_t elemSz, uint32_t elemCnt);
+	VulkanBuffer() = default;
 	~VulkanBuffer();
 
-	void allocate();
+	void create(const VulkanDevice& dev, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlags usage, VkMemoryPropertyFlags props);
+	void setData(void* ptr, uint32_t start, uint32_t count);
+	void copyTo(VulkanBuffer& to);
 
-	void setData(uint32_t start, uint32_t count);
+	const VkBuffer& getBuffer();
 
 private:
 	VkBuffer _buffer;
 
-	void* _ptr;
 	void* _mappedPtr;
 	uint32_t _elemSz;
-	uint32_t _elemCnt;
+	uint32_t _nElems;
 	VkDeviceSize _size;
-
-	const VulkanDevice& _device;
+	const VulkanDevice* _dev;
 	VkDeviceMemory _memory;
+	VkMemoryRequirements _memReqs;
 
 	bool _allocated;
 

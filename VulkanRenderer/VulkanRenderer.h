@@ -2,6 +2,7 @@
 
 #include "VulkanInstance.h"
 #include "VulkanShader.h"
+#include "VulkanBuffer.h"
 
 class VulkanRenderer
 {
@@ -30,6 +31,7 @@ private:
 	std::vector<VkImage> _swapchainImgs;
 	std::vector<VkImageView> _swapchainImgViews;
 	std::vector<VkFramebuffer> _frameBuffs;
+	VulkanBuffer _vertexBuff;
 
 	VkImage _depthStencilImg;
 	VkDeviceMemory _depthStencilImgMem;
@@ -58,6 +60,7 @@ private:
 	void _initRenderPass();
 	void _initFrameBuffers();
 	void _initCommandBuffers();
+	void _initVertexBuffer();
 	void _initSync();
 	void _initPipeline();
 	void _initShaders();
@@ -69,7 +72,7 @@ private:
 
 	VkFramebuffer& _getCurrentFrameBuffer();
 
-	uint32_t _getMemoryId(const VkMemoryRequirements& memReq, VkMemoryPropertyFlagBits reqFlags);
+	uint32_t _getMemoryId(const VkMemoryRequirements& memReq, VkMemoryPropertyFlags reqFlags);
 
 	bool _keepGoing = true;
 };

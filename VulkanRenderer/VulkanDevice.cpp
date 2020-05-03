@@ -71,13 +71,13 @@ VkQueue VulkanDevice::getQueueByType(uint32_t type) const
 	return getQueueById(id);
 }
 
-void VulkanDevice::getCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId)
+void VulkanDevice::getCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId) const
 {
-	auto info = vkTypes::getCBAllocateInfo(_pools[queueFamId], count);
+	auto info = vkTypes::getCBAllocateInfo(_pools.find(queueFamId)->second, count);
 	vkAllocateCommandBuffers(_device, &info, bufs);
 }
 
-void VulkanDevice::freeCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId)
+void VulkanDevice::freeCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId) const
 {
-	vkFreeCommandBuffers(_device, _pools[queueFamId], count, bufs);
+	vkFreeCommandBuffers(_device, _pools.find(queueFamId)->second, count, bufs);
 }
