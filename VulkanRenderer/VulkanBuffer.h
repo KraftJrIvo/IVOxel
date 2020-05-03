@@ -14,6 +14,7 @@ public:
 	void copyTo(VulkanBuffer& to);
 
 	const VkBuffer& getBuffer();
+	uint32_t getElemsCount();
 
 private:
 	VkBuffer _buffer;

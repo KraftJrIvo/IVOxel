@@ -32,6 +32,7 @@ private:
 	std::vector<VkImageView> _swapchainImgViews;
 	std::vector<VkFramebuffer> _frameBuffs;
 	VulkanBuffer _vertexBuff;
+	VulkanBuffer _indexBuff;
 
 	VkImage _depthStencilImg;
 	VkDeviceMemory _depthStencilImgMem;
@@ -60,7 +61,7 @@ private:
 	void _initRenderPass();
 	void _initFrameBuffers();
 	void _initCommandBuffers();
-	void _initVertexBuffer();
+	void _initStageBuffer(void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf);
 	void _initSync();
 	void _initPipeline();
 	void _initShaders();

@@ -64,7 +64,18 @@ void VulkanRenderer::init()
 
 		_initShaders();
 		_initEnv();
-		_initVertexBuffer();
+
+		std::vector<Vertex> vertices = {
+			{{-0.7f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+			{{0.7f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+			{{0.7f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+			{{-0.7f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+		};
+		_initStageBuffer(vertices.data(), sizeof(Vertex), vertices.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, _vertexBuff);
+
+		std::vector<uint16_t> indices = {0,1,2,2,3,0};
+		_initStageBuffer(indices.data(), sizeof(uint16_t), indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, _indexBuff);
+		
 		_initSync();
 
 		_currentSwapchainImgID = -1;
@@ -130,7 +141,10 @@ void VulkanRenderer::run()
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(_commandBufs[curFrameID], 0, 1, vertexBuffers.data(), offsets);
 
-		vkCmdDraw(_commandBufs[curFrameID], 3, 1, 0, 0);
+		vkCmdBindIndexBuffer(_commandBufs[curFrameID], _indexBuff.getBuffer(), 0, VK_INDEX_TYPE_UINT16);
+
+		//vkCmdDraw(_commandBufs[curFrameID], _vertexBuff.getElemsCount(), 1, 0, 0);
+		vkCmdDrawIndexed(_commandBufs[curFrameID], _indexBuff.getElemsCount(), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(_commandBufs[curFrameID]);
 
@@ -353,30 +367,22 @@ void VulkanRenderer::_initCommandBuffers()
 	_mainDevice.getCommand(_commandBufs.data(), _swapchainImgCount, _mainDevice.getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
 }
 
-void VulkanRenderer::_initVertexBuffer()
+void VulkanRenderer::_initStageBuffer(void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf)
 {
 	auto& device = _mainDevice.getDevice();
 
-	const std::vector<Vertex> vertices = {
-		{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-		{{0.5f, 0.5f}, {1.0f, 1.0f, 0.0f}},
-		{{-0.5f, 0.5f}, {0.0f, 1.0f, 1.0f}}
-	};
-
-	uint32_t vertSz = sizeof(Vertex);
-	uint32_t nVerts = 3;
-	uint32_t totalSize = vertSz * nVerts;
+	uint32_t totalSize = elemSz * nElems;
 
 	VulkanBuffer stagingBuf;
 	auto stagingBufType = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-	stagingBuf.create(_mainDevice, vertSz, nVerts, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingBufType);
-	stagingBuf.setData((void*)vertices.data(), 0, nVerts);
+	stagingBuf.create(_mainDevice, elemSz, nElems, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingBufType);
+	stagingBuf.setData(data, 0, nElems);
 
-	auto vertexBufUse = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	auto vertexBufUse = VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage;
 	auto vertexBufType = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-	_vertexBuff.create(_mainDevice, vertSz, nVerts, vertexBufUse, vertexBufType);
+	buf.create(_mainDevice, elemSz, nElems, vertexBufUse, vertexBufType);
 
-	stagingBuf.copyTo(_vertexBuff);
+	stagingBuf.copyTo(buf);
 }
 
 void VulkanRenderer::_initSync()

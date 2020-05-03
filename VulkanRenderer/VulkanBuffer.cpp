@@ -31,14 +31,14 @@ void VulkanBuffer::create(const VulkanDevice& dev, uint32_t elemSz, uint32_t nEl
 
 	vkBindBufferMemory(device, _buffer, _memory, 0);
 
+	vkMapMemory(_dev->getDevice(), _memory, 0, _memReqs.size, 0, &_mappedPtr);
+ 
 	_allocated = true;
 }
 
 void VulkanBuffer::setData(void* ptr, uint32_t start, uint32_t count)
 {
-	vkMapMemory(_dev->getDevice(), _memory, 0, _memReqs.size, 0, &_mappedPtr);
 	memcpy((char*)_mappedPtr, (char*)ptr, _elemSz * count);
-	vkUnmapMemory(_dev->getDevice(), _memory);
 }
 
 void VulkanBuffer::copyTo(VulkanBuffer& to)
@@ -69,6 +69,11 @@ void VulkanBuffer::copyTo(VulkanBuffer& to)
 const VkBuffer& VulkanBuffer::getBuffer()
 {
 	return _buffer;
+}
+
+uint32_t VulkanBuffer::getElemsCount()
+{
+	return _nElems;
 }
 
 uint32_t VulkanBuffer::_findMemoryType(VkMemoryPropertyFlags props, uint32_t typeFilter)
