@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="FPSCounter.h" />
     <ClInclude Include="FPSLimiter.h" />
+    <ClInclude Include="ShaderInfoPackage.h" />
     <ClInclude Include="Vertex.h" />
     <ClInclude Include="VulkanBuffer.h" />
     <ClInclude Include="VulkanDevice.h" />

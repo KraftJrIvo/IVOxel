@@ -308,6 +308,42 @@ VkSemaphoreCreateInfo vkTypes::getSemaphoreCreateInfo()
     return info;
 }
 
+VkDescriptorSetLayoutCreateInfo vkTypes::getDSLCreateInfo(const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+{
+    VkDescriptorSetLayoutCreateInfo info = {};
+    info.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    info.pNext        = nullptr;
+    info.flags        = 0;
+    info.bindingCount = bindings.size();
+    info.pBindings    = bindings.data();
+
+    return info;
+}
+
+VkDescriptorPoolCreateInfo vkTypes::getDescriptorPoolCreateInfo(const std::vector<VkDescriptorPoolSize>& descPoolSizes, uint32_t maxSets)
+{
+    VkDescriptorPoolCreateInfo info = {};
+    info.sType         =    VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    info.poolSizeCount =    descPoolSizes.size();
+    info.pPoolSizes    =    descPoolSizes.data();
+    info.maxSets       =    maxSets;
+
+    return info;
+}
+
+VkDescriptorSetAllocateInfo vkTypes::getDescriptorSetAllocateInfo(const VkDescriptorPool& pool, const std::vector<VkDescriptorSetLayout>& layouts, uint32_t setCount)
+{
+    VkDescriptorSetAllocateInfo info = {};
+
+    info.sType              =  VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    info.pNext              =  nullptr;
+    info.descriptorPool     =  pool;
+    info.descriptorSetCount =  setCount;
+    info.pSetLayouts        =  layouts.data();
+
+    return info;
+}
+
 VkPipelineVertexInputStateCreateInfo vkTypes::getPipelineVertexISCreateInfo(const std::vector<VkVertexInputBindingDescription>& vibDescrs, const std::vector<VkVertexInputAttributeDescription>& vaDescrs)
 {
     VkPipelineVertexInputStateCreateInfo info = {};
@@ -424,7 +460,7 @@ VkPipelineDepthStencilStateCreateInfo vkTypes::getPipelineDepthStencilSCreateInf
     return info;
 }
 
-VkPipelineLayoutCreateInfo vkTypes::getPipelineLayoutCreateInfo(const std::vector<VkDescriptorSetLayout> layouts, const std::vector<VkPushConstantRange> constantRanges)
+VkPipelineLayoutCreateInfo vkTypes::getPipelineLayoutCreateInfo(const std::vector<VkDescriptorSetLayout>& layouts, const std::vector<VkPushConstantRange>& constantRanges)
 {
     VkPipelineLayoutCreateInfo info = {};
 

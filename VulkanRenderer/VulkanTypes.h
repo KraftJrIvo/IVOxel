@@ -47,6 +47,12 @@ namespace vkTypes
 
 	VkSemaphoreCreateInfo getSemaphoreCreateInfo();
 
+	VkDescriptorSetLayoutCreateInfo getDSLCreateInfo(const std::vector<VkDescriptorSetLayoutBinding>& bindings);
+
+	VkDescriptorPoolCreateInfo getDescriptorPoolCreateInfo(const std::vector<VkDescriptorPoolSize>& descPoolSizes, uint32_t maxSets);
+
+	VkDescriptorSetAllocateInfo getDescriptorSetAllocateInfo(const VkDescriptorPool& pool, const std::vector<VkDescriptorSetLayout>& layouts, uint32_t setCount);
+
 	VkPipelineVertexInputStateCreateInfo getPipelineVertexISCreateInfo(const std::vector<VkVertexInputBindingDescription>& vibDescrs, const std::vector<VkVertexInputAttributeDescription>& vaDescrs);
 	
 	VkPipelineInputAssemblyStateCreateInfo getPipelineInputAssemblyISCreateInfo(VkPrimitiveTopology topology, VkBool32 primitiveRestartEnabled = VK_FALSE);
@@ -61,7 +67,7 @@ namespace vkTypes
 
 	VkPipelineDepthStencilStateCreateInfo getPipelineDepthStencilSCreateInfo(VkBool32 depthTest = VK_TRUE, VkBool32 depthWrite = VK_TRUE, VkCompareOp compareOp = VK_COMPARE_OP_LESS, VkBool32 depthBoundsTest = VK_FALSE, VkBool32 stencilTest = VK_FALSE, VkStencilOpState front = {}, VkStencilOpState back = {}, float minBound = 0.0f, float maxBound = 1.0f);
 
-	VkPipelineLayoutCreateInfo getPipelineLayoutCreateInfo(const std::vector<VkDescriptorSetLayout> layouts, const std::vector<VkPushConstantRange> constantRanges);
+	VkPipelineLayoutCreateInfo getPipelineLayoutCreateInfo(const std::vector<VkDescriptorSetLayout>& layouts, const std::vector<VkPushConstantRange>& constantRanges);
 
 	VkGraphicsPipelineCreateInfo getGraphicsPipelineCreateInfo(const VkPipelineLayout& layout, const VkRenderPass& renderPass, uint32_t subpass, const std::vector<VkPipelineShaderStageCreateInfo>& stages, const VkPipelineVertexInputStateCreateInfo& vertexInputSCI, const VkPipelineInputAssemblyStateCreateInfo& inputAssemblySCI, const VkPipelineViewportStateCreateInfo& viewportSCI, const VkPipelineRasterizationStateCreateInfo& rasterizationSCI, const VkPipelineMultisampleStateCreateInfo& multisampleSCI, const VkPipelineColorBlendStateCreateInfo& colorBlendSCI, const VkPipelineDepthStencilStateCreateInfo* depthStencilSCI = nullptr, const VkPipelineDynamicStateCreateInfo* dynamicSCI = nullptr, VkPipeline basePipeline = VK_NULL_HANDLE, uint32_t basePipelineId = -1);
 }

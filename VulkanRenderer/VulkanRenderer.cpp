@@ -8,6 +8,9 @@
 #include <iostream>
 #include <thread>
 
+#define GLM_FORCE_RADIANS
+#include <glm/gtc/matrix_transform.hpp>
+
 Window window(512, 512, L"test");
 
 #define FPS_LIMIT 144
@@ -42,6 +45,9 @@ VulkanRenderer::~VulkanRenderer()
 	_fragmentShader.destroy(device);
 	_vertexShader.destroy(device);
 
+	vkDestroyDescriptorPool(device, _descriptorPool, nullptr);
+	vkDestroyDescriptorSetLayout(device, _descriptorSetLayout, nullptr);
+
 	_clearEnv();
 
 	vkDestroySurfaceKHR(_vulkan.getInstace(), _surface, nullptr);
@@ -63,8 +69,12 @@ void VulkanRenderer::init()
 		std::cout << std::endl << "Device was chosen: " << _vulkan.getPhysDevice().getProps().deviceName << std::endl;
 
 		_initShaders();
+
+		_initDescriptorSetLayout();
+
 		_initEnv();
 
+		// creating vertex buffer 
 		std::vector<Vertex> vertices = {
 			{{-0.7f, -0.5f}, {1.0f, 0.0f, 0.0f}},
 			{{0.7f, -0.5f}, {0.0f, 1.0f, 0.0f}},
@@ -73,9 +83,18 @@ void VulkanRenderer::init()
 		};
 		_initStageBuffer(vertices.data(), sizeof(Vertex), vertices.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, _vertexBuff);
 
+		// creating index buffer 
 		std::vector<uint16_t> indices = {0,1,2,2,3,0};
 		_initStageBuffer(indices.data(), sizeof(uint16_t), indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, _indexBuff);
-		
+
+		// creating uniform buffers
+		_uniformBuffs.resize(_swapchainImgCount);
+		for (uint32_t i = 0; i < _swapchainImgCount; ++i)
+			_initHostBuffer(&_shaderInfo, sizeof(_shaderInfo), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, _uniformBuffs[i]);
+
+		_initDescriptorPool();
+		_initDescriptorSets();
+
 		_initSync();
 
 		_currentSwapchainImgID = -1;
@@ -143,7 +162,7 @@ void VulkanRenderer::run()
 
 		vkCmdBindIndexBuffer(_commandBufs[curFrameID], _indexBuff.getBuffer(), 0, VK_INDEX_TYPE_UINT16);
 
-		//vkCmdDraw(_commandBufs[curFrameID], _vertexBuff.getElemsCount(), 1, 0, 0);
+		vkCmdBindDescriptorSets(_commandBufs[curFrameID], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout, 0, 1, &_descriptorSets[curFrameID], 0, nullptr);
 		vkCmdDrawIndexed(_commandBufs[curFrameID], _indexBuff.getElemsCount(), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(_commandBufs[curFrameID]);
@@ -151,6 +170,8 @@ void VulkanRenderer::run()
 		vkEndCommandBuffer(_commandBufs[curFrameID]);
 
 		vkResetFences(_mainDevice.getDevice(), 1, &_frameFences[curFrameID]);
+
+		_updateUniformDataForImg(curFrameID);
 
 		std::vector<VkSemaphore> waitSemaphores = {_semImgAvailable[curFrameID]};
 		std::vector<VkSemaphore> signalSemaphores = {_semRenderDone[curFrameID]};
@@ -367,6 +388,59 @@ void VulkanRenderer::_initCommandBuffers()
 	_mainDevice.getCommand(_commandBufs.data(), _swapchainImgCount, _mainDevice.getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
 }
 
+void VulkanRenderer::_initDescriptorSetLayout()
+{
+	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+	uboLayoutBinding.binding = 0;
+	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboLayoutBinding.descriptorCount = 1;
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding };
+	VkDescriptorSetLayoutCreateInfo info = vkTypes::getDSLCreateInfo(bindings);
+
+	vkCreateDescriptorSetLayout(_mainDevice.getDevice(), &info, nullptr, &_descriptorSetLayout);
+}
+
+void VulkanRenderer::_initDescriptorPool()
+{
+	VkDescriptorPoolSize poolSize = {};
+	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSize.descriptorCount = static_cast<uint32_t>(_swapchainImgCount);
+
+	std::vector<VkDescriptorPoolSize> sizes = {poolSize};
+	auto info = vkTypes::getDescriptorPoolCreateInfo(sizes, _swapchainImgCount);
+
+	vkCreateDescriptorPool(_mainDevice.getDevice(), &info, nullptr, &_descriptorPool);
+}
+
+void VulkanRenderer::_initDescriptorSets()
+{
+	std::vector<VkDescriptorSetLayout> layouts = {_descriptorSetLayout, _descriptorSetLayout};
+	auto allocInfo = vkTypes::getDescriptorSetAllocateInfo(_descriptorPool, layouts, _swapchainImgCount);
+
+	_descriptorSets.resize(_swapchainImgCount);
+	vkAllocateDescriptorSets(_mainDevice.getDevice(), &allocInfo, _descriptorSets.data());
+
+	for (size_t i = 0; i < _swapchainImgCount; i++) {
+		VkDescriptorBufferInfo bufferInfo = {};
+		bufferInfo.buffer = _uniformBuffs[i].getBuffer();
+		bufferInfo.offset = 0;
+		bufferInfo.range  = sizeof(ShaderInfoPackage);
+
+		VkWriteDescriptorSet descriptorWrite = {};
+		descriptorWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet          = _descriptorSets[i];
+		descriptorWrite.dstBinding      = 0;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pBufferInfo     = &bufferInfo;
+
+		vkUpdateDescriptorSets(_mainDevice.getDevice(), 1, &descriptorWrite, 0, nullptr);
+	}
+}
+
 void VulkanRenderer::_initStageBuffer(void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf)
 {
 	auto& device = _mainDevice.getDevice();
@@ -383,6 +457,13 @@ void VulkanRenderer::_initStageBuffer(void* data, uint32_t elemSz, uint32_t nEle
 	buf.create(_mainDevice, elemSz, nElems, vertexBufUse, vertexBufType);
 
 	stagingBuf.copyTo(buf);
+}
+
+void VulkanRenderer::_initHostBuffer(void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf)
+{
+	auto props = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
+	buf.create(_mainDevice, elemSz, nElems, usage, props);
 }
 
 void VulkanRenderer::_initSync()
@@ -423,7 +504,7 @@ void VulkanRenderer::_initPipeline()
 	std::vector<VkViewport> viewports = { viewport };
 	std::vector<VkRect2D> scissors = { window.getRenderArea() };
 	auto viewportInfo	   = vkTypes::getPipelineViewportSCreateInfo(viewports, scissors);
-	auto rasterizationInfo = vkTypes::getPipelineRasterizationSCreateInfo();
+	auto rasterizationInfo = vkTypes::getPipelineRasterizationSCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, 1.0f, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 	auto multisampleInfo   = vkTypes::getPipelineMultisampleSCreateInfo();
 
 	VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
@@ -452,7 +533,8 @@ void VulkanRenderer::_initPipeline()
 
 	auto& device = _mainDevice.getDevice();
 
-	auto layoutInfo = vkTypes::getPipelineLayoutCreateInfo({}, {});
+	std::vector<VkDescriptorSetLayout> dsls = { _descriptorSetLayout };
+	auto layoutInfo = vkTypes::getPipelineLayoutCreateInfo(dsls, {});
 	vkCreatePipelineLayout(_mainDevice.getDevice(), &layoutInfo, nullptr, &_pipelineLayout);
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderInfos = { _vertexShader.getShaderStageCreateInfo(), _fragmentShader.getShaderStageCreateInfo() };
@@ -485,6 +567,7 @@ void VulkanRenderer::_setSurfaceFormat()
 	vkGetPhysicalDeviceSurfaceFormatsKHR(physDev, _surface, &formatCount, formats.data());
 	_surfaceFormat = formats[0];
 }
+
 void VulkanRenderer::_clearEnv()
 {
 	auto& device = _mainDevice.getDevice();
@@ -528,6 +611,22 @@ void VulkanRenderer::_recreateEnv()
 
 	_clearEnv();
 	_initEnv();
+}
+
+void VulkanRenderer::_updateUniformDataForImg(uint32_t idx)
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto renderArea = window.getRenderArea();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+	_shaderInfo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	_shaderInfo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	_shaderInfo.proj = glm::perspective(glm::radians(45.0f), renderArea.extent.width / (float)renderArea.extent.height, 0.1f, 10.0f);
+	_shaderInfo.proj[1][1] *= -1;
+
+	_uniformBuffs[idx].setData(&_shaderInfo, 0, 1);
 }
 
 VkFramebuffer& VulkanRenderer::_getCurrentFrameBuffer()

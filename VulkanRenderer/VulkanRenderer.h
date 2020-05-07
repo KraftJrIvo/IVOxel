@@ -4,6 +4,8 @@
 #include "VulkanShader.h"
 #include "VulkanBuffer.h"
 
+#include "ShaderInfoPackage.h"
+
 class VulkanRenderer
 {
 public:
@@ -33,6 +35,7 @@ private:
 	std::vector<VkFramebuffer> _frameBuffs;
 	VulkanBuffer _vertexBuff;
 	VulkanBuffer _indexBuff;
+	std::vector<VulkanBuffer> _uniformBuffs;
 
 	VkImage _depthStencilImg;
 	VkDeviceMemory _depthStencilImgMem;
@@ -52,7 +55,12 @@ private:
 	VulkanShader _fragmentShader;
 
 	VkPipeline _pipeline;
+	VkDescriptorSetLayout _descriptorSetLayout;
+	std::vector<VkDescriptorSet> _descriptorSets;
+	VkDescriptorPool _descriptorPool;
 	VkPipelineLayout _pipelineLayout;
+
+	ShaderInfoPackage _shaderInfo;
 
 	void _initSurface();
 	void _initSwapchain();
@@ -61,7 +69,11 @@ private:
 	void _initRenderPass();
 	void _initFrameBuffers();
 	void _initCommandBuffers();
+	void _initDescriptorSetLayout();
+	void _initDescriptorPool();
+	void _initDescriptorSets();
 	void _initStageBuffer(void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf);
+	void _initHostBuffer(void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf);
 	void _initSync();
 	void _initPipeline();
 	void _initShaders();
@@ -70,6 +82,8 @@ private:
 	void _clearEnv();
 	void _initEnv();
 	void _recreateEnv();
+
+	void _updateUniformDataForImg(uint32_t idx);
 
 	VkFramebuffer& _getCurrentFrameBuffer();
 
