@@ -19,6 +19,14 @@ public:
 	const HINSTANCE& getHInstance();
 	const HWND& getHWND();
 
+	void handleMouseMove(int32_t x, int32_t y);
+	std::vector<float> getCurDeltaRot();
+
+	void fullScreenSwitch();
+
+	std::vector<int32_t>				mousePos = {0,0};
+	bool								lmbDown = false;
+
 private:
 	void								_InitOSWindow();
 	void								_DeInitOSWindow();
@@ -36,4 +44,11 @@ private:
 	HWND								_win32_window = NULL;
 	std::wstring							_win32_class_name;
 	static uint64_t						_win32_class_id_counter;
+
+	std::vector<float>					_deltaRot = { 0,0 };
+	bool								_windowed = true;
+	WINDOWPLACEMENT						_wpc;
+	DWORD								_style = 0;
+	DWORD								_styleEx = 0;
+
 };

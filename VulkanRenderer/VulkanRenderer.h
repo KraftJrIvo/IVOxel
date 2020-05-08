@@ -62,6 +62,8 @@ private:
 
 	ShaderInfoPackage _shaderInfo;
 
+	glm::vec2 _curRot;
+
 	void _initSurface();
 	void _initSwapchain();
 	void _initSwapchainImages();

@@ -76,10 +76,10 @@ void VulkanRenderer::init()
 
 		// creating vertex buffer 
 		std::vector<Vertex> vertices = {
-			{{-0.7f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-			{{0.7f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-			{{0.7f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-			{{-0.7f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+			{{-1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}},
+			{{1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}},
+			{{1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
+			{{-1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}}
 		};
 		_initStageBuffer(vertices.data(), sizeof(Vertex), vertices.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, _vertexBuff);
 
@@ -96,6 +96,8 @@ void VulkanRenderer::init()
 		_initDescriptorSets();
 
 		_initSync();
+
+		_curRot = {-90.0, 0.0f};
 
 		_currentSwapchainImgID = -1;
 	}
@@ -394,7 +396,7 @@ void VulkanRenderer::_initDescriptorSetLayout()
 	uboLayoutBinding.binding = 0;
 	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	uboLayoutBinding.descriptorCount = 1;
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
 	std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding };
 	VkDescriptorSetLayoutCreateInfo info = vkTypes::getDSLCreateInfo(bindings);
@@ -504,7 +506,7 @@ void VulkanRenderer::_initPipeline()
 	std::vector<VkViewport> viewports = { viewport };
 	std::vector<VkRect2D> scissors = { window.getRenderArea() };
 	auto viewportInfo	   = vkTypes::getPipelineViewportSCreateInfo(viewports, scissors);
-	auto rasterizationInfo = vkTypes::getPipelineRasterizationSCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, 1.0f, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+	auto rasterizationInfo = vkTypes::getPipelineRasterizationSCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, 1.0f, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 	auto multisampleInfo   = vkTypes::getPipelineMultisampleSCreateInfo();
 
 	VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
@@ -621,10 +623,29 @@ void VulkanRenderer::_updateUniformDataForImg(uint32_t idx)
 
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-	_shaderInfo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	_shaderInfo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	_shaderInfo.proj = glm::perspective(glm::radians(45.0f), renderArea.extent.width / (float)renderArea.extent.height, 0.1f, 10.0f);
-	_shaderInfo.proj[1][1] *= -1;
+
+	auto deltaRot = window.getCurDeltaRot();
+	glm::vec2 delta = { deltaRot[0], deltaRot[1] };
+	delta /= (float)renderArea.extent.width;
+	delta *= 500.0f;
+	_curRot += delta;
+
+	auto model = glm::mat4(1.0f);
+	model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+	glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	view = glm::rotate(view, glm::radians(_curRot.x), glm::vec3(1.0f, 0.0f, 0.0f));
+	view = glm::rotate(view, glm::radians(_curRot.y), glm::vec3(0.0f, 0.0f, 1.0f));
+	
+	auto w = renderArea.extent.width;
+	auto h = renderArea.extent.height;
+	auto aspect = w / (float)h;
+	auto proj = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 10.0f);
+	proj[1][1] *= -1;
+
+	_shaderInfo.mvp = proj * view * model;
+	_shaderInfo.time = time;
+	_shaderInfo.resolution = {renderArea.extent.width, renderArea.extent.height };
 
 	_uniformBuffs[idx].setData(&_shaderInfo, 0, 1);
 }

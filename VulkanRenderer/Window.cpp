@@ -86,6 +86,20 @@ LRESULT CALLBACK WindowsEventHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 	case WM_SIZE:
 		window->setSurfaceSize(LOWORD(lParam), HIWORD(lParam));
 		break;
+	case WM_LBUTTONDOWN:
+		window->mousePos = { LOWORD(lParam), HIWORD(lParam) };
+		window->lmbDown = true;
+		break;
+	case WM_MOUSEMOVE:
+		window->handleMouseMove(LOWORD(lParam), HIWORD(lParam));
+		break;
+	case WM_LBUTTONUP:
+		window->lmbDown = false;
+		break;
+	case WM_KEYUP:
+		if (wParam == VK_F11)
+			window->fullScreenSwitch();
+		break;
 	default:
 		break;
 	}
@@ -125,16 +139,16 @@ void Window::_InitOSWindow()
 		std::exit(-1);
 	}
 
-	DWORD ex_style = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
-	DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_THICKFRAME;
+	_styleEx = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
+	_style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_THICKFRAME | WS_MAXIMIZEBOX;
 
 	// Create window with the registered class:
 	RECT wr = { 0, 0, LONG(_surface_size_x), LONG(_surface_size_y) };
-	AdjustWindowRectEx(&wr, style, FALSE, ex_style);
+	AdjustWindowRectEx(&wr, _style, FALSE, _styleEx);
 	_win32_window = CreateWindowEx(0,
 		(WCHAR*)_win32_class_name.c_str(),		// class name
 		(WCHAR*)_window_name.c_str(),			// app name
-		style,							// window style
+		_style,							// window style
 		CW_USEDEFAULT, CW_USEDEFAULT,	// x/y coords
 		wr.right - wr.left,				// width
 		wr.bottom - wr.top,				// height
@@ -168,6 +182,60 @@ void Window::_UpdateOSWindow()
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
+}
+
+void Window::fullScreenSwitch()
+{
+	HWND HWNDWindow = getHWND();
+
+	if (_windowed)
+	{
+		_windowed = FALSE;
+		GetWindowPlacement(HWNDWindow, &_wpc);
+		if (_style == 0)
+			_style = GetWindowLong(HWNDWindow, GWL_STYLE);
+		if (_styleEx == 0)
+			_styleEx = GetWindowLong(HWNDWindow, GWL_EXSTYLE);
+
+		LONG NewHWNDStyle = _style;
+		NewHWNDStyle &= ~WS_BORDER;
+		NewHWNDStyle &= ~WS_DLGFRAME;
+		NewHWNDStyle &= ~WS_THICKFRAME;
+
+		LONG NewHWNDStyleEx = _styleEx;
+		NewHWNDStyleEx &= ~WS_EX_WINDOWEDGE;
+
+		SetWindowLong(HWNDWindow, GWL_STYLE, NewHWNDStyle | WS_POPUP);
+		SetWindowLong(HWNDWindow, GWL_EXSTYLE, NewHWNDStyleEx | WS_EX_TOPMOST);
+		ShowWindow(HWNDWindow, SW_SHOWMAXIMIZED);
+	}
+	else
+	{
+		_windowed = TRUE;
+		SetWindowLong(HWNDWindow, GWL_STYLE, _style);
+		SetWindowLong(HWNDWindow, GWL_EXSTYLE, _styleEx);
+		ShowWindow(HWNDWindow, SW_SHOWNORMAL);
+		SetWindowPlacement(HWNDWindow, &_wpc);
+	}
+}
+
+void Window::handleMouseMove(int32_t x, int32_t y)
+{
+	int32_t dx = mousePos[0] - x;
+	int32_t dy = mousePos[1] - y;
+
+	if (lmbDown) {
+		_deltaRot[0] = dy * 1.25f;
+		_deltaRot[1] = -dx * 1.25f;
+	}
+	mousePos = { x, y };
+}
+
+std::vector<float> Window::getCurDeltaRot()
+{
+	auto temp = _deltaRot;
+	_deltaRot = {0,0};
+	return temp;
 }
 
 #endif
