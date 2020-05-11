@@ -1,5 +1,5 @@
 # n chunks
-3
+12
 
 # chunk size (x y z)
 4 4 4
@@ -609,3 +609,228 @@
 # chunk i lights params (r g b a x y z (coordinates are relative to chunk's center))
 255 255 255 255 0.9 0.9 0.9
 127 127 127 255 0.1 0.1 0.1
+
+# chunk size (x y z)
+1 1 1
+
+# chunk i pos (x y z)
+-1 -1 -1
+
+# voxel types (x y(inv) z)
+0
+
+# voxel colors
+# red
+100
+
+# green
+100
+
+# blue
+100
+
+# alpha
+255
+
+# chunk i lights number
+0
+
+# chunk size (x y z)
+1 1 1
+
+# chunk i pos (x y z)
+-1 -1 0
+
+# voxel types (x y(inv) z)
+0
+
+# voxel colors
+# red
+100
+
+# green
+100
+
+# blue
+100
+
+# alpha
+255
+
+# chunk i lights number
+0
+
+# chunk size (x y z)
+1 1 1
+
+# chunk i pos (x y z)
+-1 -1 1
+
+# voxel types (x y(inv) z)
+0
+
+# voxel colors
+# red
+100
+
+# green
+100
+
+# blue
+100
+
+# alpha
+255
+
+# chunk i lights number
+0
+
+# chunk size (x y z)
+1 1 1
+
+# chunk i pos (x y z)
+0 -1 -1
+
+# voxel types (x y(inv) z)
+0
+
+# voxel colors
+# red
+100
+
+# green
+100
+
+# blue
+100
+
+# alpha
+255
+
+# chunk i lights number
+0
+
+# chunk size (x y z)
+1 1 1
+
+# chunk i pos (x y z)
+0 -1 0
+
+# voxel types (x y(inv) z)
+0
+
+# voxel colors
+# red
+100
+
+# green
+100
+
+# blue
+100
+
+# alpha
+255
+
+# chunk i lights number
+0
+
+# chunk size (x y z)
+1 1 1
+
+# chunk i pos (x y z)
+0 -1 1
+
+# voxel types (x y(inv) z)
+0
+
+# voxel colors
+# red
+100
+
+# green
+100
+
+# blue
+100
+
+# alpha
+255
+
+# chunk i lights number
+0
+
+# chunk size (x y z)
+1 1 1
+
+# chunk i pos (x y z)
+1 -1 -1
+
+# voxel types (x y(inv) z)
+0
+
+# voxel colors
+# red
+100
+
+# green
+100
+
+# blue
+100
+
+# alpha
+255
+
+# chunk i lights number
+0
+
+# chunk size (x y z)
+1 1 1
+
+# chunk i pos (x y z)
+1 -1 0
+
+# voxel types (x y(inv) z)
+0
+
+# voxel colors
+# red
+100
+
+# green
+100
+
+# blue
+100
+
+# alpha
+255
+
+# chunk i lights number
+0
+
+# chunk size (x y z)
+1 1 1
+
+# chunk i pos (x y z)
+1 -1 1
+
+# voxel types (x y(inv) z)
+0
+
+# voxel colors
+# red
+100
+
+# green
+100
+
+# blue
+100
+
+# alpha
+255
+
+# chunk i lights number
+0

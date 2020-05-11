@@ -2,10 +2,9 @@
 
 #include <glm/glm.hpp>
 
-#include "VulkanTypes.h"
-
-struct ShaderInfoPackage {
+struct ViewShaderInfo {
     glm::mat4 mvp;
     glm::vec2 resolution;
     float time;
+    float fov;
 };

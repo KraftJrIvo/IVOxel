@@ -6,6 +6,7 @@
 int main()
 {
 	GPURenderer renderer;
+	//CPURenderer renderer;
 	
 	VoxelMapType mapType(VoxelTypeFormat::UINT8, VoxelColorFormat::RGB256, VoxelNeighbourInfoFormat::NO_NEIGHBOUR_INFO);
 

@@ -33,10 +33,10 @@ void VulkanBuffer::create(const VulkanDevice& dev, uint32_t elemSz, uint32_t nEl
 	_allocated = true;
 }
 
-void VulkanBuffer::setData(void* ptr, uint32_t start, uint32_t count)
+void VulkanBuffer::setData(void* ptr, uint32_t start, uint32_t size)
 {
 	vkMapMemory(_dev->getDevice(), _memory, 0, _memReqs.size, 0, &_mappedPtr);
-	memcpy((char*)_mappedPtr, (char*)ptr, _elemSz * count);
+	memcpy((char*)_mappedPtr + start, (char*)ptr, size);
 	vkUnmapMemory(_dev->getDevice(), _memory);
 }
 

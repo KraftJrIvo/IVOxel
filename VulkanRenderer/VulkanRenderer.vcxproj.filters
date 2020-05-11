@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\ShaderInfo">
+      <UniqueIdentifier>{62ccb61a-88e3-486a-b65c-60d2a248a525}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanBuffer.h">
@@ -51,8 +54,14 @@
     <ClInclude Include="Vertex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ShaderInfoPackage.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="ViewShaderInfo.h">
+      <Filter>Header Files\ShaderInfo</Filter>
+    </ClInclude>
+    <ClInclude Include="LightingShaderInfo.h">
+      <Filter>Header Files\ShaderInfo</Filter>
+    </ClInclude>
+    <ClInclude Include="MapShaderInfo.h">
+      <Filter>Header Files\ShaderInfo</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

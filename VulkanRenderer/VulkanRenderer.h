@@ -4,7 +4,11 @@
 #include "VulkanShader.h"
 #include "VulkanBuffer.h"
 
-#include "ShaderInfoPackage.h"
+#include "ViewShaderInfo.h"
+#include "MapShaderInfo.h"
+#include "LightingShaderInfo.h"
+
+#include <VoxelMap.h>
 
 class VulkanRenderer
 {
@@ -13,7 +17,7 @@ public:
 	~VulkanRenderer();
 	
 	void init();
-	void run();
+	void run(const VoxelMap& map);
 	void stop();
 	bool runOnce();
 
@@ -55,12 +59,18 @@ private:
 	VulkanShader _fragmentShader;
 
 	VkPipeline _pipeline;
-	VkDescriptorSetLayout _descriptorSetLayout;
-	std::vector<VkDescriptorSet> _descriptorSets;
+	VkDescriptorSetLayout _viewShaderInfoDescriptorSetLayout;
+	VkDescriptorSetLayout _lightingShaderInfoDescriptorSetLayout;
+	VkDescriptorSetLayout _mapShaderInfoDescriptorSetLayout;
+	std::vector<VkDescriptorSet> _viewShaderInfoDescriptorSets;
+	std::vector<VkDescriptorSet> _lightingShaderInfoDescriptorSets;
+	std::vector<VkDescriptorSet> _mapShaderInfoDescriptorSets;
 	VkDescriptorPool _descriptorPool;
 	VkPipelineLayout _pipelineLayout;
 
-	ShaderInfoPackage _shaderInfo;
+	ViewShaderInfo _viewShaderInfo;
+	LightingShaderInfo _lightingShaderInfo;
+	MapShaderInfo _mapShaderInfo;
 
 	glm::vec2 _curRot;
 
@@ -71,11 +81,11 @@ private:
 	void _initRenderPass();
 	void _initFrameBuffers();
 	void _initCommandBuffers();
-	void _initDescriptorSetLayout();
+	void _initDescriptorSetLayout(VkDescriptorSetLayout& layout);
 	void _initDescriptorPool();
-	void _initDescriptorSets();
+	void _initDescriptorSet(VkDescriptorSetLayout& layout, std::vector<VkDescriptorSet>& set, uint32_t range, uint32_t offset);
 	void _initStageBuffer(void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf);
-	void _initHostBuffer(void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf);
+	void _initHostBuffer(uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf);
 	void _initSync();
 	void _initPipeline();
 	void _initShaders();
@@ -85,7 +95,9 @@ private:
 	void _initEnv();
 	void _recreateEnv();
 
-	void _updateUniformDataForImg(uint32_t idx);
+	void _updateViewShaderInfo(uint32_t idx);
+	void _updateMapShaderInfo(const VoxelMap& map, uint32_t idx);
+	void _updateLightingShaderInfo(const VoxelMap& map, uint32_t idx);
 
 	VkFramebuffer& _getCurrentFrameBuffer();
 

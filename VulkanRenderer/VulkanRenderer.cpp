@@ -46,7 +46,9 @@ VulkanRenderer::~VulkanRenderer()
 	_vertexShader.destroy(device);
 
 	vkDestroyDescriptorPool(device, _descriptorPool, nullptr);
-	vkDestroyDescriptorSetLayout(device, _descriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, _viewShaderInfoDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, _lightingShaderInfoDescriptorSetLayout, nullptr);
+	vkDestroyDescriptorSetLayout(device, _mapShaderInfoDescriptorSetLayout, nullptr);
 
 	_clearEnv();
 
@@ -70,7 +72,9 @@ void VulkanRenderer::init()
 
 		_initShaders();
 
-		_initDescriptorSetLayout();
+		_initDescriptorSetLayout(_viewShaderInfoDescriptorSetLayout);
+		_initDescriptorSetLayout(_lightingShaderInfoDescriptorSetLayout);
+		_initDescriptorSetLayout(_mapShaderInfoDescriptorSetLayout);
 
 		_initEnv();
 
@@ -87,23 +91,28 @@ void VulkanRenderer::init()
 		std::vector<uint16_t> indices = {0,1,2,2,3,0};
 		_initStageBuffer(indices.data(), sizeof(uint16_t), indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, _indexBuff);
 
+		uint32_t offset1 = 0x40 * std::ceil(sizeof(ViewShaderInfo) / (float)0x40);
+		uint32_t offset2 = offset1 + 0x40 * std::ceil(sizeof(LightingShaderInfo) / (float)0x40);
+
 		// creating uniform buffers
 		_uniformBuffs.resize(_swapchainImgCount);
 		for (uint32_t i = 0; i < _swapchainImgCount; ++i)
-			_initHostBuffer(&_shaderInfo, sizeof(_shaderInfo), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, _uniformBuffs[i]);
+			_initHostBuffer(offset1 + offset2 + sizeof(MapShaderInfo), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, _uniformBuffs[i]);
 
 		_initDescriptorPool();
-		_initDescriptorSets();
+		_initDescriptorSet(_viewShaderInfoDescriptorSetLayout, _viewShaderInfoDescriptorSets, sizeof(ViewShaderInfo), 0);
+		_initDescriptorSet(_lightingShaderInfoDescriptorSetLayout, _lightingShaderInfoDescriptorSets, sizeof(LightingShaderInfo), offset1);
+		_initDescriptorSet(_mapShaderInfoDescriptorSetLayout, _mapShaderInfoDescriptorSets, sizeof(MapShaderInfo), offset2);
 
 		_initSync();
 
-		_curRot = {-90.0, 0.0f};
+		_curRot = { 0.0, -90.0f };
 
 		_currentSwapchainImgID = -1;
 	}
 }
 
-void VulkanRenderer::run()
+void VulkanRenderer::run(const VoxelMap& map)
 {
 	auto queue = _mainDevice.getQueueByType(VK_QUEUE_GRAPHICS_BIT);
 
@@ -126,6 +135,8 @@ void VulkanRenderer::run()
 	fpsLimiter.reset();
 
 	uint32_t curFrameID = 0;
+
+	_updateMapShaderInfo(map, curFrameID);
 
 	while (runOnce())
 	{
@@ -164,7 +175,8 @@ void VulkanRenderer::run()
 
 		vkCmdBindIndexBuffer(_commandBufs[curFrameID], _indexBuff.getBuffer(), 0, VK_INDEX_TYPE_UINT16);
 
-		vkCmdBindDescriptorSets(_commandBufs[curFrameID], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout, 0, 1, &_descriptorSets[curFrameID], 0, nullptr);
+		std::vector<VkDescriptorSet> sets = { _viewShaderInfoDescriptorSets[curFrameID], _lightingShaderInfoDescriptorSets[curFrameID], _mapShaderInfoDescriptorSets[curFrameID] };
+		vkCmdBindDescriptorSets(_commandBufs[curFrameID], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipelineLayout, 0, 3, sets.data(), 0, nullptr);
 		vkCmdDrawIndexed(_commandBufs[curFrameID], _indexBuff.getElemsCount(), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(_commandBufs[curFrameID]);
@@ -173,7 +185,8 @@ void VulkanRenderer::run()
 
 		vkResetFences(_mainDevice.getDevice(), 1, &_frameFences[curFrameID]);
 
-		_updateUniformDataForImg(curFrameID);
+		_updateViewShaderInfo(curFrameID);
+		_updateLightingShaderInfo(map, curFrameID);
 
 		std::vector<VkSemaphore> waitSemaphores = {_semImgAvailable[curFrameID]};
 		std::vector<VkSemaphore> signalSemaphores = {_semRenderDone[curFrameID]};
@@ -390,7 +403,7 @@ void VulkanRenderer::_initCommandBuffers()
 	_mainDevice.getCommand(_commandBufs.data(), _swapchainImgCount, _mainDevice.getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
 }
 
-void VulkanRenderer::_initDescriptorSetLayout()
+void VulkanRenderer::_initDescriptorSetLayout(VkDescriptorSetLayout& layout)
 {
 	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
 	uboLayoutBinding.binding = 0;
@@ -401,38 +414,38 @@ void VulkanRenderer::_initDescriptorSetLayout()
 	std::vector<VkDescriptorSetLayoutBinding> bindings = { uboLayoutBinding };
 	VkDescriptorSetLayoutCreateInfo info = vkTypes::getDSLCreateInfo(bindings);
 
-	vkCreateDescriptorSetLayout(_mainDevice.getDevice(), &info, nullptr, &_descriptorSetLayout);
+	vkCreateDescriptorSetLayout(_mainDevice.getDevice(), &info, nullptr, &layout);
 }
 
 void VulkanRenderer::_initDescriptorPool()
 {
 	VkDescriptorPoolSize poolSize = {};
 	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSize.descriptorCount = static_cast<uint32_t>(_swapchainImgCount);
+	poolSize.descriptorCount = 3 * static_cast<uint32_t>(_swapchainImgCount);
 
 	std::vector<VkDescriptorPoolSize> sizes = {poolSize};
-	auto info = vkTypes::getDescriptorPoolCreateInfo(sizes, _swapchainImgCount);
+	auto info = vkTypes::getDescriptorPoolCreateInfo(sizes, 3 * _swapchainImgCount);
 
 	vkCreateDescriptorPool(_mainDevice.getDevice(), &info, nullptr, &_descriptorPool);
 }
 
-void VulkanRenderer::_initDescriptorSets()
+void VulkanRenderer::_initDescriptorSet(VkDescriptorSetLayout& layout, std::vector<VkDescriptorSet>& set, uint32_t range, uint32_t offset)
 {
-	std::vector<VkDescriptorSetLayout> layouts = {_descriptorSetLayout, _descriptorSetLayout};
+	std::vector<VkDescriptorSetLayout> layouts(_swapchainImgCount, layout);
 	auto allocInfo = vkTypes::getDescriptorSetAllocateInfo(_descriptorPool, layouts, _swapchainImgCount);
 
-	_descriptorSets.resize(_swapchainImgCount);
-	vkAllocateDescriptorSets(_mainDevice.getDevice(), &allocInfo, _descriptorSets.data());
+	set.resize(_swapchainImgCount);
+	vkAllocateDescriptorSets(_mainDevice.getDevice(), &allocInfo, set.data());
 
 	for (size_t i = 0; i < _swapchainImgCount; i++) {
 		VkDescriptorBufferInfo bufferInfo = {};
 		bufferInfo.buffer = _uniformBuffs[i].getBuffer();
-		bufferInfo.offset = 0;
-		bufferInfo.range  = sizeof(ShaderInfoPackage);
+		bufferInfo.offset = offset;
+		bufferInfo.range  = range;
 
 		VkWriteDescriptorSet descriptorWrite = {};
 		descriptorWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet          = _descriptorSets[i];
+		descriptorWrite.dstSet          = set[i];
 		descriptorWrite.dstBinding      = 0;
 		descriptorWrite.dstArrayElement = 0;
 		descriptorWrite.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -452,7 +465,7 @@ void VulkanRenderer::_initStageBuffer(void* data, uint32_t elemSz, uint32_t nEle
 	VulkanBuffer stagingBuf;
 	auto stagingBufType = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 	stagingBuf.create(_mainDevice, elemSz, nElems, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingBufType);
-	stagingBuf.setData(data, 0, nElems);
+	stagingBuf.setData(data, 0, elemSz * nElems);
 
 	auto vertexBufUse = VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage;
 	auto vertexBufType = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
@@ -461,7 +474,7 @@ void VulkanRenderer::_initStageBuffer(void* data, uint32_t elemSz, uint32_t nEle
 	stagingBuf.copyTo(buf);
 }
 
-void VulkanRenderer::_initHostBuffer(void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf)
+void VulkanRenderer::_initHostBuffer(uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf)
 {
 	auto props = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
@@ -535,7 +548,7 @@ void VulkanRenderer::_initPipeline()
 
 	auto& device = _mainDevice.getDevice();
 
-	std::vector<VkDescriptorSetLayout> dsls = { _descriptorSetLayout };
+	std::vector<VkDescriptorSetLayout> dsls = { _viewShaderInfoDescriptorSetLayout, _lightingShaderInfoDescriptorSetLayout, _mapShaderInfoDescriptorSetLayout };
 	auto layoutInfo = vkTypes::getPipelineLayoutCreateInfo(dsls, {});
 	vkCreatePipelineLayout(_mainDevice.getDevice(), &layoutInfo, nullptr, &_pipelineLayout);
 
@@ -549,8 +562,8 @@ void VulkanRenderer::_initPipeline()
 void VulkanRenderer::_initShaders()
 {
 	auto& dev = _mainDevice.getDevice();
-	_vertexShader = VulkanShader("triangle.vert", VK_SHADER_STAGE_VERTEX_BIT);
-	_fragmentShader = VulkanShader("triangle.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+	_vertexShader = VulkanShader("square.vert", VK_SHADER_STAGE_VERTEX_BIT);
+	_fragmentShader = VulkanShader("ray.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
 	_vertexShader.compile();
 	_fragmentShader.compile();
 	_vertexShader.create(dev);
@@ -615,7 +628,7 @@ void VulkanRenderer::_recreateEnv()
 	_initEnv();
 }
 
-void VulkanRenderer::_updateUniformDataForImg(uint32_t idx)
+void VulkanRenderer::_updateViewShaderInfo(uint32_t idx)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -625,29 +638,82 @@ void VulkanRenderer::_updateUniformDataForImg(uint32_t idx)
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 	auto deltaRot = window.getCurDeltaRot();
-	glm::vec2 delta = { deltaRot[0], deltaRot[1] };
+	glm::vec2 delta = { deltaRot[0], -deltaRot[1] };
 	delta /= (float)renderArea.extent.width;
 	delta *= 500.0f;
 	_curRot += delta;
 
 	auto model = glm::mat4(1.0f);
-	model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 4.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	view = glm::rotate(view, glm::radians(_curRot.x), glm::vec3(1.0f, 0.0f, 0.0f));
 	view = glm::rotate(view, glm::radians(_curRot.y), glm::vec3(0.0f, 0.0f, 1.0f));
-	
+	view = glm::rotate(view, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	view = glm::rotate(view, glm::radians(_curRot.x), glm::vec3(0.0f, 1.0f, 0.0f));
+
 	auto w = renderArea.extent.width;
 	auto h = renderArea.extent.height;
 	auto aspect = w / (float)h;
 	auto proj = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 10.0f);
 	proj[1][1] *= -1;
 
-	_shaderInfo.mvp = proj * view * model;
-	_shaderInfo.time = time;
-	_shaderInfo.resolution = {renderArea.extent.width, renderArea.extent.height };
+	_viewShaderInfo.mvp = proj * view * model;
+	_viewShaderInfo.time = time;
+	_viewShaderInfo.resolution = {renderArea.extent.width, renderArea.extent.height };
+	_viewShaderInfo.fov = 90.0f;
 
-	_uniformBuffs[idx].setData(&_shaderInfo, 0, 1);
+	_uniformBuffs[idx].setData(&_viewShaderInfo, 0, sizeof(_viewShaderInfo));
+}
+
+void VulkanRenderer::_updateMapShaderInfo(const VoxelMap& map, uint32_t idx)
+{
+	int32_t curOffset = 0;
+	for (int i = -1; i <= 1; ++i)
+		for (int j = -1; j <= 1; ++j)
+			for (int k = -1; k <= 1; ++k)
+			{
+				uint32_t id = (k + 1) * 9 + (j + 1) * 3 + (i + 1);
+				VoxelChunk* chunk = map.getChunk({ i,j,k });
+				if (chunk)
+				{
+					std::memcpy(_mapShaderInfo.chunkData + curOffset, chunk->pyramid.data.data(), chunk->pyramid.data.size());
+					_mapShaderInfo.chunkOffsets[id] = curOffset;
+					curOffset += chunk->pyramid.data.size();
+				}
+				else
+				{
+					_mapShaderInfo.chunkOffsets[id] = -1;
+				}
+			}
+
+	std::vector<int32_t> offs(27);
+	std::memcpy(offs.data(), _mapShaderInfo.chunkOffsets, 27 * sizeof(int32_t));
+
+	uint32_t offset1 = 0x40 * std::ceil(sizeof(ViewShaderInfo) / (float)0x40);
+	uint32_t offset2 = offset1 + 0x40 * std::ceil(sizeof(MapShaderInfo) / (float)0x40);
+	_uniformBuffs[idx].setData(&_mapShaderInfo, offset2, sizeof(_mapShaderInfo));
+}
+
+void VulkanRenderer::_updateLightingShaderInfo(const VoxelMap& map, uint32_t idx)
+{
+	auto lsbc = map.getLightsByChunks();
+	uint32_t curLight = 0;
+	const size_t colorSz = RGBA * sizeof(int32_t);
+	const size_t posSz = DIMENSIONS * sizeof(float);
+	for (auto& ls : lsbc)
+	{
+		for (auto& l : ls)
+		{
+			std::vector<uint32_t> color = { l.rgba[R], l.rgba[G], l.rgba[B] };
+			std::memcpy(_lightingShaderInfo.colors, color.data(), colorSz);
+			std::memcpy(_lightingShaderInfo.absCoords, l.position.data(), posSz);
+			curLight++;
+		}
+	}
+	_lightingShaderInfo.nLights = curLight;
+
+	uint32_t offset1 = 0x40 * std::ceil(sizeof(ViewShaderInfo) / (float)0x40);
+	_uniformBuffs[idx].setData(&_lightingShaderInfo, offset1, sizeof(_lightingShaderInfo));
 }
 
 VkFramebuffer& VulkanRenderer::_getCurrentFrameBuffer()
