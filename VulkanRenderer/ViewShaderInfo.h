@@ -7,4 +7,5 @@ struct ViewShaderInfo {
     glm::vec2 resolution;
     float time;
     float fov;
+    glm::vec3 pos;
 };

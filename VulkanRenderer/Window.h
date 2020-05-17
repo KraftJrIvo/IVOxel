@@ -21,11 +21,18 @@ public:
 
 	void handleMouseMove(int32_t x, int32_t y);
 	std::vector<float> getCurDeltaRot();
+	std::vector<float> getCurDeltaTrans();
 
 	void fullScreenSwitch();
 
 	std::vector<int32_t>				mousePos = {0,0};
 	bool								lmbDown = false;
+	bool								upPressed = false;
+	bool								downPressed = false;
+	bool								leftPressed = false;
+	bool								rightPressed = false;
+	bool								forwardPressed = false;
+	bool								backwardPressed = false;
 
 private:
 	void								_InitOSWindow();

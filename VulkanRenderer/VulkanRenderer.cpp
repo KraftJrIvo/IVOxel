@@ -106,7 +106,8 @@ void VulkanRenderer::init()
 
 		_initSync();
 
-		_curRot = { 0.0, -90.0f };
+		_curRot = { 0.0f, -90.0f };
+		_curTrans = { 0.5f, 0.5f, 0.5f };
 
 		_currentSwapchainImgID = -1;
 	}
@@ -136,7 +137,8 @@ void VulkanRenderer::run(const VoxelMap& map)
 
 	uint32_t curFrameID = 0;
 
-	_updateMapShaderInfo(map, curFrameID);
+	//_updateMapShaderInfo(map, 0);
+	//_updateMapShaderInfo(map, 1);
 
 	while (runOnce())
 	{
@@ -187,6 +189,7 @@ void VulkanRenderer::run(const VoxelMap& map)
 
 		_updateViewShaderInfo(curFrameID);
 		_updateLightingShaderInfo(map, curFrameID);
+		_updateMapShaderInfo(map, curFrameID);
 
 		std::vector<VkSemaphore> waitSemaphores = {_semImgAvailable[curFrameID]};
 		std::vector<VkSemaphore> signalSemaphores = {_semRenderDone[curFrameID]};
@@ -638,10 +641,10 @@ void VulkanRenderer::_updateViewShaderInfo(uint32_t idx)
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 	auto deltaRot = window.getCurDeltaRot();
-	glm::vec2 delta = { deltaRot[0], -deltaRot[1] };
-	delta /= (float)renderArea.extent.width;
-	delta *= 500.0f;
-	_curRot += delta;
+	glm::vec2 deltaR = { deltaRot[0], -deltaRot[1] };
+	deltaR /= (float)renderArea.extent.width;
+	deltaR *= 500.0f;
+	_curRot += deltaR;
 
 	auto model = glm::mat4(1.0f);
 	//model = glm::rotate(model, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -651,16 +654,22 @@ void VulkanRenderer::_updateViewShaderInfo(uint32_t idx)
 	view = glm::rotate(view, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	view = glm::rotate(view, glm::radians(_curRot.x), glm::vec3(0.0f, 1.0f, 0.0f));
 
+	auto deltaTrans = window.getCurDeltaTrans();
+	glm::vec3 deltaT = { deltaTrans[0], deltaTrans[1], deltaTrans[2] };
+	deltaT /= 100.0f;
+	_curTrans += deltaT;
+
 	auto w = renderArea.extent.width;
 	auto h = renderArea.extent.height;
-	auto aspect = w / (float)h;
-	auto proj = glm::perspective(glm::radians(45.0f), aspect, 0.1f, 10.0f);
+	auto aspect = 1.0f;// w / (float)h;
+	auto proj = glm::perspective(glm::radians(90.0f), aspect, 0.1f, 10.0f);
 	proj[1][1] *= -1;
 
-	_viewShaderInfo.mvp = proj * view * model;
+	_viewShaderInfo.mvp = proj * view;// proj* view* model;
 	_viewShaderInfo.time = time;
 	_viewShaderInfo.resolution = {renderArea.extent.width, renderArea.extent.height };
 	_viewShaderInfo.fov = 90.0f;
+	_viewShaderInfo.pos = _curTrans;
 
 	_uniformBuffs[idx].setData(&_viewShaderInfo, 0, sizeof(_viewShaderInfo));
 }
@@ -673,24 +682,24 @@ void VulkanRenderer::_updateMapShaderInfo(const VoxelMap& map, uint32_t idx)
 			for (int k = -1; k <= 1; ++k)
 			{
 				uint32_t id = (k + 1) * 9 + (j + 1) * 3 + (i + 1);
+				uint32_t vecId = id / 4;
+				uint32_t elemId = id % 4;
+				int32_t test = 100 * (k + 1) + 10 * (j + 1) + (i + 1);
 				VoxelChunk* chunk = map.getChunk({ i,j,k });
 				if (chunk)
 				{
 					std::memcpy(_mapShaderInfo.chunkData + curOffset, chunk->pyramid.data.data(), chunk->pyramid.data.size());
-					_mapShaderInfo.chunkOffsets[id] = curOffset;
+					_mapShaderInfo.chunkOffsets[vecId][elemId] = curOffset;
 					curOffset += chunk->pyramid.data.size();
 				}
 				else
 				{
-					_mapShaderInfo.chunkOffsets[id] = -1;
+					_mapShaderInfo.chunkOffsets[vecId][elemId] = -1;
 				}
 			}
 
-	std::vector<int32_t> offs(27);
-	std::memcpy(offs.data(), _mapShaderInfo.chunkOffsets, 27 * sizeof(int32_t));
-
 	uint32_t offset1 = 0x40 * std::ceil(sizeof(ViewShaderInfo) / (float)0x40);
-	uint32_t offset2 = offset1 + 0x40 * std::ceil(sizeof(MapShaderInfo) / (float)0x40);
+	uint32_t offset2 = offset1 + 0x40 * std::ceil(sizeof(LightingShaderInfo) / (float)0x40);
 	_uniformBuffs[idx].setData(&_mapShaderInfo, offset2, sizeof(_mapShaderInfo));
 }
 

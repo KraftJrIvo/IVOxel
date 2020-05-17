@@ -73,6 +73,7 @@ private:
 	MapShaderInfo _mapShaderInfo;
 
 	glm::vec2 _curRot;
+	glm::vec3 _curTrans;
 
 	void _initSurface();
 	void _initSwapchain();

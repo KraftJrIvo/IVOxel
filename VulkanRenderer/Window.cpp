@@ -96,9 +96,57 @@ LRESULT CALLBACK WindowsEventHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 	case WM_LBUTTONUP:
 		window->lmbDown = false;
 		break;
+	case WM_KEYDOWN:
+		switch (wParam)
+		{
+		case 69:
+			window->upPressed = true;
+			break;
+		case 81:
+			window->downPressed = true;
+			break;
+		case 65:
+			window->leftPressed = true;
+			break;
+		case 68:
+			window->rightPressed = true;
+			break;
+		case 83:
+			window->backwardPressed = true;
+			break;
+		case 87:
+			window->forwardPressed = true;
+			break;
+		default:
+			break;
+		}
+		break;
 	case WM_KEYUP:
 		if (wParam == VK_F11)
 			window->fullScreenSwitch();
+		switch (wParam)
+		{
+		case 69:
+			window->upPressed = false;
+			break;
+		case 81:
+			window->downPressed = false;
+			break;
+		case 65:
+			window->leftPressed = false;
+			break;
+		case 68:
+			window->rightPressed = false;
+			break;
+		case 83:
+			window->backwardPressed = false;
+			break;
+		case 87:
+			window->forwardPressed = false;
+			break;
+		default:
+			break;
+		}
 		break;
 	default:
 		break;
@@ -236,6 +284,20 @@ std::vector<float> Window::getCurDeltaRot()
 	auto temp = _deltaRot;
 	_deltaRot = {0,0};
 	return temp;
+}
+
+std::vector<float> Window::getCurDeltaTrans()
+{
+	std::vector<float> delta = { 0,0,0 };
+
+	delta[0] += leftPressed ? -1.0f : 0.0f;
+	delta[0] += rightPressed ? 1.0f : 0.0f;
+	delta[1] += downPressed ? -1.0f : 0.0f;
+	delta[1] += upPressed ? 1.0f : 0.0f;
+	delta[2] += backwardPressed ? -1.0f : 0.0f;
+	delta[2] += forwardPressed ? 1.0f : 0.0f;
+
+	return delta;
 }
 
 #endif
