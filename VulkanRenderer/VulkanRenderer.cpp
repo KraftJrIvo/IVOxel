@@ -656,6 +656,10 @@ void VulkanRenderer::_updateViewShaderInfo(uint32_t idx)
 
 	auto deltaTrans = window.getCurDeltaTrans();
 	glm::vec3 deltaT = { deltaTrans[0], deltaTrans[1], deltaTrans[2] };
+	glm::mat4 rotmat(1.0);
+	rotmat = glm::rotate(rotmat, glm::radians(-_curRot.y - 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	rotmat = glm::rotate(rotmat, glm::radians(-_curRot.x), glm::vec3(1.0f, 0.0f, 0.0f));
+	deltaT = glm::mat3(rotmat) * deltaT;
 	deltaT /= 100.0f;
 	_curTrans += deltaT;
 
