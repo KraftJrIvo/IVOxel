@@ -692,13 +692,13 @@ void VulkanRenderer::_updateMapShaderInfo(const VoxelMap& map, uint32_t idx)
 				VoxelChunk* chunk = map.getChunk({ i,j,k });
 				if (chunk)
 				{
-					std::memcpy(_mapShaderInfo.chunkData + curOffset, chunk->pyramid.data.data(), chunk->pyramid.data.size());
+					std::memcpy((char*)_mapShaderInfo.chunkData + curOffset, chunk->pyramid.data.data(), chunk->pyramid.data.size());
 					_mapShaderInfo.chunkOffsets[vecId][elemId] = curOffset;
 					curOffset += chunk->pyramid.data.size();
 				}
 				else
 				{
-					_mapShaderInfo.chunkOffsets[vecId][elemId] = -1;
+					_mapShaderInfo.chunkOffsets[vecId][elemId] = 1;
 				}
 			}
 

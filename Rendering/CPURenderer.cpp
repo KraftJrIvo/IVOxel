@@ -176,7 +176,7 @@ std::vector<uint8_t> CPURenderer::_rayTraceChunk(const VoxelMap& map, const Voxe
 
 	while (keepTracing)
 	{
-			vox = getVoxelData(map, chunk.pyramid, curVoxPos);
+			vox = getVoxelData(map, chunk.pyramid.data, curVoxPos);
 			stepsToTake = sideSteps / std::pow(chunk.pyramid.base, vox.power);
 
 			if (vox.type != -1)
@@ -285,7 +285,7 @@ std::vector<uint8_t> CPURenderer::_rayTraceVoxel(const VoxelMap& map, const Voxe
 	return color;
 }
 
-Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, const std::vector<uint32_t>& pos) const
+Voxel CPURenderer::getVoxelData(const VoxelMap& map, const std::vector<uchar>& pyramData, const std::vector<uint32_t>& pos) const
 {
 	Voxel vox;
 
@@ -293,11 +293,13 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 	uint32_t curPwr = 0;
 	uint32_t curLayerLen = 1;
 	std::vector<uint32_t> leavesOnLayers;
-	uint32_t nOffsetBytes = *((uint32_t*)pyram.data.data());
-	uint8_t voxSizeInBytes = pyram.data[4];
-	uint8_t* ptr = (uint8_t*)pyram.data.data() + sizeof(uint32_t) + sizeof(uint8_t);
+	uint32_t nOffsetBytes = *((uint32_t*)pyramData.data());
+	uint8_t base = pyramData[4];
+	uint8_t power = pyramData[5];
+	uint8_t voxSizeInBytes = pyramData[6];
+	uint8_t* ptr = (uint8_t*)pyramData.data() + sizeof(uint32_t) + 3 * sizeof(uint8_t);
 
-	for (uint8_t i = 0; i < pyram.power + 1; ++i)
+	for (uint8_t i = 0; i < power + 1; ++i)
 	{
 		leavesOnLayers.push_back(*((uint32_t*)ptr));
 		ptr += sizeof(uint32_t);
@@ -305,11 +307,11 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 
 	uint32_t curPwrLayerPos = 0;
 
-	uint32_t totalWidth = std::pow(pyram.base, pyram.power);
-	uint32_t zLayerLen = std::pow(pyram.base, DIMENSIONS - 1);
-	uint32_t yRowLen = std::pow(pyram.base, DIMENSIONS - 2);
+	uint32_t totalWidth = std::pow(base, power);
+	uint32_t zLayerLen = std::pow(base, DIMENSIONS - 1);
+	uint32_t yRowLen = std::pow(base, DIMENSIONS - 2);
 
-	uint8_t bytesForThisLayer = VoxelPyramid::getPyramLayerBytesCount(pyram.base, curPwr);
+	uint8_t bytesForThisLayer = VoxelPyramid::getPyramLayerBytesCount(base, curPwr);
 
 	bool offsetIsFinal = false;
 	while (!offsetIsFinal)
@@ -334,19 +336,19 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const VoxelPyramid& pyram, 
 
 		ptr += bytesForThisLayer * uint32_t(curLayerLen - curPwrLayerPos); // skipping to the end of current layer
 
-		uint32_t curSide = totalWidth / std::pow(pyram.base, curPwr);
-		uint32_t sidePart = curSide / pyram.base;
+		uint32_t curSide = totalWidth / std::pow(base, curPwr);
+		uint32_t sidePart = curSide / base;
 		curPwrLayerPos = ((pos[Z] % curSide) / sidePart) * zLayerLen + ((pos[Y] % curSide) / sidePart) * yRowLen + ((pos[X] % curSide) / sidePart);
 
 		curLayerLen -= leavesOnLayers[curPwr];
-		curLayerLen *= std::pow(pyram.base, DIMENSIONS);
+		curLayerLen *= std::pow(base, DIMENSIONS);
 
 		curPwr++;
-		bytesForThisLayer = VoxelPyramid::getPyramLayerBytesCount(pyram.base, curPwr);
-		ptr += bytesForThisLayer * uint32_t(val * std::pow(pyram.base, DIMENSIONS) + curPwrLayerPos); // skipping to the value of interest
+		bytesForThisLayer = VoxelPyramid::getPyramLayerBytesCount(base, curPwr);
+		ptr += bytesForThisLayer * uint32_t(val * std::pow(base, DIMENSIONS) + curPwrLayerPos); // skipping to the value of interest
 	}
 
-	ptr = (uint8_t*)pyram.data.data() + sizeof(uint32_t) + sizeof(uint8_t) +
+	ptr = (uint8_t*)pyramData.data() + sizeof(uint32_t) + 3 * sizeof(uint8_t) +
 		leavesOnLayers.size() * sizeof(uint32_t) + nOffsetBytes;
 
 	ptr += voxSizeInBytes * nLeavesBeforeCurrent;

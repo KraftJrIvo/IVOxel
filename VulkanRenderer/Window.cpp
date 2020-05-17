@@ -99,10 +99,10 @@ LRESULT CALLBACK WindowsEventHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 	case WM_KEYDOWN:
 		switch (wParam)
 		{
-		case 69:
+		case 81:
 			window->upPressed = true;
 			break;
-		case 81:
+		case 69:
 			window->downPressed = true;
 			break;
 		case 65:
@@ -126,10 +126,10 @@ LRESULT CALLBACK WindowsEventHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 			window->fullScreenSwitch();
 		switch (wParam)
 		{
-		case 69:
+		case 81:
 			window->upPressed = false;
 			break;
-		case 81:
+		case 69:
 			window->downPressed = false;
 			break;
 		case 65:

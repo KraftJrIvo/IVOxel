@@ -4,5 +4,5 @@
 
 struct MapShaderInfo {
     glm::vec4 chunkOffsets[8];
-    char chunkData[sizeof(int32_t) * 1024];
+    glm::uvec4 chunkData[4096 / 16];
 };
