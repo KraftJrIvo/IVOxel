@@ -15,7 +15,7 @@ layout(set = 0, binding = 0) uniform ViewShaderInfo {
 
 layout(set = 1, binding = 0) uniform LightingShaderInfo {
     int nLights;
-    float absCoords[16];
+    float absCoords[3 * 16];
     int colors[4 * 16];
 } light;
 
@@ -24,13 +24,27 @@ layout(set = 2, binding = 0) uniform MapShaderInfo {
     uvec4 chunks[4096 / 16];
 } map;
 
+uint get_uint(uint start_byte_ix)
+{
+  uint uint_in_vec = (start_byte_ix / 4) % 4;
+  uint vec_ix = start_byte_ix / 16;
+
+  return map.chunks[vec_ix][uint_in_vec];
+}
+
+uint get_word(uint byte_ix)
+{
+  uint byte_in_uint = (byte_ix + 1) % 4;
+  uint bytes = get_uint(byte_ix);
+
+  return (bytes >> ((4 - byte_in_uint) * 8)) & 0xFFFF; //Little-endian. For Big-endian, remove the "4 -" part.
+}
+
 uint get_byte(uint byte_ix)
 {
   uint byte_in_uint = byte_ix % 4;
-  uint uint_in_vec = (byte_ix / 4) % 4;
-  uint vec_ix = byte_ix / 16;
+  uint bytes = get_uint(byte_ix);
 
-  uint bytes = map.chunks[vec_ix][uint_in_vec];
   return (bytes >> ((4 - byte_in_uint) * 8)) & 0xFF; //Little-endian. For Big-endian, remove the "4 -" part.
 }
 
@@ -116,157 +130,236 @@ int getChunkOffset(vec3 pos)
     return -1;
 }
 
-vec2 getVoxelType(int chunkOffset, vec3 pos)
+const uint MAX_VOX_POW = 5;
+const uint DIM = 3;
+
+#define BYTES_FOR(base, power) uint(ceil(log2(pow(pow(base, power), DIM)) / 8.0f)) < 3 ? uint(ceil(log2(pow(pow(base, power), DIM)) / 8.0f)) : 4
+
+const uint bytesForLayer[4][MAX_VOX_POW + 1] = 
+{
+    {0, 0, 0, 0, 0, 0},
+    {1, 1, 1, 1, 1, 1},
+    {BYTES_FOR(2, 0), BYTES_FOR(2, 1), BYTES_FOR(2, 2), BYTES_FOR(2, 3), BYTES_FOR(2, 4), BYTES_FOR(2, 5)},
+    {BYTES_FOR(3, 0), BYTES_FOR(3, 1), BYTES_FOR(3, 2), BYTES_FOR(3, 3), BYTES_FOR(3, 4), BYTES_FOR(3, 5)}
+};
+
+vec4 getVoxelType(int chunkOffset, vec3 pos)
 {
     uint nLeavesBeforeCurrent = 0;
     uint curPwr = 0;
     uint curLayerLen = 1;
-    uint nOffsetBytes = map.chunks[0].x;
-    uint voxSizeInBytes = get_byte(4);
+    uint nOffsetBytes = get_uint(0);
+    uint base = get_byte(4);
+    uint power = get_byte(5);
+    uint voxSizeInBytes = get_byte(6);
     uint ptr = 5;
 
-
+    uint leavesOnLayers[MAX_VOX_POW + 1];
+    for (uint i = 0; i < MAX_VOX_POW + 1; ++i)
+    {
+        leavesOnLayers[i] = get_uint(ptr);
+        ptr += 4;
+    }
     
-//	Voxel vox;
-//
-//	uint32_t nLeavesBeforeCurrent = 0;
-//	uint32_t curPwr = 0;
-//	uint32_t curLayerLen = 1;
-//	std::vector<uint32_t> leavesOnLayers;
-//	uint32_t nOffsetBytes = *((uint32_t*)pyram.data.data());
-//	uint8_t voxSizeInBytes = pyram.data[4];
-//	uint8_t* ptr = (uint8_t*)pyram.data.data() + sizeof(uint32_t) + sizeof(uint8_t);
-//
-//	for (uint8_t i = 0; i < pyram.power + 1; ++i)
-//	{
-//		leavesOnLayers.push_back(*((uint32_t*)ptr));
-//		ptr += sizeof(uint32_t);
-//	}
-//
-//	uint32_t curPwrLayerPos = 0;
-//
-//	uint32_t totalWidth = std::pow(pyram.base, pyram.power);
-//	uint32_t zLayerLen = std::pow(pyram.base, DIMENSIONS - 1);
-//	uint32_t yRowLen = std::pow(pyram.base, DIMENSIONS - 2);
-//
-//	uint8_t bytesForThisLayer = VoxelPyramid::getPyramLayerBytesCount(pyram.base, curPwr);
-//
-//	bool offsetIsFinal = false;
-//	while (!offsetIsFinal)
-//	{
-//		int8_t* offset = (int8_t*)ptr;
-//		int32_t val;
-//
-//		if (bytesForThisLayer == 1)
-//			val = *(offset);
-//		else if (bytesForThisLayer == 2)
-//			val = *((int16_t*)offset);
-//		else
-//			val = *((int32_t*)offset);
-//
-//		bool offsetIsFinal = val < 0;
-//		
-//		val = offsetIsFinal ? (-val - 1) : val;
-//		nLeavesBeforeCurrent += (offsetIsFinal ? val : leavesOnLayers[curPwr]);
-//
-//		if (offsetIsFinal)
-//			break;
-//
-//		ptr += bytesForThisLayer * uint32_t(curLayerLen - curPwrLayerPos); // skipping to the end of current layer
-//
-//		uint32_t curSide = totalWidth / std::pow(pyram.base, curPwr);
-//		uint32_t sidePart = curSide / pyram.base;
-//		curPwrLayerPos = ((pos[Z] % curSide) / sidePart) * zLayerLen + ((pos[Y] % curSide) / sidePart) * yRowLen + ((pos[X] % curSide) / sidePart);
-//
-//		curLayerLen -= leavesOnLayers[curPwr];
-//		curLayerLen *= std::pow(pyram.base, DIMENSIONS);
-//
-//		curPwr++;
-//		bytesForThisLayer = VoxelPyramid::getPyramLayerBytesCount(pyram.base, curPwr);
-//		ptr += bytesForThisLayer * uint32_t(val * std::pow(pyram.base, DIMENSIONS) + curPwrLayerPos); // skipping to the value of interest
-//	}
-//
-//	ptr = (uint8_t*)pyram.data.data() + sizeof(uint32_t) + sizeof(uint8_t) +
-//		leavesOnLayers.size() * sizeof(uint32_t) + nOffsetBytes;
-//
-//	ptr += voxSizeInBytes * nLeavesBeforeCurrent;
-//
-//	auto voxData = map.getType().unformatVoxelData(ptr);
-//	vox.type = std::get<0>(voxData);
-//	vox.color = std::get<1>(voxData);
-//	vox.neighs = std::get<2>(voxData);
-//	vox.power = curPwr;
-//
-//	return vox;
-    return vec2(-1, -1);
+    uint curPwrLayerPos = 0;
+
+    uint totalWidth = uint(pow(base, power));
+    uint zLayerLen = uint(pow(base, DIM - 1));
+	uint yRowLen = uint(pow(base, DIM - 2));
+
+    uint bytesForThisLayer = bytesForLayer[base][curPwr];
+
+    bool offsetIsFinal = false;
+    while (!offsetIsFinal)
+    {
+        int offset = int(get_byte(ptr));
+        int val;
+        if (bytesForThisLayer == 1)
+			val = int(get_byte(ptr));
+		else if (bytesForThisLayer == 2)
+			val = int(get_word(ptr));
+		else
+			val = int(get_uint(ptr));
+
+        offsetIsFinal = val < 0;
+
+        val = offsetIsFinal ? (-val - 1) : val;
+        nLeavesBeforeCurrent += (offsetIsFinal ? val : leavesOnLayers[curPwr]);
+
+        if (offsetIsFinal)
+            break;
+
+        ptr += bytesForThisLayer * uint(curLayerLen - curPwrLayerPos);
+
+        uint curSide = totalWidth / uint(pow(base, curPwr));
+        uint sidePart = curSide / base;
+        curPwrLayerPos = ((uint(pos[2]) % curSide) / sidePart) * zLayerLen + ((uint(pos[1]) % curSide) / sidePart) * yRowLen + ((uint(pos[0]) % curSide) / sidePart);
+
+        uint sz = uint(pow(base, DIM));
+        curLayerLen -= leavesOnLayers[curPwr];
+        curLayerLen *= sz;
+
+        curPwr++;
+        bytesForThisLayer = bytesForLayer[base][curPwr];
+        ptr += bytesForThisLayer * uint(val * sz + curPwrLayerPos);
+    }
+
+    ptr = 4 + 3 * 8 + (power+1) + 4 + nOffsetBytes;
+    ptr += voxSizeInBytes * nLeavesBeforeCurrent;
+
+    uint type = get_byte(ptr++) + 10 * power;
+    uint color = get_byte(ptr);
+    uint r = (32 * ((color & 0xE0) >> 5));
+    uint g = (32 * ((color & 0x1C) >> 2));
+    uint b = (64 * (color & 0x03));
+
+    return vec4(type, r, g, b);
 }
 
-vec3 rayTraceVoxel(int voxType, vec3 rayStart, vec3 rayDir, vec3 absPos, float voxSide, inout bool finish)
+float raytrace_cube(vec3 orig, vec3 dir, vec3 hit, vec3 normal)
 {
+	vec3 g = orig - vec3(0.5f, 0.5f, 0.5f);
+	vec3 gabs = vec3(abs(g[0]), abs(g[1]), abs(g[2]));
+	float maxG = max(gabs[0], max(gabs[1], gabs[2]));
+	for (uint i = 0; i < DIM; ++i)
+		if (gabs[i] == maxG)
+		{
+			normal[i] = g[i] / 0.5f;
+			normal[(i + 1) % DIM] = 0;
+			normal[(i + 2) % DIM] = 0;
+			break;
+		}
+	hit = orig;
 
-    return vec3(0);
+	return 0;
 }
 
-//	Eigen::Vector3f orig = { ray.start[X], ray.start[Y], ray.start[Z] };
-//	Eigen::Vector3f dir = { ray.direction[X], ray.direction[Y], ray.direction[Z] };
-//	dir.normalize();
-//
-//	Eigen::Vector3f hit;
-//	Eigen::Vector3f normal;
-//
-//	if (vox.type == 0)
-//		ray.length = Cube::rayTrace(orig, dir, hit, normal);
-//	else if (vox.type == 1)
-//		ray.length = Sphere::rayTrace(orig, dir, hit, normal);
-//
-//	normal.normalize();
-//
-//	float voxDiv = (std::pow(chunk.pyramid.base, chunk.pyramid.power));
-//
-//	std::vector<float> dists;
-//	std::vector<float> colorCoeffs = { 0,0,0 };
-//	auto color = vox.color;
-//
-//	if (!ray.lightRay && ray.length >= 0)
-//	{
-//		for (auto& lightsInChunk : map.getLightsByChunks())
-//		{
-//			for (auto& light : lightsInChunk)
-//			{
-//				Eigen::Vector3f absRayStart = { absPose[X] + voxSide * hit[X]/voxDiv, absPose[Y] + voxSide * hit[Y]/voxDiv, absPose[Z] + voxSide * hit[Z]/voxDiv };
-//				Eigen::Vector3f dirToLight = { (light.position[X] - absRayStart[X]), (light.position[Y] - absRayStart[Y]), (light.position[Z] - absRayStart[Z]) };
-//				float lightDist = sqrt(dirToLight[X] * dirToLight[X] + dirToLight[Y] * dirToLight[Y] + dirToLight[Z] * dirToLight[Z]);
-//				dirToLight.normalize();
-//
-//				Ray lightRay(1, { light.position[X], light.position[Y], light.position[Z] }, -dirToLight, 1.0f, true);
-//				
-//				_rayTraceMap(map, lightRay);
-//
-//				float lightStr = 0;
-//				if (lightRay.length + 0.001f >= lightDist)
-//				{
-//					float dotVal = dirToLight.dot(normal);
-//					lightStr = (dotVal < 0) ? 0 : dotVal;
-//				}
-//
-//				for (uint8_t i = 0; i < RGB; ++i)
-//					colorCoeffs[i] += (light.rgba[i] / 255.0f) * lightStr;
-//			}
-//		}
-//
-//		for (uint8_t i = 0; i < RGB; ++i)
-//		{
-//			colorCoeffs[i] = (colorCoeffs[i] > 1.0f) ? 1.0f : (colorCoeffs[i] < 0.0f) ? 0 : colorCoeffs[i];
-//			color[i] = uint8_t(color[i] * colorCoeffs[i]);
-//		}
-//	}
-//
-//	// dbg normal
-//	//return { uint8_t(128.0f + normal[X] * 127.0f), uint8_t(128.0f + normal[Y] * 127.0f), uint8_t(128.0f + normal[Z] * 127.0f) };
-//
-//	// dbg normal + light
-//	//return { uint8_t((128.0f + normal[X] * 127.0f) * colorCoeffs[X]), uint8_t((128.0f + normal[Y] * 127.0f) * colorCoeffs[Y]), uint8_t((128.0f + normal[Z] * 127.0f) * colorCoeffs[Z]) };
-//
+
+bool solveQuadratic(float a, float b, float c, inout float x0, inout float x1)
+{
+	float discr = b * b - 4 * a * c;
+
+	if (discr < 0) 
+        return false;
+
+	else if (discr == 0) 
+        x0 = x1 = -0.5 * b / a;
+	else 
+    {
+		float q = (b > 0) ?
+			-0.5 * (b + sqrt(discr)) :
+			-0.5 * (b - sqrt(discr));
+		x0 = q / a;
+		x1 = c / q;
+	}
+
+	if (x0 > x1) 
+    {
+        float temp = x0;
+        x0 = x1;
+        x1 = temp;
+    }
+
+	return true;
+}
+
+float getIntersectionDist(vec3 orig, vec3 dir)
+{
+	float t0, t1; // solutions for t if the ray intersects 
+
+	vec3 center = { 0.5, 0.5, 0.5 };
+	float radius2 = 0.49 * 0.49;
+
+	vec3 L = orig - center;
+	float a = dot(dir, dir);
+	float b = 2 * dot(dir, L);
+	float c = dot(L, L) - radius2;
+
+	if (!solveQuadratic(a, b, c, t0, t1)) 
+        return -1;
+
+	if (t0 > t1) 
+    {
+        float temp = t0;
+        t0 = t1;
+        t1 = t0;
+    }
+
+	if (t0 < 0) 
+    {
+		t0 = t1; // if t0 is negative, let's use t1 instead 
+		if (t0 < 0) 
+            return -1; // both t0 and t1 are negative 
+	}
+
+	return t0;
+}
+
+float raytrace_sphere(vec3 orig, vec3 dir, inout vec3 hit, inout vec3 normal)
+{
+    float len = getIntersectionDist(orig, dir);
+	hit = orig + dir * len;
+	vec3 center = { 0.5f, 0.5f, 0.5f };
+	normal = hit - center;
+
+	return len;
+}
+
+vec3 rayTraceVoxel(vec4 voxType, vec3 rayStart, vec3 rayDir, vec3 absPos, float chunkSide, float voxSide, inout float len, inout bool finish)
+{
+    vec3 orig = rayStart;
+    vec3 dir = rayDir;
+    dir = normalize(dir);
+
+    vec3 hit;
+    vec3 normal;
+
+    uint type = uint(voxType[0]) % 10;
+    if (type == 0)
+        len = raytrace_cube(orig, dir, hit, normal);
+    else if (type == 1)
+        len = raytrace_sphere(orig, dir, hit, normal);
+
+    normal = normalize(normal);
+
+    vec3 voxColor = {voxType[1] / 255.0, voxType[2] / 255.0, voxType[3] / 255.0};
+    vec3 colorCoeffs = {0,0,0};
+
+    vec3 color = voxColor;
+
+    if (len >= 0)
+    {
+        for (uint i = 0; i < light.nLights; ++i)
+        {
+            vec3 absRayStart = {absPos[0] + voxSide * hit[0]/chunkSide, absPos[1] + voxSide * hit[1]/chunkSide, absPos[2] + voxSide * hit[2]/chunkSide };
+            vec3 dirToLight = {(light.absCoords[3 * i] - absRayStart[0]), (light.absCoords[3 * i + 1] - absRayStart[1]), (light.absCoords[3 * i + 2] - absRayStart[2])};
+            float lightDist = length(dirToLight);
+            dirToLight = normalize(dirToLight);
+
+            // trace
+            len = lightDist;
+            // trace
+
+            float lightStr = 0;
+            if (len + 0.001 >= lightDist)
+			{
+				float dotVal = dot(dirToLight, normal);
+				lightStr = (dotVal < 0) ? 0 : dotVal;
+			}
+
+            for (uint j = 0; j < 3; ++j)
+				colorCoeffs[j] += (light.colors[4 * i + j] / 255.0) * lightStr;
+        }
+
+        for (uint i = 0; i < 3; ++i)
+		{
+			colorCoeffs[i] = (colorCoeffs[i] > 1.0) ? 1.0 : (colorCoeffs[i] < 0.0) ? 0 : colorCoeffs[i];
+			color[i] = color[i] * colorCoeffs[i];
+		}
+    }
+
+    return color;
+}
 
 vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, vec3 curChunkPos, inout int bounces, inout float len)
 {
@@ -290,8 +383,9 @@ vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, vec3 curChunkPos
 
     while (keepTracing)
     {
-        vec2 voxType = getVoxelType(chunkOffset, curVoxPos);
-        stepsToTake = uint(sideSteps / pow(base, voxType.y));
+        vec4 voxType = getVoxelType(chunkOffset, curVoxPos);
+        uint voxPow = uint(voxType[0])/10;
+        stepsToTake = uint(sideSteps / pow(base, voxType[0]/10));
 
         if (voxType.x != -1)
         {
@@ -300,7 +394,7 @@ vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, vec3 curChunkPos
             vec3 absPos = curChunkPos + (stepsToTake * curVoxPos/stepsToTake)/sideSteps;
             
             bool finish = false;
-            vec3 color = rayTraceVoxel(int(voxType.x), rayStart, rayDir, absPos, float(stepsToTake), finish);
+            vec3 color = rayTraceVoxel(voxType, rayStart, rayDir, absPos, sideSteps, float(stepsToTake), len, finish);
 
             if (finish)
             {
