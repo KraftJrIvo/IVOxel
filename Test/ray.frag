@@ -37,7 +37,7 @@ uint get_word(uint byte_ix)
   uint byte_in_uint = (byte_ix + 1) % 4;
   uint bytes = get_uint(byte_ix);
 
-  return (bytes >> ((4 - byte_in_uint) * 8)) & 0xFFFF; //Little-endian. For Big-endian, remove the "4 -" part.
+  return (bytes >> ((byte_in_uint) * 8)) & 0xFFFF; //Little-endian. For Big-endian, remove the "4 -" part.
 }
 
 uint get_byte(uint byte_ix)
@@ -45,7 +45,17 @@ uint get_byte(uint byte_ix)
   uint byte_in_uint = byte_ix % 4;
   uint bytes = get_uint(byte_ix);
 
-  return (bytes >> ((4 - byte_in_uint) * 8)) & 0xFF; //Little-endian. For Big-endian, remove the "4 -" part.
+  return (bytes >> ((byte_in_uint) * 8)) & 0xFF; //Little-endian. For Big-endian, remove the "4 -" part.
+}
+
+uint get_dword(uint start_byte_ix)
+{
+  uint byte1 = get_byte(start_byte_ix);
+  uint byte2 = get_byte(start_byte_ix + 1);
+  uint byte3 = get_byte(start_byte_ix + 2);
+  uint byte4 = get_byte(start_byte_ix + 3);
+
+  return (byte4 << 8 * 3) + (byte3 << 8 * 2) + (byte2 << 8) + byte1;
 }
 
 float calculateDist(vec3 start, vec3 end, float div)
@@ -132,89 +142,6 @@ int getChunkOffset(vec3 pos)
 
 const uint MAX_VOX_POW = 5;
 const uint DIM = 3;
-
-#define BYTES_FOR(base, power) uint(ceil(log2(pow(pow(base, power), DIM)) / 8.0f)) < 3 ? uint(ceil(log2(pow(pow(base, power), DIM)) / 8.0f)) : 4
-
-const uint bytesForLayer[4][MAX_VOX_POW + 1] = 
-{
-    {0, 0, 0, 0, 0, 0},
-    {1, 1, 1, 1, 1, 1},
-    {BYTES_FOR(2, 0), BYTES_FOR(2, 1), BYTES_FOR(2, 2), BYTES_FOR(2, 3), BYTES_FOR(2, 4), BYTES_FOR(2, 5)},
-    {BYTES_FOR(3, 0), BYTES_FOR(3, 1), BYTES_FOR(3, 2), BYTES_FOR(3, 3), BYTES_FOR(3, 4), BYTES_FOR(3, 5)}
-};
-
-vec4 getVoxelType(int chunkOffset, vec3 pos)
-{
-    uint nLeavesBeforeCurrent = 0;
-    uint curPwr = 0;
-    uint curLayerLen = 1;
-    uint nOffsetBytes = get_uint(0);
-    uint base = get_byte(4);
-    uint power = get_byte(5);
-    uint voxSizeInBytes = get_byte(6);
-    uint ptr = 5;
-
-    uint leavesOnLayers[MAX_VOX_POW + 1];
-    for (uint i = 0; i < MAX_VOX_POW + 1; ++i)
-    {
-        leavesOnLayers[i] = get_uint(ptr);
-        ptr += 4;
-    }
-    
-    uint curPwrLayerPos = 0;
-
-    uint totalWidth = uint(pow(base, power));
-    uint zLayerLen = uint(pow(base, DIM - 1));
-	uint yRowLen = uint(pow(base, DIM - 2));
-
-    uint bytesForThisLayer = bytesForLayer[base][curPwr];
-
-    bool offsetIsFinal = false;
-    while (!offsetIsFinal)
-    {
-        int offset = int(get_byte(ptr));
-        int val;
-        if (bytesForThisLayer == 1)
-			val = int(get_byte(ptr));
-		else if (bytesForThisLayer == 2)
-			val = int(get_word(ptr));
-		else
-			val = int(get_uint(ptr));
-
-        offsetIsFinal = val < 0;
-
-        val = offsetIsFinal ? (-val - 1) : val;
-        nLeavesBeforeCurrent += (offsetIsFinal ? val : leavesOnLayers[curPwr]);
-
-        if (offsetIsFinal)
-            break;
-
-        ptr += bytesForThisLayer * uint(curLayerLen - curPwrLayerPos);
-
-        uint curSide = totalWidth / uint(pow(base, curPwr));
-        uint sidePart = curSide / base;
-        curPwrLayerPos = ((uint(pos[2]) % curSide) / sidePart) * zLayerLen + ((uint(pos[1]) % curSide) / sidePart) * yRowLen + ((uint(pos[0]) % curSide) / sidePart);
-
-        uint sz = uint(pow(base, DIM));
-        curLayerLen -= leavesOnLayers[curPwr];
-        curLayerLen *= sz;
-
-        curPwr++;
-        bytesForThisLayer = bytesForLayer[base][curPwr];
-        ptr += bytesForThisLayer * uint(val * sz + curPwrLayerPos);
-    }
-
-    ptr = 4 + 3 * 8 + (power+1) + 4 + nOffsetBytes;
-    ptr += voxSizeInBytes * nLeavesBeforeCurrent;
-
-    uint type = get_byte(ptr++) + 10 * power;
-    uint color = get_byte(ptr);
-    uint r = (32 * ((color & 0xE0) >> 5));
-    uint g = (32 * ((color & 0x1C) >> 2));
-    uint b = (64 * (color & 0x03));
-
-    return vec4(type, r, g, b);
-}
 
 float raytrace_cube(vec3 orig, vec3 dir, vec3 hit, vec3 normal)
 {
@@ -361,6 +288,94 @@ vec3 rayTraceVoxel(vec4 voxType, vec3 rayStart, vec3 rayDir, vec3 absPos, float 
     return color;
 }
 
+#define BYTES_FOR(base, power) ceil(log2(pow(pow(base, power), DIM)) / 8.0f) < 3 ? uint(ceil(log2(pow(pow(base, power), DIM)) / 8.0f)) : 4
+
+const uint bytesForLayer[4][MAX_VOX_POW + 1] = 
+{
+    {0, 0, 0, 0, 0, 0},
+    {1, 1, 1, 1, 1, 1},
+    {1, 1, 1, 2, 2, 2},
+    {1, 1, 2, 2, 4, 4}
+};
+
+vec4 getVoxelType(int chunkOffset, vec3 pos)
+{
+    uint ptr = chunkOffset;
+    uint nLeavesBeforeCurrent = 0;
+    uint curPwr = 0;
+    uint curLayerLen = 1;
+    uint nOffsetBytes = get_dword(ptr);
+    uint base = get_byte(ptr + 4);
+    uint power = get_byte(ptr + 5);
+    uint voxSizeInBytes = get_byte(ptr + 6);
+    ptr += 7;
+
+    uint leavesOnLayers[MAX_VOX_POW + 1];
+    for (uint i = 0; i < power + 1; ++i)
+    {
+        leavesOnLayers[i] = get_dword(ptr);
+        ptr += 4;
+    }
+
+    //return vec4(1.0, leavesOnLayers[0], power > 0 ? leavesOnLayers[1] : 0, power > 1 ? leavesOnLayers[2] : 0);
+    
+    uint curPwrLayerPos = 0;
+
+    uint totalWidth = uint(pow(base, power));
+    uint zLayerLen = uint(pow(base, DIM - 1));
+	uint yRowLen = uint(pow(base, DIM - 2));
+
+    uint bytesForThisLayer = bytesForLayer[base][curPwr];
+
+    //return vec4(2.0, base,power, base )/3.0;
+    //return vec4(2.0, nOffsetBytes,nOffsetBytes, nOffsetBytes )/10.0;
+
+    bool offsetIsFinal = false;
+    while (!offsetIsFinal)
+    {
+        int val;
+        if (bytesForThisLayer == 1)
+			val = int(get_byte(ptr));
+		else if (bytesForThisLayer == 2)
+			val = int(get_word(ptr));
+		else
+			val = int(get_dword(ptr));
+
+        offsetIsFinal = val < 0;
+
+        val = offsetIsFinal ? (-val - 1) : val;
+        nLeavesBeforeCurrent += (offsetIsFinal ? val : leavesOnLayers[curPwr]);
+
+        if (offsetIsFinal)
+            break;
+
+        ptr += bytesForThisLayer * uint(curLayerLen - curPwrLayerPos);
+
+        uint curSide = totalWidth / uint(pow(base, curPwr));
+        uint sidePart = curSide / base;
+        curPwrLayerPos = ((uint(pos[2]) % curSide) / sidePart) * zLayerLen + ((uint(pos[1]) % curSide) / sidePart) * yRowLen + ((uint(pos[0]) % curSide) / sidePart);
+
+        uint sz = uint(pow(base, DIM));
+        curLayerLen -= leavesOnLayers[curPwr];
+        curLayerLen *= sz;
+
+        curPwr++;
+        bytesForThisLayer = bytesForLayer[base][curPwr];
+        ptr += bytesForThisLayer * uint(val * sz + curPwrLayerPos);
+    }
+
+    ptr = chunkOffset + 4 + 3 + (power+1) * 4 + nOffsetBytes;
+    ptr += voxSizeInBytes * nLeavesBeforeCurrent;
+
+    uint type = get_byte(ptr++) + 10 * power;
+    uint color = get_byte(ptr);
+    float r = (32 * ((color & 0xE0) >> 5)) / 255.0;
+    float g = (32 * ((color & 0x1C) >> 2)) / 255.0;
+    float b = (64 * (color & 0x03)) / 255.0;
+
+    return vec4(type, r, g, b);
+}
+
 vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, vec3 curChunkPos, inout int bounces, inout float len)
 {
     vec3 resultColor = vec3(0,0,0);
@@ -375,7 +390,7 @@ vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, vec3 curChunkPos
     vec3 marchPos = start;
     bool marchFinish = false;
 
-    uvec3 curVoxPos = uvec3(floor(rayStart));
+    vec3 curVoxPos = floor(start);
 
     uint stepsToTake = 1;
 
@@ -384,6 +399,8 @@ vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, vec3 curChunkPos
     while (keepTracing)
     {
         vec4 voxType = getVoxelType(chunkOffset, curVoxPos);
+        return vec3(voxType[1], voxType[2], voxType[3]);
+
         uint voxPow = uint(voxType[0])/10;
         stepsToTake = uint(sideSteps / pow(base, voxType[0]/10));
 
@@ -441,6 +458,8 @@ vec3 raytraceMap(vec3 rayStart, vec3 rayDir, inout int bounces, inout float len)
         {
             len += calculateDist(rayStart, marchAbsPos, 1.0);
             resultColor = rayTraceChunk(chunkOffset, getCurEntryPoint(marchAbsPos, 1.0, lastRes), rayDir, curChunkPos, bounces, len);
+            //resultColor = curChunkPos;
+            break;
         }
 
         notFinish = bounces > 0 && !marchFinish;

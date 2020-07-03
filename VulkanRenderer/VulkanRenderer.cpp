@@ -698,7 +698,7 @@ void VulkanRenderer::_updateMapShaderInfo(const VoxelMap& map, uint32_t idx)
 				}
 				else
 				{
-					_mapShaderInfo.chunkOffsets[vecId][elemId] = 1;
+					_mapShaderInfo.chunkOffsets[vecId][elemId] = -1;
 				}
 			}
 

@@ -75,7 +75,6 @@ void CPURenderer::renderVideo(VoxelMap& map, Camera& cam)
 	}
 }
 
-
 std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera& cam, uint32_t x, uint32_t y) const
 {
 	std::vector<uint8_t> rgb = {0,0,0};
