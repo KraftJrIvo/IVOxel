@@ -32,30 +32,43 @@ uint get_uint(uint start_byte_ix)
   return map.chunks[vec_ix][uint_in_vec];
 }
 
-uint get_word(uint byte_ix)
-{
-  uint byte_in_uint = (byte_ix + 1) % 4;
-  uint bytes = get_uint(byte_ix);
-
-  return (bytes >> ((byte_in_uint) * 8)) & 0xFFFF; //Little-endian. For Big-endian, remove the "4 -" part.
-}
-
-uint get_byte(uint byte_ix)
+int get_byte(uint byte_ix, bool signed)
 {
   uint byte_in_uint = byte_ix % 4;
   uint bytes = get_uint(byte_ix);
 
-  return (bytes >> ((byte_in_uint) * 8)) & 0xFF; //Little-endian. For Big-endian, remove the "4 -" part.
+  uint result = (bytes >> ((byte_in_uint) * 8)) & 0xFF;
+
+  if (signed && (result & 0x80) != 0)
+    return int(result) - int(0x100);
+  return int(result);
 }
 
-uint get_dword(uint start_byte_ix)
-{
-  uint byte1 = get_byte(start_byte_ix);
-  uint byte2 = get_byte(start_byte_ix + 1);
-  uint byte3 = get_byte(start_byte_ix + 2);
-  uint byte4 = get_byte(start_byte_ix + 3);
 
-  return (byte4 << 8 * 3) + (byte3 << 8 * 2) + (byte2 << 8) + byte1;
+int get_word(uint byte_ix, bool signed)
+{
+  uint byte_in_uint = (byte_ix + 1) % 4;
+  uint bytes = get_uint(byte_ix);
+
+  uint result = (bytes >> ((byte_in_uint) * 8)) & 0xFFFF;
+
+  if (signed && (result & 0x8000) > 0)
+    return int(result) - 0x10000;
+  return int(result);
+}
+
+int get_dword(uint start_byte_ix, bool signed)
+{
+  uint byte1 = get_byte(start_byte_ix, false);
+  uint byte2 = get_byte(start_byte_ix + 1, false);
+  uint byte3 = get_byte(start_byte_ix + 2, false);
+  uint byte4 = get_byte(start_byte_ix + 3, false);
+
+  uint result = (byte4 << 8 * 3) + (byte3 << 8 * 2) + (byte2 << 8) + byte1;
+
+  if (signed && (byte4 & 0x80) > 0)
+     return int(result) - 0xFFFFFFFF - 1;
+  return int(result);
 }
 
 float calculateDist(vec3 start, vec3 end, float div)
@@ -304,16 +317,16 @@ vec4 getVoxelType(int chunkOffset, vec3 pos)
     uint nLeavesBeforeCurrent = 0;
     uint curPwr = 0;
     uint curLayerLen = 1;
-    uint nOffsetBytes = get_dword(ptr);
-    uint base = get_byte(ptr + 4);
-    uint power = get_byte(ptr + 5);
-    uint voxSizeInBytes = get_byte(ptr + 6);
+    uint nOffsetBytes = get_dword(ptr, false);
+    uint base = get_byte(ptr + 4, false);
+    uint power = get_byte(ptr + 5, false);
+    uint voxSizeInBytes = get_byte(ptr + 6, false);
     ptr += 7;
 
     uint leavesOnLayers[MAX_VOX_POW + 1];
     for (uint i = 0; i < power + 1; ++i)
     {
-        leavesOnLayers[i] = get_dword(ptr);
+        leavesOnLayers[i] = get_dword(ptr, false);
         ptr += 4;
     }
 
@@ -335,11 +348,11 @@ vec4 getVoxelType(int chunkOffset, vec3 pos)
     {
         int val;
         if (bytesForThisLayer == 1)
-			val = int(get_byte(ptr));
+			val = get_byte(ptr, true);
 		else if (bytesForThisLayer == 2)
-			val = int(get_word(ptr));
+			val = get_word(ptr, true);
 		else
-			val = int(get_dword(ptr));
+			val = get_dword(ptr, true);
 
         offsetIsFinal = val < 0;
 
@@ -367,8 +380,8 @@ vec4 getVoxelType(int chunkOffset, vec3 pos)
     ptr = chunkOffset + 4 + 3 + (power+1) * 4 + nOffsetBytes;
     ptr += voxSizeInBytes * nLeavesBeforeCurrent;
 
-    uint type = get_byte(ptr++) + 10 * power;
-    uint color = get_byte(ptr);
+    uint type = get_byte(ptr++, false) + 10 * power;
+    uint color = get_byte(ptr, false);
     float r = (32 * ((color & 0xE0) >> 5)) / 255.0;
     float g = (32 * ((color & 0x1C) >> 2)) / 255.0;
     float b = (64 * (color & 0x03)) / 255.0;
@@ -380,8 +393,8 @@ vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, vec3 curChunkPos
 {
     vec3 resultColor = vec3(0,0,0);
 
-    uint base = get_byte(chunkOffset + 4);
-    uint power = get_byte(chunkOffset + 5);
+    uint base = get_byte(chunkOffset + 4, false);
+    uint power = get_byte(chunkOffset + 5, false);
 
     float sideSteps = pow(base, power);
 
