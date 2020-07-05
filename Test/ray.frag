@@ -39,21 +39,20 @@ int get_byte(uint byte_ix, bool signed)
 
   uint result = (bytes >> ((byte_in_uint) * 8)) & 0xFF;
 
-  if (signed && (result & 0x80) != 0)
+  if (signed && (result & 0x80) > 0)
     return int(result) - int(0x100);
   return int(result);
 }
 
-
 int get_word(uint byte_ix, bool signed)
 {
-  uint byte_in_uint = (byte_ix + 1) % 4;
-  uint bytes = get_uint(byte_ix);
+  uint byte1 = get_byte(byte_ix, false);
+  uint byte2 = get_byte(byte_ix + 1, false);
 
-  uint result = (bytes >> ((byte_in_uint) * 8)) & 0xFFFF;
+  uint result = (byte2 << 8) + byte1;
 
-  if (signed && (result & 0x8000) > 0)
-    return int(result) - 0x10000;
+  if (signed && (byte2 & 0x80) > 0)
+     return int(result) - 0x10000;
   return int(result);
 }
 
@@ -245,7 +244,7 @@ float raytrace_sphere(vec3 orig, vec3 dir, inout vec3 hit, inout vec3 normal)
 	return len;
 }
 
-vec3 rayTraceVoxel(vec4 voxType, vec3 rayStart, vec3 rayDir, vec3 absPos, float chunkSide, float voxSide, inout float len, inout bool finish)
+vec3 rayTraceVoxel(int voxType, vec3 voxColor, vec3 rayStart, vec3 rayDir, vec3 absPos, float chunkSide, float voxSide, inout float len, inout bool finish)
 {
     vec3 orig = rayStart;
     vec3 dir = rayDir;
@@ -254,15 +253,13 @@ vec3 rayTraceVoxel(vec4 voxType, vec3 rayStart, vec3 rayDir, vec3 absPos, float 
     vec3 hit;
     vec3 normal;
 
-    uint type = uint(voxType[0]) % 10;
-    if (type == 0)
-        len = raytrace_cube(orig, dir, hit, normal);
-    else if (type == 1)
+    //if (voxType == 0)
+    //    len = raytrace_cube(orig, dir, hit, normal);
+    //else if (voxType == 1)
         len = raytrace_sphere(orig, dir, hit, normal);
 
     normal = normalize(normal);
 
-    vec3 voxColor = {voxType[1] / 255.0, voxType[2] / 255.0, voxType[3] / 255.0};
     vec3 colorCoeffs = {0,0,0};
 
     vec3 color = voxColor;
@@ -289,6 +286,7 @@ vec3 rayTraceVoxel(vec4 voxType, vec3 rayStart, vec3 rayDir, vec3 absPos, float 
 
             for (uint j = 0; j < 3; ++j)
 				colorCoeffs[j] += (light.colors[4 * i + j] / 255.0) * lightStr;
+            //return vec3(lightStr);
         }
 
         for (uint i = 0; i < 3; ++i)
@@ -296,8 +294,10 @@ vec3 rayTraceVoxel(vec4 voxType, vec3 rayStart, vec3 rayDir, vec3 absPos, float 
 			colorCoeffs[i] = (colorCoeffs[i] > 1.0) ? 1.0 : (colorCoeffs[i] < 0.0) ? 0 : colorCoeffs[i];
 			color[i] = color[i] * colorCoeffs[i];
 		}
-    }
 
+        finish = true;
+    }
+    
     return color;
 }
 
@@ -311,7 +311,7 @@ const uint bytesForLayer[4][MAX_VOX_POW + 1] =
     {1, 1, 2, 2, 4, 4}
 };
 
-vec4 getVoxelType(int chunkOffset, vec3 pos)
+vec3 getVoxelInfo(int chunkOffset, vec3 pos, inout uint voxPower, inout int voxType)
 {
     uint ptr = chunkOffset;
     uint nLeavesBeforeCurrent = 0;
@@ -380,13 +380,15 @@ vec4 getVoxelType(int chunkOffset, vec3 pos)
     ptr = chunkOffset + 4 + 3 + (power+1) * 4 + nOffsetBytes;
     ptr += voxSizeInBytes * nLeavesBeforeCurrent;
 
-    uint type = get_byte(ptr++, false) + 10 * power;
+    voxPower = curPwr;
+
+    voxType = get_byte(ptr++, true);
     uint color = get_byte(ptr, false);
     float r = (32 * ((color & 0xE0) >> 5)) / 255.0;
     float g = (32 * ((color & 0x1C) >> 2)) / 255.0;
     float b = (64 * (color & 0x03)) / 255.0;
 
-    return vec4(type, r, g, b);
+    return vec3(r, g, b);
 }
 
 vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, vec3 curChunkPos, inout int bounces, inout float len)
@@ -411,11 +413,12 @@ vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, vec3 curChunkPos
 
     while (keepTracing)
     {
-        vec4 voxType = getVoxelType(chunkOffset, curVoxPos);
-        return vec3(voxType[1], voxType[2], voxType[3]);
+        uint voxPow; 
+        int voxType;
+        vec3 voxColor = getVoxelInfo(chunkOffset, curVoxPos, voxPow, voxType);
+        //return vec3(voxType, voxType, voxType);
 
-        uint voxPow = uint(voxType[0])/10;
-        stepsToTake = uint(sideSteps / pow(base, voxType[0]/10));
+        stepsToTake = uint(sideSteps / pow(base, voxPow));
 
         if (voxType.x != -1)
         {
@@ -424,8 +427,8 @@ vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, vec3 curChunkPos
             vec3 absPos = curChunkPos + (stepsToTake * curVoxPos/stepsToTake)/sideSteps;
             
             bool finish = false;
-            vec3 color = rayTraceVoxel(voxType, rayStart, rayDir, absPos, sideSteps, float(stepsToTake), len, finish);
-
+            vec3 color = rayTraceVoxel(voxType, voxColor, entry, rayDir, absPos, sideSteps, float(stepsToTake), len, finish);
+            return color;
             if (finish)
             {
                 len += calculateDist(rayStart, marchPos, sideSteps);
