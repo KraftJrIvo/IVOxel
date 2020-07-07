@@ -713,13 +713,33 @@ void VulkanRenderer::_updateLightingShaderInfo(const VoxelMap& map, uint32_t idx
 	uint32_t curLight = 0;
 	const size_t colorSz = RGB * sizeof(float);
 	const size_t posSz = DIMENSIONS * sizeof(float);
+	static float t = 0;
 	for (auto& ls : lsbc)
 	{
 		for (auto& l : ls)
 		{
 			std::vector<float> color = { l.rgba[R] / 255.0f, l.rgba[G] / 255.0f, l.rgba[B] / 255.0f };
-			std::memcpy((char*)(_lightingShaderInfo.coords) + curLight * posSz, l.position.data(), posSz);
-			std::memcpy((char*)(_lightingShaderInfo.colors) + curLight * colorSz, color.data(), colorSz);
+
+			auto pos = l.position;
+
+			if (&l == &*ls.begin())
+			{
+				pos[0] = pos[0] + cos(t);
+				pos[2] = pos[2] + sin(t);
+			}
+			else
+			{
+				pos[0] = pos[0] + cos(-t);
+				pos[2] = pos[2] + sin(-t);
+			}
+
+			_lightingShaderInfo.coords[curLight].x = pos[0];
+			_lightingShaderInfo.coords[curLight].y = pos[1];
+			_lightingShaderInfo.coords[curLight].z = pos[2];
+			_lightingShaderInfo.colors[curLight].x = color[0];
+			_lightingShaderInfo.colors[curLight].y = color[1];
+			_lightingShaderInfo.colors[curLight].z = color[2];
+
 			curLight++;
 		}
 	}
@@ -727,6 +747,7 @@ void VulkanRenderer::_updateLightingShaderInfo(const VoxelMap& map, uint32_t idx
 
 	uint32_t offset1 = 0x40 * std::ceil(sizeof(ViewShaderInfo) / (float)0x40);
 	_uniformBuffs[idx].setData(&_lightingShaderInfo, offset1, sizeof(_lightingShaderInfo));
+	t += 0.01f;
 }
 
 VkFramebuffer& VulkanRenderer::_getCurrentFrameBuffer()

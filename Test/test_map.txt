@@ -607,8 +607,8 @@
 2
 
 # chunk i lights params (r g b a x y z (coordinates are relative to chunk's center))
-255 255 255 255 0.9 0.9 0.9
-127 127 127 255 0.1 0.1 0.1
+255 127 0 255 0.9 0.9 0.9
+0 127 255 255 0.1 0.1 0.1
 
 # chunk size (x y z)
 1 1 1
