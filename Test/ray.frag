@@ -97,7 +97,7 @@ vec3 getCurEntryPoint(vec3 absPos, float side, vec3 lastRes)
 	return result;
 }
 
-vec3 marchAndGetNextDir(vec3 dir, float side, inout bool finish, inout vec3 absPos, inout vec3 lastRes)
+vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, inout bool finish, inout vec3 absPos, inout vec3 lastRes)
 {
     vec3 isNeg;
     for (int i = 0; i < 3; ++i)
@@ -133,7 +133,7 @@ vec3 marchAndGetNextDir(vec3 dir, float side, inout bool finish, inout vec3 absP
         if (isNeg[i] != 0)
             absPos[i] -= 0.00001;
 
-        finish = finish || ((absPos[i] < -1 && dir[i] < 0) || (absPos[i] > 2 && dir[i] > 0));
+        finish = finish || ((absPos[i] < minmax[0] && dir[i] < 0) || (absPos[i] >= minmax[1] && dir[i] > 0));
     }
 
     lastRes = result;
@@ -437,7 +437,7 @@ vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, vec3 curChunkPos
             }
         }
 
-        marchAndGetNextDir(rayDir, stepsToTake, marchFinish, marchPos, lastRes);
+        marchAndGetNextDir(rayDir, stepsToTake, ivec2(0, sideSteps), marchFinish, marchPos, lastRes);
 
         curVoxPos = ivec3(floor(marchPos));
 
@@ -463,13 +463,11 @@ vec3 raytraceMap(vec3 rayStart, vec3 rayDir, inout int bounces, inout float len)
 
     const vec2 minmax = vec2(-1.0, 1.0);
 
-    int it = 0;
-
     while (notFinish)
 	{
         int chunkOffset = getChunkOffset(curChunkPos);
 
-        if (chunkOffset != -1 && it > 0) 
+        if (chunkOffset != -1) 
         {
             len += calculateDist(rayStart, marchAbsPos, 1.0);
             resultColor = rayTraceChunk(chunkOffset, getCurEntryPoint(marchAbsPos, 1.0, lastRes), rayDir, curChunkPos, bounces, len);
@@ -480,9 +478,7 @@ vec3 raytraceMap(vec3 rayStart, vec3 rayDir, inout int bounces, inout float len)
         notFinish = bounces > 0 && !marchFinish;
 
         if (notFinish)
-            curChunkPos += marchAndGetNextDir(rayDir, 1, marchFinish, marchAbsPos, lastRes);
-
-        it++;
+            curChunkPos += marchAndGetNextDir(rayDir, 1, ivec2(-1, 2), marchFinish, marchAbsPos, lastRes);
     }
 	
 	return resultColor;
