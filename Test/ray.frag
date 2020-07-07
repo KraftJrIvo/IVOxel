@@ -14,9 +14,9 @@ layout(set = 0, binding = 0) uniform ViewShaderInfo {
 } view;
 
 layout(set = 1, binding = 0) uniform LightingShaderInfo {
+    vec4 coords[16];
+    vec4 colors[16];
     int nLights;
-    float absCoords[3 * 16];
-    int colors[4 * 16];
 } light;
 
 layout(set = 2, binding = 0) uniform MapShaderInfo {
@@ -269,7 +269,7 @@ vec3 rayTraceVoxel(int voxType, vec3 voxColor, vec3 rayStart, vec3 rayDir, vec3 
         for (uint i = 0; i < light.nLights; ++i)
         {
             vec3 absRayStart = {absPos[0] + voxSide * hit[0]/chunkSide, absPos[1] + voxSide * hit[1]/chunkSide, absPos[2] + voxSide * hit[2]/chunkSide };
-            vec3 dirToLight = {(light.absCoords[3 * i] - absRayStart[0]), (light.absCoords[3 * i + 1] - absRayStart[1]), (light.absCoords[3 * i + 2] - absRayStart[2])};
+            vec3 dirToLight = vec3((light.coords[i].x - absRayStart.x), (light.coords[i].y - absRayStart.y), (light.coords[i].z - absRayStart.z));
             float lightDist = length(dirToLight);
             dirToLight = normalize(dirToLight);
 
@@ -285,8 +285,7 @@ vec3 rayTraceVoxel(int voxType, vec3 voxColor, vec3 rayStart, vec3 rayDir, vec3 
 			}
 
             for (uint j = 0; j < 3; ++j)
-				colorCoeffs[j] += (light.colors[4 * i + j] / 255.0) * lightStr;
-            //return vec3(lightStr);
+				colorCoeffs[j] += (light.colors[i][j]) * lightStr;
         }
 
         for (uint i = 0; i < 3; ++i)
@@ -428,7 +427,7 @@ vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, vec3 curChunkPos
             
             bool finish = false;
             vec3 color = rayTraceVoxel(voxType, voxColor, entry, rayDir, absPos, sideSteps, float(stepsToTake), len, finish);
-            return color;
+            //return color;
             if (finish)
             {
                 len += calculateDist(rayStart, marchPos, sideSteps);
@@ -475,7 +474,7 @@ vec3 raytraceMap(vec3 rayStart, vec3 rayDir, inout int bounces, inout float len)
             len += calculateDist(rayStart, marchAbsPos, 1.0);
             resultColor = rayTraceChunk(chunkOffset, getCurEntryPoint(marchAbsPos, 1.0, lastRes), rayDir, curChunkPos, bounces, len);
             //resultColor = curChunkPos;
-            break;
+            //break;
         }
 
         notFinish = bounces > 0 && !marchFinish;

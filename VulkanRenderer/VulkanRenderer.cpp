@@ -711,15 +711,15 @@ void VulkanRenderer::_updateLightingShaderInfo(const VoxelMap& map, uint32_t idx
 {
 	auto lsbc = map.getLightsByChunks();
 	uint32_t curLight = 0;
-	const size_t colorSz = RGBA * sizeof(int32_t);
+	const size_t colorSz = RGB * sizeof(float);
 	const size_t posSz = DIMENSIONS * sizeof(float);
 	for (auto& ls : lsbc)
 	{
 		for (auto& l : ls)
 		{
-			std::vector<uint32_t> color = { l.rgba[R], l.rgba[G], l.rgba[B] };
-			std::memcpy(_lightingShaderInfo.colors, color.data(), colorSz);
-			std::memcpy(_lightingShaderInfo.absCoords, l.position.data(), posSz);
+			std::vector<float> color = { l.rgba[R] / 255.0f, l.rgba[G] / 255.0f, l.rgba[B] / 255.0f };
+			std::memcpy((char*)(_lightingShaderInfo.coords) + curLight * posSz, l.position.data(), posSz);
+			std::memcpy((char*)(_lightingShaderInfo.colors) + curLight * colorSz, color.data(), colorSz);
 			curLight++;
 		}
 	}
