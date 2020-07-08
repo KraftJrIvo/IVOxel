@@ -82,6 +82,8 @@ float calculateDist(vec3 start, vec3 end, float div)
 	return val;
 }
 
+#define EPSILON 0.0001
+
 vec3 getCurEntryPoint(vec3 absPos, float side, vec3 lastRes)
 {
 	vec3 result = vec3(0, 0, 0);
@@ -91,7 +93,7 @@ vec3 getCurEntryPoint(vec3 absPos, float side, vec3 lastRes)
     for (int i = 0; i < 3; ++i)
     {
         while (curPos[i] < 0) curPos[i] += 1.0;
-        result[i] = (lastRes[i] < 0) ? 0.999999 : (curPos[i] - floor(curPos[i]));
+        result[i] = (lastRes[i] < 0) ? 1.0 - EPSILON : (curPos[i] - floor(curPos[i]));
     }
 
 	return result;
@@ -109,7 +111,7 @@ vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, inout bool finish, i
     for (int i = 0; i < 3; ++i)
     {
         path[i] = (isNeg[i] != 0) ? -vecStart[i] : (1.0 - vecStart[i]);
-        path[i] = (path[i] == 0) ? 0.000001f : path[i];
+        path[i] = (path[i] == 0) ? EPSILON : path[i];
     }
 
     vec3 diffs = dir / path;
@@ -117,7 +119,7 @@ vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, inout bool finish, i
 
     vec3 result;
     for (int i = 0; i < 3; ++i)
-        result[i] = (1.0 - 2.0 * isNeg[i]) * (abs(maxDiff - diffs[i]) < 0.000001f ? 1.0 : 0.0);
+        result[i] = (1.0 - 2.0 * isNeg[i]) * (abs(maxDiff - diffs[i]) < EPSILON ? 1.0 : 0.0);
 
     vec3 intersection;
     for (int i = 0; i < 3; ++i)
@@ -131,7 +133,7 @@ vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, inout bool finish, i
     			(path[otherCoord2] * dir[i] / dir[otherCoord2]));
         absPos[i] += intersection[i] * side;
         if (isNeg[i] != 0)
-            absPos[i] -= 0.00001;
+            absPos[i] -= EPSILON;
 
         finish = finish || ((absPos[i] < minmax[0] && dir[i] < 0) || (absPos[i] >= minmax[1] && dir[i] > 0));
     }
@@ -155,7 +157,7 @@ int getChunkOffset(vec3 pos)
 const uint MAX_VOX_POW = 5;
 const uint DIM = 3;
 
-float raytrace_cube(vec3 orig, vec3 dir, vec3 hit, vec3 normal)
+float raytrace_cube(vec3 orig, vec3 dir, inout vec3 hit, inout vec3 normal)
 {
 	vec3 g = orig - vec3(0.5f, 0.5f, 0.5f);
 	vec3 gabs = vec3(abs(g[0]), abs(g[1]), abs(g[2]));
@@ -253,9 +255,9 @@ vec3 rayTraceVoxel(int voxType, vec3 voxColor, vec3 rayStart, vec3 rayDir, vec3 
     vec3 hit;
     vec3 normal;
 
-    //if (voxType == 0)
-    //    len = raytrace_cube(orig, dir, hit, normal);
-    //else if (voxType == 1)
+    if (voxType == 0)
+        len = raytrace_cube(orig, dir, hit, normal);
+    else if (voxType == 1)
         len = raytrace_sphere(orig, dir, hit, normal);
 
     normal = normalize(normal);
