@@ -91,8 +91,9 @@ void VulkanRenderer::init()
 		std::vector<uint16_t> indices = {0,1,2,2,3,0};
 		_initStageBuffer(indices.data(), sizeof(uint16_t), indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, _indexBuff);
 
-		uint32_t offset1 = 0x40 * std::ceil(sizeof(ViewShaderInfo) / (float)0x40);
-		uint32_t offset2 = offset1 + 0x40 * std::ceil(sizeof(LightingShaderInfo) / (float)0x40);
+		uint32_t align = _mainDevice.getPhysicalDevice()->getProps().limits.minUniformBufferOffsetAlignment;
+		uint32_t offset1 = sizeof(ViewShaderInfo) + align - (sizeof(ViewShaderInfo) % align);
+		uint32_t offset2 = offset1 + sizeof(LightingShaderInfo) + align - ((offset1 + sizeof(LightingShaderInfo)) % align);
 
 		// creating uniform buffers
 		_uniformBuffs.resize(_swapchainImgCount);
@@ -702,8 +703,9 @@ void VulkanRenderer::_updateMapShaderInfo(const VoxelMap& map, uint32_t idx)
 				}
 			}
 
-	uint32_t offset1 = 0x40 * std::ceil(sizeof(ViewShaderInfo) / (float)0x40);
-	uint32_t offset2 = offset1 + 0x40 * std::ceil(sizeof(LightingShaderInfo) / (float)0x40);
+	uint32_t align = _mainDevice.getPhysicalDevice()->getProps().limits.minUniformBufferOffsetAlignment;
+	uint32_t offset1 = sizeof(ViewShaderInfo) + align - (sizeof(ViewShaderInfo) % align);
+	uint32_t offset2 = offset1 + sizeof(LightingShaderInfo) + align - ((offset1 + sizeof(LightingShaderInfo)) % align);
 	_uniformBuffs[idx].setData(&_mapShaderInfo, offset2, sizeof(_mapShaderInfo));
 }
 
@@ -745,7 +747,8 @@ void VulkanRenderer::_updateLightingShaderInfo(const VoxelMap& map, uint32_t idx
 	}
 	_lightingShaderInfo.nLights = curLight;
 
-	uint32_t offset1 = 0x40 * std::ceil(sizeof(ViewShaderInfo) / (float)0x40);
+	uint32_t align = _mainDevice.getPhysicalDevice()->getProps().limits.minUniformBufferOffsetAlignment;
+	uint32_t offset1 = sizeof(ViewShaderInfo) + align - (sizeof(ViewShaderInfo) % align);
 	_uniformBuffs[idx].setData(&_lightingShaderInfo, offset1, sizeof(_lightingShaderInfo));
 	t += 0.01f;
 }
