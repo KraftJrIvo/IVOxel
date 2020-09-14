@@ -726,8 +726,9 @@ void VulkanRenderer::_updateLightingShaderInfo(const VoxelMap& map, uint32_t idx
 
 			if (&l == &*ls.begin())
 			{
-				pos[0] = pos[0] + cos(t);
-				pos[2] = pos[2] + sin(t);
+				pos[0] = pos[0] + cos(t / 10.);
+				pos[1] = pos[1] + sin(t / 5.);
+				pos[2] = pos[2] + sin(t / 10.);
 			}
 			else
 			{
