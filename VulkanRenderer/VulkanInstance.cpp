@@ -15,7 +15,7 @@ VulkanInstance::~VulkanInstance()
 		if (_deviceChosen)
 		{
 			_device.destroyPools();
-			vkDestroyDevice(_device.getDevice(), nullptr);
+			vkDestroyDevice(_device.get(), nullptr);
 		}
 		vkDestroyInstance(_instance, nullptr);
 	}
@@ -32,7 +32,7 @@ std::vector<VkPhysicalDevice>VulkanInstance::getAvailablePhysicalDevices()
 	return devices;
 }
 
-const VkInstance& VulkanInstance::getInstace()
+const VkInstance& VulkanInstance::getInstance()
 {
 	return _instance;
 }

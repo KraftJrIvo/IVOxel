@@ -360,15 +360,27 @@ vec3 rayTraceVoxel(int voxType, vec3 voxColor, vec3 rayStart, vec3 rayDir, vec3 
 
     if (lenVox >= 0)
     {
-        for (uint i = 0; i < light.nLights; ++i)
+        for (uint i = 0; i <= light.nLights; ++i)
         {
-            vec3 dirToLight = light.coords[i].xyz - absRayStart;
+            vec3 lCoords, lColor;
+            if (i == light.nLights)
+            {
+                lCoords = absRayStart + vec3(0.1, 10.1, 0.1);
+                lColor = vec3(0.33, 0.33, 0.33);
+            }
+            else
+            {
+                lCoords = light.coords[i].xyz;
+                lColor = light.colors[i].xyz;
+            }
+
+            vec3 dirToLight = lCoords - absRayStart;
             float lightDist = length(dirToLight);
             dirToLight = normalize(dirToLight);
 
             int b = 0;
             float traceLen = 0;
-            raytraceMap2(vec3(light.coords[i].x, light.coords[i].y, light.coords[i].z), -dirToLight, b, traceLen);
+            raytraceMap2(lCoords, -dirToLight, b, traceLen);
 
             float lightStr = 0;
             if (traceLen + 0.001 >= lightDist)
@@ -377,8 +389,7 @@ vec3 rayTraceVoxel(int voxType, vec3 voxColor, vec3 rayStart, vec3 rayDir, vec3 
 				lightStr = (dotVal < 0) ? 0 : dotVal;
 			}
 
-            for (uint j = 0; j < 3; ++j)
-				colorCoeffs[j] += (light.colors[i][j]) * lightStr;
+            colorCoeffs += lColor * lightStr;
         }
 
         for (uint i = 0; i < 3; ++i)

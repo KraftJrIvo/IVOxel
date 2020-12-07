@@ -1,8 +1,15 @@
 #pragma once
 
 #include "VulkanInstance.h"
+#include "VulkanSurface.h"
 #include "VulkanShader.h"
 #include "VulkanBuffer.h"
+#include "VulkanSwapchain.h"
+#include "VulkanPipeline.h"
+#include "VulkanRenderPass.h"
+#include "VulkanFrameBuffers.h"
+#include "VulkanCommandBuffers.h"
+#include "VulkanDepthStencilImage.h"
 
 #include "ViewShaderInfo.h"
 #include "MapShaderInfo.h"
@@ -27,25 +34,18 @@ public:
 private:
 	VulkanInstance _vulkan;
 	VulkanDevice _mainDevice;
-	VkSurfaceKHR _surface;
-	VkSurfaceFormatKHR _surfaceFormat;
-	VkFormat _depthStencilFormat;
-	VkSurfaceCapabilitiesKHR _surfaceCapabs;
-	VkSwapchainKHR _swapchain;
-	VkRenderPass _renderPass;
+	VulkanSurface _surface;
+	VulkanSwapchain _swapchain;
+	VulkanPipeline _pipeline;
+	VulkanRenderPass _renderPass;
+	VulkanDepthStencilImage _dsImg;
 
-	std::vector<VkImage> _swapchainImgs;
-	std::vector<VkImageView> _swapchainImgViews;
-	std::vector<VkFramebuffer> _frameBuffs;
+	VulkanFrameBuffers _frameBuffs;
+	VulkanCommandBuffers _commandBuffs;
 	VulkanBuffer _vertexBuff;
 	VulkanBuffer _indexBuff;
 	std::vector<VulkanBuffer> _uniformBuffs;
 
-	VkImage _depthStencilImg;
-	VkDeviceMemory _depthStencilImgMem;
-	VkImageView _depthStencilImgView;
-
-	uint32_t _swapchainImgCount;
 	uint32_t _currentSwapchainImgID;
 
 	std::vector<VkSemaphore> _semImgAvailable;
@@ -53,12 +53,9 @@ private:
 	std::vector<VkFence> _frameFences;
 	std::vector<bool> _imgsInFlight;
 
-	std::vector<VkCommandBuffer> _commandBufs;
-
 	VulkanShader _vertexShader;
 	VulkanShader _fragmentShader;
 
-	VkPipeline _pipeline;
 	VkDescriptorSetLayout _viewShaderInfoDescriptorSetLayout;
 	VkDescriptorSetLayout _lightingShaderInfoDescriptorSetLayout;
 	VkDescriptorSetLayout _mapShaderInfoDescriptorSetLayout;
@@ -66,7 +63,6 @@ private:
 	std::vector<VkDescriptorSet> _lightingShaderInfoDescriptorSets;
 	std::vector<VkDescriptorSet> _mapShaderInfoDescriptorSets;
 	VkDescriptorPool _descriptorPool;
-	VkPipelineLayout _pipelineLayout;
 
 	ViewShaderInfo _viewShaderInfo;
 	LightingShaderInfo _lightingShaderInfo;
@@ -75,22 +71,13 @@ private:
 	glm::vec2 _curRot;
 	glm::vec3 _curTrans;
 
-	void _initSurface();
-	void _initSwapchain();
-	void _initSwapchainImages();
-	void _initDepthStencilImage();
-	void _initRenderPass();
-	void _initFrameBuffers();
-	void _initCommandBuffers();
 	void _initDescriptorSetLayout(VkDescriptorSetLayout& layout);
 	void _initDescriptorPool();
 	void _initDescriptorSet(VkDescriptorSetLayout& layout, std::vector<VkDescriptorSet>& set, uint32_t range, uint32_t offset);
 	void _initStageBuffer(void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf);
 	void _initHostBuffer(uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage, VulkanBuffer& buf);
 	void _initSync();
-	void _initPipeline();
 	void _initShaders();
-	void _setSurfaceFormat();
 
 	void _clearEnv();
 	void _initEnv();
@@ -101,8 +88,6 @@ private:
 	void _updateLightingShaderInfo(const VoxelMap& map, uint32_t idx);
 
 	VkFramebuffer& _getCurrentFrameBuffer();
-
-	uint32_t _getMemoryId(const VkMemoryRequirements& memReq, VkMemoryPropertyFlags reqFlags);
 
 	bool _keepGoing = true;
 };

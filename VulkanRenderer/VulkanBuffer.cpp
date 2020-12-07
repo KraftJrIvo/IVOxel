@@ -4,7 +4,7 @@ VulkanBuffer::~VulkanBuffer()
 {
 	if (_allocated)
 	{
-		auto& device = _dev->getDevice();
+		auto& device = _dev->get();
 		vkDestroyBuffer(device, _buffer, nullptr);
 		vkFreeMemory(device, _memory, nullptr);
 	}
@@ -16,7 +16,7 @@ void VulkanBuffer::create(const VulkanDevice& dev, uint32_t elemSz, uint32_t nEl
 	_nElems = nElems;
 	_size = _elemSz * _nElems;
 	_dev = &dev;
-	auto& device = dev.getDevice();
+	auto& device = dev.get();
 
 	VkBufferCreateInfo bufferInfo = vkTypes::getBufCreateInfo(_size, usage);
 
@@ -35,9 +35,9 @@ void VulkanBuffer::create(const VulkanDevice& dev, uint32_t elemSz, uint32_t nEl
 
 void VulkanBuffer::setData(void* ptr, uint32_t start, uint32_t size)
 {
-	vkMapMemory(_dev->getDevice(), _memory, 0, _memReqs.size, 0, &_mappedPtr);
+	vkMapMemory(_dev->get(), _memory, 0, _memReqs.size, 0, &_mappedPtr);
 	memcpy((char*)_mappedPtr + start, (char*)ptr, size);
-	vkUnmapMemory(_dev->getDevice(), _memory);
+	vkUnmapMemory(_dev->get(), _memory);
 }
 
 void VulkanBuffer::copyTo(VulkanBuffer& to)

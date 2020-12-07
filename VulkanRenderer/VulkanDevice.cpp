@@ -25,7 +25,7 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice& physDev, std::vector<cons
 
 	auto deviceCreateInfo = vkTypes::getDeviceCreateInfo(queInfos, &physDev.getFeats(), layers, extensions);
 
-	vkCreateDevice(physDev.getDevice(), &deviceCreateInfo, nullptr, &_device);
+	vkCreateDevice(physDev.get(), &deviceCreateInfo, nullptr, &_device);
 
 	for (auto& id : _uniqueIds)
 	{
@@ -35,7 +35,7 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice& physDev, std::vector<cons
 	}
 }
 
-const VkDevice& VulkanDevice::getDevice() const
+const VkDevice& VulkanDevice::get() const
 {
 	return _device;
 }

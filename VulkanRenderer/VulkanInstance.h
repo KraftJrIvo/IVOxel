@@ -13,7 +13,7 @@ public:
 		const VkSurfaceKHR& surface, VkPhysicalDeviceType type = VK_PHYSICAL_DEVICE_TYPE_OTHER);
 	std::vector<VkPhysicalDevice> getAvailablePhysicalDevices();
 
-	const VkInstance& getInstace();
+	const VkInstance& getInstance();
 	VulkanDevice& getDevice();
 	VulkanPhysicalDevice& getPhysDevice();
 

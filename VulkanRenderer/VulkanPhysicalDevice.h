@@ -9,7 +9,7 @@ public:
 	VulkanPhysicalDevice() = default;
 	VulkanPhysicalDevice(const VkPhysicalDevice& dev, const std::vector<uint32_t>& queFamFlags);
 
-	const VkPhysicalDevice& getDevice() const;
+	const VkPhysicalDevice& get() const;
 	const VkPhysicalDeviceProperties& getProps() const;
 	const VkPhysicalDeviceMemoryProperties& getMemProps() const;
 	const VkPhysicalDeviceFeatures& getFeats() const;

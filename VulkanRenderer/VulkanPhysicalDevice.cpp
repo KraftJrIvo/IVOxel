@@ -13,7 +13,7 @@ VulkanPhysicalDevice::VulkanPhysicalDevice(const VkPhysicalDevice& dev, const st
 	}
 }
 
-const VkPhysicalDevice& VulkanPhysicalDevice::getDevice() const
+const VkPhysicalDevice& VulkanPhysicalDevice::get() const
 {
 	return _device;
 }
