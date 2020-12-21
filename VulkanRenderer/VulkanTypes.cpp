@@ -151,7 +151,7 @@ VkSwapchainCreateInfoKHR vkTypes::getSwapchainCreateInfo(const VkSurfaceKHR& sur
     info.imageExtent.width     =    width;
     info.imageExtent.height    =    height;
     info.imageArrayLayers      =    1;
-    info.imageUsage            =    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    info.imageUsage            =    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     info.imageSharingMode      =    VK_SHARING_MODE_EXCLUSIVE;
     info.queueFamilyIndexCount =    0;
     info.pQueueFamilyIndices   =    nullptr;

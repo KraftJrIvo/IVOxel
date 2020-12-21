@@ -18,6 +18,8 @@ public:
 	void initHost(const VulkanDevice& device, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage);
 	void initStaging(const VulkanDevice& device, void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage);
 
+	static uint32_t findMemoryType(const VulkanDevice& device, VkMemoryPropertyFlags props, uint32_t typeFilter);
+
 private:
 	VkBuffer _buffer;
 
@@ -30,7 +32,4 @@ private:
 	VkMemoryRequirements _memReqs;
 
 	bool _allocated;
-
-	uint32_t _findMemoryType(VkMemoryPropertyFlags props, uint32_t typeFilter);
-
 };

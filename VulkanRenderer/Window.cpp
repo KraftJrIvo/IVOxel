@@ -1,8 +1,9 @@
 #include "Window.h"
 
 
-Window::Window(uint32_t size_x, uint32_t size_y, std::wstring name)
+Window::Window(uint32_t size_x, uint32_t size_y, std::wstring name, float renderScale)
 {
+	this->renderScale = renderScale;
 	_surface_size_x = size_x;
 	_surface_size_y = size_y;
 	_window_name = name;
@@ -36,12 +37,17 @@ void Window::setSurfaceSize(uint32_t w, uint32_t h)
 
 std::pair<uint32_t, uint32_t> Window::getSize()
 {
-	return {_surface_size_x, _surface_size_y};
+	return {_surface_size_x, _surface_size_y };
+}
+
+std::pair<uint32_t, uint32_t> Window::getSizeScaled()
+{
+	return { _surface_size_x / renderScale, _surface_size_y / renderScale };
 }
 
 bool Window::wasResized()
 {
-	if (_wasResized)
+	if (_wasResized && !lmbDown)
 	{
 		_wasResized = false;
 		return true;
@@ -49,11 +55,26 @@ bool Window::wasResized()
 	return false;
 }
 
+float Window::getRenderScale()
+{
+	return renderScale;
+}
+
 VkRect2D Window::getRenderArea()
 {
 	VkRect2D renderArea;
 	renderArea.offset = { 0,0 };
 	auto wSz		  = getSize();
+	renderArea.extent = { (uint32_t)(wSz.first / renderScale), (uint32_t)(wSz.second / renderScale) };
+
+	return renderArea;
+}
+
+VkRect2D Window::getRenderAreaScaled()
+{
+	VkRect2D renderArea;
+	renderArea.offset = { 0,0 };
+	auto wSz = getSize();
 	renderArea.extent = { wSz.first, wSz.second };
 
 	return renderArea;
@@ -116,6 +137,13 @@ LRESULT CALLBACK WindowsEventHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 			break;
 		case 87:
 			window->forwardPressed = true;
+			break;
+		case VK_ADD:
+			window->renderScale += 0.01f;
+			break;
+		case VK_SUBTRACT:
+			window->renderScale -= 0.01f;
+			if (window->renderScale < 1.0f) window->renderScale = 1.0f;
 			break;
 		default:
 			break;
@@ -283,7 +311,7 @@ std::vector<float> Window::getCurDeltaRot()
 {
 	auto temp = _deltaRot;
 	_deltaRot = {0,0};
-	return temp;
+	return {temp[0] / renderScale, temp[1] / renderScale };
 }
 
 std::vector<float> Window::getCurDeltaTrans()

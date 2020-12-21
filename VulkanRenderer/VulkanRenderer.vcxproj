@@ -35,6 +35,7 @@
     <ClInclude Include="VulkanErrorChecker.h" />
     <ClInclude Include="VulkanFrameBuffers.h" />
     <ClInclude Include="VulkanGeometryBuffers.h" />
+    <ClInclude Include="VulkanImageBuffers.h" />
     <ClInclude Include="VulkanInstance.h" />
     <ClInclude Include="VulkanPhysicalDevice.h" />
     <ClInclude Include="VulkanPipeline.h" />
@@ -63,6 +64,7 @@
     <ClCompile Include="VulkanErrorChecker.cpp" />
     <ClCompile Include="VulkanFrameBuffers.cpp" />
     <ClCompile Include="VulkanGeometryBuffers.cpp" />
+    <ClCompile Include="VulkanImageBuffers.cpp" />
     <ClCompile Include="VulkanInstance.cpp" />
     <ClCompile Include="VulkanPhysicalDevice.cpp" />
     <ClCompile Include="VulkanPipeline.cpp" />

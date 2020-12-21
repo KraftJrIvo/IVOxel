@@ -6,15 +6,18 @@
 class Window
 {
 public:
-	Window(uint32_t size_x, uint32_t size_y, std::wstring name);
+	Window(uint32_t size_x, uint32_t size_y, std::wstring name, float renderScale = 1.0f);
 	~Window();
 
 	void Close();
 	bool Update();
 	void setSurfaceSize(uint32_t w, uint32_t h);
 	std::pair<uint32_t, uint32_t> getSize();
+	std::pair<uint32_t, uint32_t> getSizeScaled();
 	bool wasResized();
+	float getRenderScale();
 	VkRect2D getRenderArea();
+	VkRect2D getRenderAreaScaled();
 
 	const HINSTANCE& getHInstance();
 	const HWND& getHWND();
@@ -33,6 +36,8 @@ public:
 	bool rightPressed    = false;
 	bool forwardPressed  = false;
 	bool backwardPressed = false;
+
+	float renderScale = 1.0;
 
 private:
 	void _InitOSWindow();

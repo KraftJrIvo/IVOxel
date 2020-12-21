@@ -24,7 +24,7 @@ void VulkanBuffer::create(const VulkanDevice& dev, uint32_t elemSz, uint32_t nEl
 
 	vkGetBufferMemoryRequirements(device, _buffer, &_memReqs);
 
-	VkMemoryAllocateInfo allocInfo = vkTypes::getMemAllocInfo(_memReqs.size, _findMemoryType(props, _memReqs.memoryTypeBits));
+	VkMemoryAllocateInfo allocInfo = vkTypes::getMemAllocInfo(_memReqs.size, findMemoryType(*_dev, props, _memReqs.memoryTypeBits));
 
 	vkAllocateMemory(device, &allocInfo, nullptr, &_memory);
 
@@ -97,9 +97,9 @@ void VulkanBuffer::initStaging(const VulkanDevice& device, void* data, uint32_t 
 	stagingBuf.copyTo(*this);
 }
 
-uint32_t VulkanBuffer::_findMemoryType(VkMemoryPropertyFlags props, uint32_t typeFilter)
+uint32_t VulkanBuffer::findMemoryType(const VulkanDevice& device, VkMemoryPropertyFlags props, uint32_t typeFilter)
 {
-	auto devProps = _dev->getPhysicalDevice()->getMemProps();
+	auto devProps = device.getPhysicalDevice()->getMemProps();
 	uint32_t sz = devProps.memoryTypeCount;
 	for (int i = 0; i < sz; ++i)
 	{

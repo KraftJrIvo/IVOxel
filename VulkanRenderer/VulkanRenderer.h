@@ -6,6 +6,7 @@
 #include "VulkanGeometryBuffers.h"
 #include "VulkanDescriptorPool.h"
 #include "VulkanSwapchain.h"
+#include "VulkanImageBuffers.h"
 #include "VulkanPipeline.h"
 #include "VulkanRenderPass.h"
 #include "VulkanFrameBuffers.h"
@@ -32,6 +33,7 @@ private:
 	VulkanDevice _mainDevice;
 	VulkanSurface _surface;
 	VulkanSwapchain _swapchain;
+	VulkanImageBuffers _images;
 	VulkanPipeline _pipeline;
 	VulkanDescriptorPool _descrPool;
 	VulkanRenderPass _renderPass;
@@ -58,6 +60,13 @@ private:
 	void _recreateEnv();
 
 	VkFramebuffer& _getCurrentFrameBuffer();
+
+	VkCommandBuffer _beginSingleTimeCommands();
+	void _endSingleTimeCommands(const VkCommandBuffer& commandBuffer);
+	void _transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void _copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+	void _copyImageToBuffer(VkImage image, VkBuffer buffer, uint32_t width, uint32_t height);
+	void _scaledImageToImage(VkImage image1, VkImage image2, uint32_t width, uint32_t height, float scale);
 
 	bool _keepGoing = true;
 	bool _firstInit = true;

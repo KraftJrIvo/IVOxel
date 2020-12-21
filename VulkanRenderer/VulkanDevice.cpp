@@ -77,6 +77,11 @@ void VulkanDevice::getCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t qu
 	vkAllocateCommandBuffers(_device, &info, bufs);
 }
 
+const VkCommandPool& VulkanDevice::getPool(uint32_t queueFamId) const
+{
+	return _pools.find(queueFamId)->second;
+}
+
 void VulkanDevice::freeCommand(VkCommandBuffer* bufs, uint32_t count, uint32_t queueFamId) const
 {
 	vkFreeCommandBuffers(_device, _pools.find(queueFamId)->second, count, bufs);

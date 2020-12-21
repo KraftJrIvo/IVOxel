@@ -1,6 +1,6 @@
 #include "VulkanSwapchain.h"
 
-void VulkanSwapchain::init(const VulkanDevice& device, VulkanSurface& surface, const std::pair<uint32_t, uint32_t>& winSz)
+void VulkanSwapchain::init(const VulkanDevice& device, VulkanSurface& surface, const std::pair<uint32_t, uint32_t>& size, float renderScale)
 {
 	uint32_t bufferSz = 2;
 	auto& cabaps = surface.getCapabs();
@@ -20,15 +20,15 @@ void VulkanSwapchain::init(const VulkanDevice& device, VulkanSurface& surface, c
 				present_mode = pm;
 	}
 
-	auto info = vkTypes::getSwapchainCreateInfo(surface.get(), surface.getFormat(), present_mode, bufferSz, winSz.first, winSz.second);
+	auto info = vkTypes::getSwapchainCreateInfo(surface.get(), surface.getFormat(), present_mode, bufferSz, cabaps.maxImageExtent.width, cabaps.maxImageExtent.height);
 
 	vkCreateSwapchainKHR(device.get(), &info, nullptr, &_swapchain);
 	vkGetSwapchainImagesKHR(device.get(), _swapchain, &_nImgs, nullptr);
 
-	_swapchainImgs.resize(_nImgs);
-	_swapchainImgViews.resize(_nImgs);
+	_imgs.resize(_nImgs);
+	_imgViews.resize(_nImgs);
 
-	vkGetSwapchainImagesKHR(device.get(), _swapchain, &_nImgs, _swapchainImgs.data());
+	vkGetSwapchainImagesKHR(device.get(), _swapchain, &_nImgs, _imgs.data());
 
 	auto rgba = VK_COMPONENT_SWIZZLE_IDENTITY;
 	VkComponentMapping mapping = { rgba, rgba, rgba, rgba };
@@ -41,15 +41,15 @@ void VulkanSwapchain::init(const VulkanDevice& device, VulkanSurface& surface, c
 
 	for (uint32_t i = 0; i < _nImgs; ++i)
 	{
-		auto info = vkTypes::getImageViewCreateInfo(_swapchainImgs[i], mapping, subRng, surface.getFormat().format, VK_IMAGE_VIEW_TYPE_2D);
-		vkCreateImageView(device.get(), &info, nullptr, &_swapchainImgViews[i]);
+		auto info = vkTypes::getImageViewCreateInfo(_imgs[i], mapping, subRng, surface.getFormat().format, VK_IMAGE_VIEW_TYPE_2D);
+		vkCreateImageView(device.get(), &info, nullptr, &_imgViews[i]);
 	}
 }
 
 void VulkanSwapchain::destroy(const VulkanDevice& device)
 {
 	for (uint32_t i = 0; i < _nImgs; ++i)
-		vkDestroyImageView(device.get(), _swapchainImgViews[i], nullptr);
+		vkDestroyImageView(device.get(), _imgViews[i], nullptr);
 	vkDestroySwapchainKHR(device.get(), _swapchain, nullptr);
 }
 
@@ -58,9 +58,14 @@ const VkSwapchainKHR& VulkanSwapchain::get()
 	return _swapchain;
 }
 
+const std::vector<VkImage>& VulkanSwapchain::getImgs()
+{
+	return _imgs;
+}
+
 const std::vector<VkImageView>& VulkanSwapchain::getImgViews()
 {
-	return _swapchainImgViews;
+	return _imgViews;
 }
 
 int VulkanSwapchain::getImgCount() const

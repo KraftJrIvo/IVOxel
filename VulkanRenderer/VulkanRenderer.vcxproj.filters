@@ -108,6 +108,9 @@
     <ClInclude Include="ShaderDataMap.h">
       <Filter>Header Files\ShaderData</Filter>
     </ClInclude>
+    <ClInclude Include="VulkanImageBuffers.h">
+      <Filter>Header Files\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VulkanRenderer.cpp">
@@ -187,6 +190,9 @@
     </ClCompile>
     <ClCompile Include="ShaderDataCamera.cpp">
       <Filter>Source Files\ShaderData</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanImageBuffers.cpp">
+      <Filter>Source Files\Vulkan</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

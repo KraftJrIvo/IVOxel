@@ -1,6 +1,6 @@
 #include "VulkanFrameBuffers.h"
 
-void VulkanFrameBuffers::init(const VulkanDevice& device, VulkanRenderPass& renderPass, const std::pair<uint32_t, uint32_t>& winSz, 
+void VulkanFrameBuffers::init(const VulkanDevice& device, VulkanRenderPass& renderPass, const std::pair<uint32_t, uint32_t>& size, 
 	const VkImageView& depthStencilImgView, const std::vector<VkImageView>& swapchainImgViews)
 {
 	auto nSwapchainImgs = swapchainImgViews.size();
@@ -12,7 +12,7 @@ void VulkanFrameBuffers::init(const VulkanDevice& device, VulkanRenderPass& rend
 	for (uint32_t i = 0; i < nSwapchainImgs; ++i)
 	{
 		attachments[1] = swapchainImgViews[i];
-		auto info = vkTypes::getFramebufferCreateInfo(renderPass.get(), attachments, winSz.first, winSz.second, 1);
+		auto info = vkTypes::getFramebufferCreateInfo(renderPass.get(), attachments, size.first, size.second, 1);
 
 		vkCreateFramebuffer(device.get(), &info, nullptr, &_buffs[i]);
 	}
