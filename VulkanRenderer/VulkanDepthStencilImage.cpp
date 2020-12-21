@@ -1,9 +1,5 @@
 #include "VulkanDepthStencilImage.h"
 
-VulkanDepthStencilImage::VulkanDepthStencilImage()
-{
-}
-
 void VulkanDepthStencilImage::init(const VulkanDevice& device, VulkanSurface& surface)
 {
 	std::vector<VkFormat> formatsToTry =

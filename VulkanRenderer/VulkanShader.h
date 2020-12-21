@@ -14,7 +14,7 @@ public:
 	void create(const VkDevice& device);
 
 	const VkShaderModule& getShaderModule();
-	const VkPipelineShaderStageCreateInfo& getShaderStageCreateInfo();
+	const VkPipelineShaderStageCreateInfo& getShaderStageCreateInfo() const;
 	void destroy(const VkDevice& device);
 
 private:

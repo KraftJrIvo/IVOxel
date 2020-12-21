@@ -6,7 +6,6 @@
 class VulkanBuffer
 {
 public:
-	VulkanBuffer() = default;
 	~VulkanBuffer();
 
 	void create(const VulkanDevice& dev, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlags usage, VkMemoryPropertyFlags props);
@@ -15,6 +14,9 @@ public:
 
 	const VkBuffer& getBuffer();
 	uint32_t getElemsCount();
+
+	void initHost(const VulkanDevice& device, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage);
+	void initStaging(const VulkanDevice& device, void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage);
 
 private:
 	VkBuffer _buffer;
@@ -30,4 +32,5 @@ private:
 	bool _allocated;
 
 	uint32_t _findMemoryType(VkMemoryPropertyFlags props, uint32_t typeFilter);
+
 };

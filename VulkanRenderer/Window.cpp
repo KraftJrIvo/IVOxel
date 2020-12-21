@@ -274,7 +274,7 @@ void Window::handleMouseMove(int32_t x, int32_t y)
 
 	if (lmbDown) {
 		_deltaRot[0] = dy * 1.25f;
-		_deltaRot[1] = -dx * 1.25f;
+		_deltaRot[1] = dx * 1.25f;
 	}
 	mousePos = { x, y };
 }

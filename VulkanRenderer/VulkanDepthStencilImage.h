@@ -5,10 +5,7 @@
 class VulkanDepthStencilImage
 {
 public:
-	VulkanDepthStencilImage();
-
 	void init(const VulkanDevice& device, VulkanSurface& surface);
-
 	void destroy(const VulkanDevice& device);
 
 	const VkImage& get();

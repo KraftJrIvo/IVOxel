@@ -6,8 +6,6 @@
 class VulkanCommandBuffers
 {
 public:
-	VulkanCommandBuffers();
-
 	void init(const VulkanDevice& device, int nSwapchainImgCount);
 	void resize(std::size_t sz);
 	VkCommandBuffer& operator[](std::size_t idx);

@@ -1,9 +1,5 @@
 #include "VulkanCommandBuffers.h"
 
-VulkanCommandBuffers::VulkanCommandBuffers()
-{
-}
-
 void VulkanCommandBuffers::init(const VulkanDevice& device, int nSwapchainImgCount)
 {
 	_buffs.resize(nSwapchainImgCount);

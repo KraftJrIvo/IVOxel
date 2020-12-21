@@ -15,8 +15,8 @@ public:
 
 	void buildPyramid();
 
-	virtual void save() = 0;
-	virtual void load() = 0;
+	virtual void save() {}
+	virtual void load() {}
 
 	bool checkIfChunkIsPossible(const std::vector<float>& pos, const Eigen::Vector3f& dir) const;
 	const std::vector<std::pair<int32_t, int32_t>>& getMinMaxChunks() const;

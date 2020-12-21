@@ -75,6 +75,28 @@ uint32_t VulkanBuffer::getElemsCount()
 	return _nElems;
 }
 
+void VulkanBuffer::initHost(const VulkanDevice& device, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage)
+{
+	auto props = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	create(device, elemSz, nElems, usage, props);
+}
+
+void VulkanBuffer::initStaging(const VulkanDevice& device, void* data, uint32_t elemSz, uint32_t nElems, VkBufferUsageFlagBits usage)
+{
+	uint32_t totalSize = elemSz * nElems;
+
+	VulkanBuffer stagingBuf;
+	auto stagingBufType = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	stagingBuf.create(device, elemSz, nElems, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, stagingBufType);
+	stagingBuf.setData(data, 0, elemSz * nElems);
+
+	auto bufUse = VK_BUFFER_USAGE_TRANSFER_DST_BIT | usage;
+	auto bufType = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	create(device, elemSz, nElems, bufUse, bufType);
+
+	stagingBuf.copyTo(*this);
+}
+
 uint32_t VulkanBuffer::_findMemoryType(VkMemoryPropertyFlags props, uint32_t typeFilter)
 {
 	auto devProps = _dev->getPhysicalDevice()->getMemProps();

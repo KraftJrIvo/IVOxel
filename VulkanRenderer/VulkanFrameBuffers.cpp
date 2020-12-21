@@ -1,9 +1,5 @@
 #include "VulkanFrameBuffers.h"
 
-VulkanFrameBuffers::VulkanFrameBuffers()
-{
-}
-
 void VulkanFrameBuffers::init(const VulkanDevice& device, VulkanRenderPass& renderPass, const std::pair<uint32_t, uint32_t>& winSz, 
 	const VkImageView& depthStencilImgView, const std::vector<VkImageView>& swapchainImgViews)
 {

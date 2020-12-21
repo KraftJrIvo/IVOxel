@@ -7,8 +7,6 @@
 class VulkanSurface
 {
 public:
-	VulkanSurface();
-
 	void init(VulkanInstance& vulkan, Window& window);
 	void initFormat(const VulkanDevice& device);
 	void destroy(VulkanInstance& vulkan);

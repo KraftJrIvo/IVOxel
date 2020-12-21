@@ -5,7 +5,7 @@ layout(location = 0) in vec3 fragColor;
 
 layout(location = 0) out vec4 outColor;
 
-layout(set = 0, binding = 0) uniform ViewShaderInfo {
+layout(set = 0, binding = 0) uniform ViewShaderData {
     mat4 mvp;
     vec2 resolution;
     float time;
@@ -13,13 +13,13 @@ layout(set = 0, binding = 0) uniform ViewShaderInfo {
     vec3 pos;
 } view;
 
-layout(set = 1, binding = 0) uniform LightingShaderInfo {
+layout(set = 1, binding = 0) uniform LightingShaderData {
     vec4 coords[16];
     vec4 colors[16];
     int nLights;
 } light;
 
-layout(set = 2, binding = 0) uniform MapShaderInfo {
+layout(set = 2, binding = 0) uniform MapShaderData {
     vec4 chunkOffsets[8];
     uvec4 chunks[4096 / 16];
 } map;

@@ -1,9 +1,5 @@
 #include "VulkanSurface.h"
 
-VulkanSurface::VulkanSurface()
-{
-}
-
 void VulkanSurface::init(VulkanInstance& vulkan, Window& window)
 {
 	auto info = vkTypes::getSurfaceCreateInfo(window.getHInstance(), window.getHWND());

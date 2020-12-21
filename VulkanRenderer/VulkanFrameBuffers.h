@@ -6,8 +6,6 @@
 class VulkanFrameBuffers
 {
 public:
-	VulkanFrameBuffers();
-
 	void init(const VulkanDevice& device, VulkanRenderPass& renderPass, const std::pair<uint32_t, uint32_t>& winSz, const VkImageView& depthStencilImgView, const std::vector<VkImageView>& swapchainImgViews);
 	void resize(std::size_t sz);
 	VkFramebuffer& operator[](std::size_t idx);

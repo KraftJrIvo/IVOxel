@@ -1,9 +1,5 @@
 #include "VulkanSwapchain.h"
 
-VulkanSwapchain::VulkanSwapchain()
-{
-}
-
 void VulkanSwapchain::init(const VulkanDevice& device, VulkanSurface& surface, const std::pair<uint32_t, uint32_t>& winSz)
 {
 	uint32_t bufferSz = 2;
@@ -67,7 +63,7 @@ const std::vector<VkImageView>& VulkanSwapchain::getImgViews()
 	return _swapchainImgViews;
 }
 
-int VulkanSwapchain::getImgCount()
+int VulkanSwapchain::getImgCount() const
 {
 	return _nImgs;
 }

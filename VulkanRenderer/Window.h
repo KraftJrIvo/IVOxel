@@ -25,37 +25,38 @@ public:
 
 	void fullScreenSwitch();
 
-	std::vector<int32_t>				mousePos = {0,0};
-	bool								lmbDown = false;
-	bool								upPressed = false;
-	bool								downPressed = false;
-	bool								leftPressed = false;
-	bool								rightPressed = false;
-	bool								forwardPressed = false;
-	bool								backwardPressed = false;
+	std::vector<int32_t> mousePos = {0,0};
+	bool lmbDown         = false;
+	bool upPressed       = false;
+	bool downPressed     = false;
+	bool leftPressed     = false;
+	bool rightPressed    = false;
+	bool forwardPressed  = false;
+	bool backwardPressed = false;
 
 private:
-	void								_InitOSWindow();
-	void								_DeInitOSWindow();
-	void								_UpdateOSWindow();
+	void _InitOSWindow();
+	void _DeInitOSWindow();
+	void _UpdateOSWindow();
 
-	bool _wasResized =					false;
+	bool _wasResized = false;
 
-	uint32_t							_surface_size_x = 512;
-	uint32_t							_surface_size_y = 512;
-	std::wstring							_window_name;
+	uint32_t _surface_size_x = 512;
+	uint32_t _surface_size_y = 512;
+	std::wstring _window_name;
 
-	bool								_window_should_run = true;
+	bool _window_should_run = true;
 
-	HINSTANCE							_win32_instance = NULL;
-	HWND								_win32_window = NULL;
-	std::wstring							_win32_class_name;
-	static uint64_t						_win32_class_id_counter;
+	HINSTANCE		 _win32_instance = NULL;
+	HWND			 _win32_window = NULL;
+	std::wstring	 _win32_class_name;
+	static uint64_t	 _win32_class_id_counter;
 
-	std::vector<float>					_deltaRot = { 0,0 };
-	bool								_windowed = true;
-	WINDOWPLACEMENT						_wpc;
-	DWORD								_style = 0;
-	DWORD								_styleEx = 0;
+	std::vector<float> _deltaRot = { 0,0 };
+
+	bool			_windowed = true;
+	WINDOWPLACEMENT _wpc;
+	DWORD		    _style = 0;
+	DWORD		    _styleEx = 0;
 
 };

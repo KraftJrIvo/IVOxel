@@ -1,9 +1,5 @@
 #include "VulkanRenderPass.h"
 
-VulkanRenderPass::VulkanRenderPass()
-{
-}
-
 void VulkanRenderPass::init(const VulkanDevice& device, const VkFormat& depthStencilFormat, const VkFormat& surfaceFormat)
 {
 	std::vector<VkAttachmentDescription> attachments(2);

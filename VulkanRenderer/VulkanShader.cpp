@@ -60,7 +60,7 @@ const VkShaderModule& VulkanShader::getShaderModule()
     return _shader;
 }
 
-const VkPipelineShaderStageCreateInfo& VulkanShader::getShaderStageCreateInfo()
+const VkPipelineShaderStageCreateInfo& VulkanShader::getShaderStageCreateInfo() const
 {
     return _pssci;
 }
