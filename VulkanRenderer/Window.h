@@ -38,13 +38,13 @@ public:
 	bool backwardPressed = false;
 
 	float renderScale = 1.0;
+	bool justResized = false;
 
 private:
 	void _InitOSWindow();
 	void _DeInitOSWindow();
 	void _UpdateOSWindow();
 
-	bool _wasResized = false;
 
 	uint32_t _surface_size_x = 512;
 	uint32_t _surface_size_y = 512;

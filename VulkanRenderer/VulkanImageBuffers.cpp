@@ -4,10 +4,6 @@ void VulkanImageBuffers::init(const VulkanDevice& device, const VulkanSurface& s
 {
 	_nImgs = swapchain.getImgCount();
 
-	_hostBufs.resize(_nImgs);
-	for (auto& buf : _hostBufs)
-		buf.initHost(device, 32 * size.first * size.second, 1, VK_BUFFER_USAGE_TRANSFER_DST_BIT);
-
 	auto imageInfo = vkTypes::getImageCreateInfo(VK_IMAGE_TYPE_2D, surface.getFormat().format, VkImageUsageFlagBits(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT), size.first, size.second);
 	
 	_imgs.resize(_nImgs);
@@ -48,7 +44,6 @@ void VulkanImageBuffers::destroy(const VulkanDevice& device)
 		vkDestroyImage(device.get(), _imgs[i], nullptr);
 		vkFreeMemory(device.get(), _imgMems[i], nullptr);
 	}
-	_hostBufs.clear();
 }
 
 const std::vector<VkImageView>& VulkanImageBuffers::getImgViews()
@@ -59,9 +54,4 @@ const std::vector<VkImageView>& VulkanImageBuffers::getImgViews()
 VkImage& VulkanImageBuffers::operator[](std::size_t idx)
 {
 	return _imgs[idx];
-}
-
-VkBuffer VulkanImageBuffers::getBuf(uint32_t idx)
-{
-	return _hostBufs[idx].getBuffer();
 }

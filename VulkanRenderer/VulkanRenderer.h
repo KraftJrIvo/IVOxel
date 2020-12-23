@@ -25,9 +25,6 @@ public:
 	void stop();
 	bool runOnce();
 
-	void beginRender(uint32_t frameID);
-	void endRender(uint32_t frameID);
-
 private:
 	VulkanInstance _vulkan;
 	VulkanDevice _mainDevice;
@@ -61,12 +58,11 @@ private:
 
 	VkFramebuffer& _getCurrentFrameBuffer();
 
-	VkCommandBuffer _beginSingleTimeCommands();
-	void _endSingleTimeCommands(const VkCommandBuffer& commandBuffer);
-	void _transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-	void _copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-	void _copyImageToBuffer(VkImage image, VkBuffer buffer, uint32_t width, uint32_t height);
-	void _scaledImageToImage(VkImage image1, VkImage image2, uint32_t width, uint32_t height, float scale);
+	void _transitionImageLayout(VkCommandBuffer cb, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void _blitImage(VkCommandBuffer cb, VkImage image1, VkImage image2, uint32_t width, uint32_t height, float scale);
+
+	void _beginRender(uint32_t frameID);
+	void _endRender(uint32_t frameID);
 
 	bool _keepGoing = true;
 	bool _firstInit = true;

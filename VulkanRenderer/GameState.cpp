@@ -13,7 +13,7 @@ void GameState::init(Window* window)
 { 
 	_window = window;
 	_curRot = glm::vec2(0.0f, -90.0f);
-	_curTrans = glm::vec3(0.5f, 0.5f, 0.5f);
+	_curTrans = glm::vec3(1.5f, 0.5f, 0.5f);
 	_startTime = std::chrono::high_resolution_clock::now();
 
 	_shaderData = { std::make_shared<ShaderDataCamera>(), std::make_shared<ShaderDataLight>(), std::make_shared<ShaderDataMap>() };

@@ -87,7 +87,7 @@ void VulkanRenderer::run(const VoxelMap& map)
 	std::vector<VkClearValue> clearVals(2);
 	clearVals[0].depthStencil.depth = 1.0f;
 	clearVals[0].depthStencil.stencil = 0;
-	clearVals[1].color.float32[0] = 0.0f;
+	clearVals[1].color.float32[0] = 1.0f;
 	clearVals[1].color.float32[1] = 0.0f;
 	clearVals[1].color.float32[2] = 0.0f;
 	clearVals[1].color.float32[3] = 0.0f;
@@ -116,7 +116,7 @@ void VulkanRenderer::run(const VoxelMap& map)
 			_recreateEnv();
 		}
 
-		beginRender(frameID);
+		_beginRender(frameID);
 
 		if (_imgsInFlight[frameID]) {
 			vkWaitForFences(_mainDevice.get(), 1, &_frameFences[frameID], VK_TRUE, UINT64_MAX);
@@ -139,19 +139,24 @@ void VulkanRenderer::run(const VoxelMap& map)
 
 		vkCmdEndRenderPass(_commandBuffs[frameID]);
 
+		_transitionImageLayout(_commandBuffs[frameID], _images[frameID], _surface.getFormat().format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+		_transitionImageLayout(_commandBuffs[frameID], _swapchain.getImgs()[frameID], _surface.getFormat().format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		_blitImage(_commandBuffs[frameID], _images[frameID], _swapchain.getImgs()[frameID], renderArea.extent.width, renderArea.extent.height, window.getRenderScale());
+		_transitionImageLayout(_commandBuffs[frameID], _swapchain.getImgs()[frameID], _surface.getFormat().format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+
 		vkEndCommandBuffer(_commandBuffs[frameID]);
 
 		vkResetFences(_mainDevice.get(), 1, &_frameFences[frameID]);
 
 		_game.update(_descrPool, frameID);
 
-		std::vector<VkSemaphore> waitSemaphores = {_semImgAvailable[frameID]};
-		std::vector<VkSemaphore> signalSemaphores = {_semRenderDone[frameID]};
+		std::vector<VkSemaphore> waitSemaphores = { _semImgAvailable[frameID] };
+		std::vector<VkSemaphore> signalSemaphores = { _semRenderDone[frameID] };
 		std::vector<VkCommandBuffer> cmdBufs = { _commandBuffs[frameID] };
 		VkSubmitInfo submitInfo = vkTypes::getSubmitInfo(waitSemaphores, signalSemaphores, cmdBufs, waitStages);
 		vkQueueSubmit(queue, 1, &submitInfo, _frameFences[frameID]);
-
-		endRender(frameID);
+		
+		_endRender(frameID);
 
 		frameID = (frameID + 1) % _swapchain.getImgCount();
 
@@ -167,14 +172,14 @@ bool VulkanRenderer::runOnce()
 	return window.Update();
 }
 
-void VulkanRenderer::beginRender(uint32_t frameID)
+void VulkanRenderer::_beginRender(uint32_t frameID)
 {
 	auto& dev = _mainDevice.get();
 	vkWaitForFences(dev, 1, &_frameFences[frameID], VK_TRUE, UINT64_MAX);
 	vkAcquireNextImageKHR(dev, _swapchain.get(), UINT64_MAX, _semImgAvailable[frameID], VK_NULL_HANDLE, &_currentSwapchainImgID);
 }
 
-void VulkanRenderer::endRender(uint32_t frameID)
+void VulkanRenderer::_endRender(uint32_t frameID)
 {
 	std::vector<VkSwapchainKHR> swapchains = {_swapchain.get()};
 	std::vector<uint32_t> imgIds = {_currentSwapchainImgID};
@@ -182,13 +187,6 @@ void VulkanRenderer::endRender(uint32_t frameID)
 
 	std::vector<VkSemaphore> waitSemaphores = {_semRenderDone[frameID]};
 	auto info = vkTypes::getPresentInfo(waitSemaphores, swapchains, imgIds, results);
-
-	auto renderArea = window.getRenderArea();
-	_transitionImageLayout(_images[frameID], _surface.getFormat().format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
-	_copyImageToBuffer(_images[frameID], _images.getBuf(frameID), renderArea.extent.width, renderArea.extent.height);
-	_transitionImageLayout(_swapchain.getImgs()[frameID], _surface.getFormat().format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	_scaledImageToImage(_images[frameID], _swapchain.getImgs()[frameID], renderArea.extent.width, renderArea.extent.height, window.getRenderScale());
-	_transitionImageLayout(_swapchain.getImgs()[frameID], _surface.getFormat().format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
 	vkQueuePresentKHR(_mainDevice.getQueueByType(VK_QUEUE_GRAPHICS_BIT), &info);
 }
@@ -279,43 +277,8 @@ VkFramebuffer& VulkanRenderer::_getCurrentFrameBuffer()
 	return _frameBuffs[_currentSwapchainImgID];
 }
 
-VkCommandBuffer VulkanRenderer::_beginSingleTimeCommands() {
-	VkCommandBufferAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandPool = _mainDevice.getPool(_mainDevice.getQFIdByType(VK_QUEUE_GRAPHICS_BIT));
-	allocInfo.commandBufferCount = 1;
-
-	VkCommandBuffer commandBuffer;
-	vkAllocateCommandBuffers(_mainDevice.get(), &allocInfo, &commandBuffer);
-
-	VkCommandBufferBeginInfo beginInfo{};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-	vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-	return commandBuffer;
-}
-
-void VulkanRenderer::_endSingleTimeCommands(const VkCommandBuffer& commandBuffer) {
-	vkEndCommandBuffer(commandBuffer);
-
-	VkSubmitInfo submitInfo{};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
-
-	auto graphicsQueue = _mainDevice.getQueueByType(VK_QUEUE_GRAPHICS_BIT);
-	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(graphicsQueue);
-
-	vkFreeCommandBuffers(_mainDevice.get(), _mainDevice.getPool(_mainDevice.getQFIdByType(VK_QUEUE_GRAPHICS_BIT)), 1, &commandBuffer);
-}
-
-void VulkanRenderer::_transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
-	VkCommandBuffer commandBuffer = _beginSingleTimeCommands();
-
+void VulkanRenderer::_transitionImageLayout(VkCommandBuffer cb, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
+#ifdef _DEBUG
 	VkImageMemoryBarrier barrier{};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.oldLayout = oldLayout;
@@ -349,84 +312,17 @@ void VulkanRenderer::_transitionImageLayout(VkImage image, VkFormat format, VkIm
 	}
 
 	vkCmdPipelineBarrier(
-		commandBuffer,
+		cb,
 		sourceStage, destinationStage,
 		0,
 		0, nullptr,
 		0, nullptr,
 		1, &barrier
 	);
-
-	_endSingleTimeCommands(commandBuffer);
+#endif
 }
 
-void VulkanRenderer::_copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
-	VkCommandBuffer commandBuffer = _beginSingleTimeCommands();
-
-	VkBufferImageCopy region{};
-	region.bufferOffset = 0;
-	region.bufferRowLength = 0;
-	region.bufferImageHeight = 0;
-
-	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	region.imageSubresource.mipLevel = 0;
-	region.imageSubresource.baseArrayLayer = 0;
-	region.imageSubresource.layerCount = 1;
-
-	region.imageOffset = { 0, 0, 0 };
-	region.imageExtent = {
-		width,
-		height,
-		1
-	};
-
-	vkCmdCopyBufferToImage(
-		commandBuffer,
-		buffer,
-		image,
-		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		1,
-		&region
-	);
-
-	_endSingleTimeCommands(commandBuffer);
-}
-
-void VulkanRenderer::_copyImageToBuffer(VkImage image, VkBuffer buffer, uint32_t width, uint32_t height) {
-	VkCommandBuffer commandBuffer = _beginSingleTimeCommands();
-
-	VkBufferImageCopy region{};
-	region.bufferOffset = 0;
-	region.bufferRowLength = 0;
-	region.bufferImageHeight = 0;
-
-	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	region.imageSubresource.mipLevel = 0;
-	region.imageSubresource.baseArrayLayer = 0;
-	region.imageSubresource.layerCount = 1;
-
-	region.imageOffset = { 0, 0, 0 };
-	region.imageExtent = {
-		width,
-		height,
-		1
-	};
-
-	vkCmdCopyImageToBuffer(
-		commandBuffer,
-		image,
-		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-		buffer,
-		1,
-		&region
-	);
-
-	_endSingleTimeCommands(commandBuffer);
-}
-
-void VulkanRenderer::_scaledImageToImage(VkImage image1, VkImage image2, uint32_t width, uint32_t height, float scale) {
-	VkCommandBuffer commandBuffer = _beginSingleTimeCommands();
-
+void VulkanRenderer::_blitImage(VkCommandBuffer cb, VkImage image1, VkImage image2, uint32_t width, uint32_t height, float scale) {
 	VkOffset3D topLeft = { 0, 0, 0 };
 	VkOffset3D botRight = { width, height, 1 };
 	VkOffset3D topLeftSc = { 0, 0, 0 };
@@ -440,7 +336,5 @@ void VulkanRenderer::_scaledImageToImage(VkImage image1, VkImage image2, uint32_
 	imageBlitRegion.dstSubresource.layerCount = 1;
 	imageBlitRegion.dstOffsets[0] = topLeftSc;
 	imageBlitRegion.dstOffsets[1] = botRightSc;
-	vkCmdBlitImage(commandBuffer, image1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image2, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
-
-	_endSingleTimeCommands(commandBuffer);
+	vkCmdBlitImage(cb, image1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image2, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
 }

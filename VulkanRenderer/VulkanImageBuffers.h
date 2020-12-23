@@ -11,10 +11,8 @@ public:
 
 	const std::vector<VkImageView>& getImgViews();
 	VkImage& operator[](std::size_t idx);
-	VkBuffer getBuf(uint32_t idx);
 
 private:
-	std::vector<VulkanBuffer> _hostBufs;
 	std::vector<VkImage> _imgs;
 	std::vector<VkDeviceMemory> _imgMems;
 	std::vector<VkImageView> _imgViews;

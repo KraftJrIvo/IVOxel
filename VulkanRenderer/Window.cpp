@@ -32,7 +32,7 @@ void Window::setSurfaceSize(uint32_t w, uint32_t h)
 {
 	_surface_size_x = w;
 	_surface_size_y = h;
-	_wasResized = true;
+	justResized = true;
 }
 
 std::pair<uint32_t, uint32_t> Window::getSize()
@@ -47,9 +47,9 @@ std::pair<uint32_t, uint32_t> Window::getSizeScaled()
 
 bool Window::wasResized()
 {
-	if (_wasResized && !lmbDown)
+	if (justResized && !lmbDown)
 	{
-		_wasResized = false;
+		justResized = false;
 		return true;
 	}
 	return false;
@@ -139,11 +139,13 @@ LRESULT CALLBACK WindowsEventHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 			window->forwardPressed = true;
 			break;
 		case VK_ADD:
-			window->renderScale += 0.01f;
+			window->renderScale *= 2.0f;
+			window->justResized = true;
 			break;
 		case VK_SUBTRACT:
-			window->renderScale -= 0.01f;
+			window->renderScale /= 2.0f;
 			if (window->renderScale < 1.0f) window->renderScale = 1.0f;
+			else window->justResized = true;
 			break;
 		default:
 			break;
