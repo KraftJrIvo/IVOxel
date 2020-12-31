@@ -21,24 +21,26 @@
   <ItemGroup>
     <ClInclude Include="Light.h" />
     <ClInclude Include="NeighbourConnections.h" />
-    <ClInclude Include="TextFileMap.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="Voxel.h" />
     <ClInclude Include="VoxelChunk.h" />
+    <ClInclude Include="VoxelChunkStorer.h" />
     <ClInclude Include="VoxelMap.h" />
-    <ClInclude Include="VoxelMapType.h" />
-    <ClInclude Include="VoxelPyramid.h" />
+    <ClInclude Include="VoxelMapFormat.h" />
+    <ClInclude Include="VoxelChunkGenerator.h" />
+    <ClInclude Include="VoxelChunkPyramid.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="NeighbourConnections.cpp" />
-    <ClCompile Include="TextFileMap.cpp" />
     <ClCompile Include="types.cpp" />
     <ClCompile Include="Voxel.cpp" />
     <ClCompile Include="VoxelChunk.cpp" />
+    <ClCompile Include="VoxelChunkGenerator.cpp" />
+    <ClCompile Include="VoxelChunkStorer.cpp" />
     <ClCompile Include="VoxelMap.cpp" />
-    <ClCompile Include="VoxelMapType.cpp" />
-    <ClCompile Include="VoxelPyramid.cpp" />
+    <ClCompile Include="VoxelMapFormat.cpp" />
+    <ClCompile Include="VoxelChunkPyramid.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

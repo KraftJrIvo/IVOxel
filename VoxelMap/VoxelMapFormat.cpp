@@ -1,19 +1,16 @@
-#include "VoxelMapType.h"
+#include "VoxelMapFormat.h"
 
-VoxelMapType::VoxelMapType()
+VoxelMapFormat::VoxelMapFormat()
 {
 	computeSizeInBytes();
 }
 
-VoxelMapType::VoxelMapType(VoxelTypeFormat _typeFormat, VoxelColorFormat _colorFormat, VoxelNeighbourInfoFormat _neightInfoFormat) :
-	typeFormat(_typeFormat),
-	colorFormat(_colorFormat),
-	neightInfoFormat(_neightInfoFormat)
+VoxelMapFormat::VoxelMapFormat(ChunkFormat chunkFormat, VoxelFormat voxelFormat)
 {
 	computeSizeInBytes();
 }
 
-uint8_t VoxelMapType::computeSizeInBytes()
+uint8_t VoxelMapFormat::computeSizeInBytes()
 {
 	sizeInBytes = 0;
 
@@ -73,7 +70,7 @@ uint8_t VoxelMapType::computeSizeInBytes()
 	return sizeInBytes;
 }
 
-std::vector<uint8_t> VoxelMapType::formatType(int32_t type, uint8_t orientation, bool flipX, bool flipY, bool flipZ)
+std::vector<uint8_t> VoxelMapFormat::formatType(int32_t type, uint8_t orientation, bool flipX, bool flipY, bool flipZ)
 {
 	//TODO flip
 
@@ -97,7 +94,7 @@ std::vector<uint8_t> VoxelMapType::formatType(int32_t type, uint8_t orientation,
 	}
 }
 
-std::vector<uint8_t> VoxelMapType::formatColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+std::vector<uint8_t> VoxelMapFormat::formatColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	uint8_t rgb8;
 
@@ -121,14 +118,14 @@ std::vector<uint8_t> VoxelMapType::formatColor(uint8_t r, uint8_t g, uint8_t b, 
 	}
 }
 
-std::vector<uint8_t> VoxelMapType::formatNeighbours(const std::vector<int32_t>& neighsTypes, int32_t type)
+std::vector<uint8_t> VoxelMapFormat::formatNeighbours(const std::vector<int32_t>& neighsTypes, int32_t type)
 {
 	//TODO
 
 	return {};
 }
 
-utils::VoxelData VoxelMapType::unformatVoxelData(const uint8_t* data)
+utils::VoxelData VoxelMapFormat::unformatVoxelData(const uint8_t* data)
 {
 	//TODO orient
 
@@ -140,13 +137,13 @@ utils::VoxelData VoxelMapType::unformatVoxelData(const uint8_t* data)
 	{
 	case VoxelTypeFormat::UINT8:
 	case VoxelTypeFormat::UINT8_WITH_ORIENTATION:
-		std::get<0>(voxData) = *((int8_t*)ptr);
-		ptr += sizeof(int8_t);
+		std::get<0>(voxData) = *((uint8_t*)ptr);
+		ptr += sizeof(uint8_t);
 		break;
 	case VoxelTypeFormat::UINT16:
 	case VoxelTypeFormat::UINT16_WITH_ORIENTATION:
-		std::get<0>(voxData) = *((int16_t*)ptr);
-		ptr += sizeof(int16_t);
+		std::get<0>(voxData) = *((uint16_t*)ptr);
+		ptr += sizeof(uint16_t);
 		break;
 	}
 

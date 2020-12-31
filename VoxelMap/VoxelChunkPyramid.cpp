@@ -1,10 +1,10 @@
-#include "VoxelPyramid.h"
+#include "VoxelChunkPyramid.h"
 
 #include <map>
 #include <algorithm>
 #include <functional>
 
-VoxelPyramid::VoxelPyramid() :
+VoxelChunkPyramid::VoxelChunkPyramid() :
 	base(0),
 	power(0),
 	side(0),
@@ -12,8 +12,8 @@ VoxelPyramid::VoxelPyramid() :
 {	
 }
 
-VoxelPyramid::VoxelPyramid(const std::vector<uint32_t>& size, const VoxelMapType& _type) :
-	type(_type)
+VoxelChunkPyramid::VoxelChunkPyramid(const VoxelMapFormat& format_) :
+	format(format_)
 {
 	uint32_t maxDim = std::max(size[0], std::max(size[1], size[2]));
 	base = (maxDim % 3 == 0) ? 3 : 2;
@@ -21,10 +21,10 @@ VoxelPyramid::VoxelPyramid(const std::vector<uint32_t>& size, const VoxelMapType
 
 	side = std::pow(base, power);
 
-	nVoxBytes = type.sizeInBytes;
+	nVoxBytes = format.sizeInBytes;
 }
 
-void VoxelPyramid::build(const std::vector<uint32_t>& size, const std::vector<uint8_t>& types, const std::vector<uint8_t>& colors, const std::vector<uint8_t>& neighbours)
+void VoxelChunkPyramid::build(const std::vector<Voxel>& voxels)
 {
 	std::vector<std::vector<uint32_t>> leavesOnLayers;
 	std::vector<std::vector<int32_t>> offsets;
@@ -187,7 +187,7 @@ void VoxelPyramid::build(const std::vector<uint32_t>& size, const std::vector<ui
 		data = utils::joinVectors(data, tempData[i]);
 }
 
-uint8_t VoxelPyramid::getPyramLayerBytesCount(uint8_t base, uint8_t power)
+uint8_t VoxelChunkPyramid::getPyramLayerBytesCount(uint8_t base, uint8_t power)
 {
 	static std::map<uint8_t, std::map<uint8_t, uint8_t>> bytesForPyramLayers;
 

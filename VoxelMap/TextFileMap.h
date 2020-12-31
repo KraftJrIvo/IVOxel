@@ -7,7 +7,7 @@
 class TextFileMap : public VoxelMap
 {
 public:
-	TextFileMap(const VoxelMapType& type);
+	TextFileMap(const VoxelMapFormat& format);
 
 	void setFilePath(std::string path);
 

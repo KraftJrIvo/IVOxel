@@ -8,9 +8,9 @@ int main()
 	GPURenderer renderer;
 	//CPURenderer renderer;
 	
-	VoxelMapType mapType(VoxelTypeFormat::UINT8, VoxelColorFormat::RGB256, VoxelNeighbourInfoFormat::NO_NEIGHBOUR_INFO);
+	VoxelMapFormat mapFormat(VoxelTypeFormat::UINT8, VoxelColorFormat::RGB256, VoxelNeighbourInfoFormat::NO_NEIGHBOUR_INFO);
 
-	TextFileMap map(mapType);
+	TextFileMap map(mapFormat);
 	map.setFilePath("test_map.txt");
 	map.load();
 

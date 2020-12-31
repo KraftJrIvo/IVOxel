@@ -1,20 +1,25 @@
 #pragma once
 
-#include "VoxelPyramid.h"
+#include "VoxelChunkPyramid.h"
+#include "Voxel.h"
 
-struct VoxelChunk
+class VoxelChunk
 {
+public:
 	VoxelChunk();
-	VoxelChunk(const std::vector<uint32_t>& size, const VoxelMapType& _type);
+	VoxelChunk(const std::vector<Voxel>& voxels, const VoxelMapFormat& format);
 
-	// these are initially filled while loading map according to the map type
-	std::vector<uint32_t> size;
-	std::vector<uint8_t> vTypes;
-	std::vector<uint8_t> vColors;
-	std::vector<uint8_t> vNeighbours;
+	bool modified = false;
+	uint32_t side;
 
-	VoxelMapType type;
-	VoxelPyramid pyramid;
+	VoxelMapFormat format;
+	VoxelChunkPyramid pyramid;
 
-	void buildPyramid();
+	void changeVoxels(const std::vector<VoxelModifyData>& voxels);
+	Voxel getVoxel(const std::vector<float>& chunkPos);
+	bool isEmpty();
+
+private:
+
+	void _buildPyramid(const std::vector<Voxel>& voxels);
 };

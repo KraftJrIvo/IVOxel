@@ -2,73 +2,150 @@
 
 #include <algorithm>
 
-VoxelMap::VoxelMap()
+VoxelMap::VoxelMap(const VoxelMapFormat& format, const VoxelChunkGenerator& generator, uint32_t loadRadius) :
+	_format(format),
+	_generator(generator),
+	_loadRadius(loadRadius),
+	_loadDiameter(loadRadius * 2 + 1),
+	_curAbsPos({0,0,0})
+{ }
+
+VoxelChunk& VoxelMap::getChunk(const std::vector<int32_t>& pos)
 {
-	_maxMinChunk.resize(DIMENSIONS, { 0,0 });
+	std::vector<int32_t> absPos = { _curAbsPos[X] + pos[X], _curAbsPos[Y] + pos[Y], _curAbsPos[Z] + pos[Z] };
+	
+	uint32_t idx = _getIdx(absPos);
+
+	if (idx < _chunks.size())
+		return _chunks[idx];
+
+	return _emptyChunk;
 }
 
-VoxelMap::VoxelMap(const VoxelMapType& type) :
-	_type(type)
+VoxelMapFormat VoxelMap::getFormat() const
 {
-	_maxMinChunk.resize(DIMENSIONS, { 0,0 });
+	return _format;
 }
 
-void VoxelMap::buildPyramid()
+std::vector<Light> VoxelMap::getLightsByChunk(const std::vector<int32_t>& pos, uint32_t radius) const
 {
-	for (auto& chunk : _chunks)
-		chunk.buildPyramid();
-}
+	std::vector<Light> lights;
 
-bool VoxelMap::checkIfChunkIsPossible(const std::vector<float>& pos, const Eigen::Vector3f& dir) const
-{
-	bool notFail = true;
-
-	for (uint8_t i = 0; i < DIMENSIONS && notFail; ++i)
-		notFail &= (dir[i] > 0 && pos[i] < _maxMinChunk[i].second) || (pos[i] > _maxMinChunk[X].first);
-
-	return notFail;
-}
-
-VoxelChunk& VoxelMap::_addChunk(const std::vector<int32_t>& pos, const std::vector<uint32_t>& sz)
-{
-	for (uint8_t j = 0; j < DIMENSIONS; ++j)
+	for (auto l : _lights)
 	{
-		_maxMinChunk[j].first = std::min(_maxMinChunk[j].first, pos[j] - 1);
-		_maxMinChunk[j].second = std::max(_maxMinChunk[j].second, pos[j] + 1);
+		auto& lpos = l.second.position;
+		if (lpos[X] <= pos[X] + radius && lpos[X] >= pos[X] - radius &&
+			lpos[Y] <= pos[Y] + radius && lpos[Y] >= pos[Y] - radius &&
+			lpos[Z] <= pos[Z] + radius && lpos[Z] >= pos[Z] - radius)
+			lights.push_back(l.second);
 	}
 
-	_chunksIds[pos[X]][pos[Y]][pos[Z]] = _chunks.size();
-	_chunks.push_back(VoxelChunk(sz, _type));
-	return _chunks[_chunks.size() - 1];
+	return lights;
 }
 
-const std::vector<std::pair<int32_t, int32_t>>& VoxelMap::getMinMaxChunks() const
+bool VoxelMap::checkLoadNeeded(const std::vector<int32_t>& pos)
 {
-	return _maxMinChunk;
+	if (_curAbsPos[X] != pos[X] || _curAbsPos[Y] != pos[Y] || _curAbsPos[Z] != pos[Z])
+	{
+		auto diff = { pos[X] - _curAbsPos[X], pos[Y] - _curAbsPos[Y], pos[Z] - _curAbsPos[Z] };
+
+
+
+		_curAbsPos = pos;
+
+		return true;
+	}
+	return false;
 }
 
-VoxelChunk* VoxelMap::getChunk(const std::vector<int32_t>& pos) const
+uint32_t VoxelMap::_getIdx(const std::vector<int32_t>& pos) const
 {
-	if (_chunksIds.count(pos[X]))
-		if (_chunksIds.at(pos[X]).count(pos[Y]))
-			if (_chunksIds.at(pos[X]).at(pos[Y]).count(pos[Z]))
-				return (VoxelChunk*)&_chunks[_chunksIds.at(pos[X]).at(pos[Y]).at(pos[Z])];
-	return nullptr;
+	return pos[Z] * _loadDiameter * _loadDiameter + pos[Y] * _loadDiameter + pos[X];;
 }
 
-VoxelMapType VoxelMap::getType() const
+std::vector<uint8_t> VoxelMap::getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius)
 {
-	return _type;
+	uint32_t cubeSide = radius + 1;
+	uint32_t nChunks = cubeSide * cubeSide * cubeSide;
+
+	uint32_t currVoxPyrOffset = 0;
+	uint32_t CHUNK_SZ = 40;
+	uint32_t VOX_SZ = 24;
+
+	std::vector<uint8_t> chunkData(nChunks * CHUNK_SZ, 0);
+	auto chunkDataPtr = chunkData.data();
+
+	std::vector<uint8_t> voxData;
+	auto voxDataPtr = voxData.data();
+
+	std::vector<int32_t> pos = { absPos[X] - _curAbsPos[X], absPos[Y] - _curAbsPos[Y], absPos[Z] - _curAbsPos[Z] };
+
+	for (int32_t x = pos[0] - radius; ++x; x <= pos[0] + radius)
+		for (int32_t y = pos[0] - radius; ++y; y <= pos[0] + radius)
+			for (int32_t z = pos[0] - radius; ++z; z <= pos[0] + radius)
+			{
+				// empty? 1 byte
+				uint8_t empty = getChunk(pos).isEmpty();
+				std::memcpy(chunkDataPtr, &empty, sizeof(uint8_t));
+				chunkDataPtr += sizeof(uint8_t);
+
+				// base 1 byte
+				uint8_t base = getChunk(pos).pyramid.base;
+				std::memcpy(chunkDataPtr, &base, sizeof(uint8_t));
+				chunkDataPtr += sizeof(uint8_t);
+
+				// power 1 byte
+				uint8_t power = getChunk(pos).pyramid.power;
+				std::memcpy(chunkDataPtr, &power, sizeof(uint8_t));
+				chunkDataPtr += sizeof(uint8_t);
+
+				// extra 1 byte
+				uint8_t extra = 0;
+				std::memcpy(chunkDataPtr, &extra, sizeof(uint8_t));
+				chunkDataPtr += sizeof(uint8_t);
+
+				// voxel pyramid offset 4 bytes
+				std::memcpy(chunkDataPtr, &currVoxPyrOffset, sizeof(uint32_t));
+				uint32_t curVoxPyrSize = pow(base, power) * VOX_SZ;
+				currVoxPyrOffset += curVoxPyrSize;
+				chunkDataPtr += sizeof(uint32_t);
+
+				// chunk parals 32 bytes
+				std::vector<float> parals = getChunkParals(pos);
+				std::memcpy(chunkDataPtr, parals.data(), 4 * sizeof(float));
+				chunkDataPtr += 4 * sizeof(float);
+
+				voxData.resize(voxData.size() + curVoxPyrSize, 0);
+
+			}
+
+
+
+	return utils::joinVectors(chunkData, voxData);
 }
 
-const std::vector<std::vector<Light>>& VoxelMap::getLightsByChunks() const
+std::vector<float> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 {
-	return _lightsByChunks;
+	std::vector<float> res;
+
+	return res;
 }
 
-void VoxelMap::moveLight(uint32_t chunkID, uint32_t lightID, const std::vector<float>& pos)
+uint32_t VoxelMap::addLight(const Light& l)
 {
-	if (chunkID < _chunks.size() && lightID < _lightsByChunks[chunkID].size())
-		_lightsByChunks[chunkID][lightID].position = pos;
+	_lights[++_lastLightId] = l;
+	return _lastLightId;
+}
+
+void VoxelMap::moveLight(uint32_t lightID, const std::vector<float>& absPos)
+{
+	_lights[lightID].position = absPos;
+}
+
+void VoxelMap::removeLight(uint32_t lightID)
+{
+	auto l = _lights.find(lightID);
+	if (l != _lights.end())
+		_lights.erase(lightID);
 }
 

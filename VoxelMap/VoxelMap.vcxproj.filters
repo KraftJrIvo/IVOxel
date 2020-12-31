@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TextFileMap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="VoxelChunk.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -30,23 +27,26 @@
     <ClInclude Include="Light.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VoxelMapType.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="VoxelPyramid.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="NeighbourConnections.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Voxel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="VoxelMapFormat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VoxelChunkPyramid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VoxelChunkGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VoxelChunkStorer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="TextFileMap.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="VoxelChunk.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -59,16 +59,22 @@
     <ClCompile Include="Light.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VoxelMapType.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="VoxelPyramid.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="NeighbourConnections.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Voxel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VoxelMapFormat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VoxelChunkPyramid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VoxelChunkGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VoxelChunkStorer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

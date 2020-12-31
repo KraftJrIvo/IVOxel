@@ -310,7 +310,7 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const std::vector<uchar>& p
 	uint32_t zLayerLen = std::pow(base, DIMENSIONS - 1);
 	uint32_t yRowLen = std::pow(base, DIMENSIONS - 2);
 
-	uint8_t bytesForThisLayer = VoxelPyramid::getPyramLayerBytesCount(base, curPwr);
+	uint8_t bytesForThisLayer = VoxelChunkPyramid::getPyramLayerBytesCount(base, curPwr);
 
 	bool offsetIsFinal = false;
 	while (!offsetIsFinal)
@@ -343,7 +343,7 @@ Voxel CPURenderer::getVoxelData(const VoxelMap& map, const std::vector<uchar>& p
 		curLayerLen *= std::pow(base, DIMENSIONS);
 
 		curPwr++;
-		bytesForThisLayer = VoxelPyramid::getPyramLayerBytesCount(base, curPwr);
+		bytesForThisLayer = VoxelChunkPyramid::getPyramLayerBytesCount(base, curPwr);
 		ptr += bytesForThisLayer * uint32_t(val * std::pow(base, DIMENSIONS) + curPwrLayerPos); // skipping to the value of interest
 	}
 

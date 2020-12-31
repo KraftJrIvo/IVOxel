@@ -4,36 +4,44 @@
 
 #include <Eigen/Core>
 
+#include "VoxelChunkGenerator.h"
+#include "VoxelChunkStorer.h"
 #include "VoxelChunk.h"
 #include "Light.h"
 
 class VoxelMap
 {
 public:
-	VoxelMap();
-	VoxelMap(const VoxelMapType& type);
+	VoxelMap() = default;
+	VoxelMap(const VoxelMapFormat& format, const VoxelChunkGenerator& generator, uint32_t loadRadius = 7);
 
-	void buildPyramid();
+	VoxelMapFormat getFormat() const;
+	VoxelChunk& getChunk(const std::vector<int32_t>& pos);
+	std::vector<uint8_t> getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius);
+	std::vector<float> getChunkParals(const std::vector<int32_t>& pos);
+	
+	uint32_t addLight(const Light& l);
+	void moveLight(uint32_t lightID, const std::vector<float>& absPos);
+	void removeLight(uint32_t lightID);
+	std::vector<Light> getLightsByChunk(const std::vector<int32_t>& pos, uint32_t radius = 0) const;
 
-	virtual void save() {}
-	virtual void load() {}
-
-	bool checkIfChunkIsPossible(const std::vector<float>& pos, const Eigen::Vector3f& dir) const;
-	const std::vector<std::pair<int32_t, int32_t>>& getMinMaxChunks() const;
-	VoxelChunk* getChunk(const std::vector<int32_t>& pos) const;
-	VoxelMapType getType() const;
-	void moveLight(uint32_t chunkID, uint32_t lightID, const std::vector<float>& pos);
-
-	const std::vector<std::vector<Light>>& getLightsByChunks() const;
+	bool checkLoadNeeded(const std::vector<int32_t>& pos);
 
 protected:
-	VoxelMapType _type;
+	uint32_t _loadRadius;
+	uint32_t _loadDiameter;
+	VoxelChunk _emptyChunk;
+
+	VoxelMapFormat _format;
+	const VoxelChunkGenerator& _generator;
+	VoxelChunkStorer _storer;
 
 	std::vector<VoxelChunk> _chunks;
-	std::map<int32_t, std::map<int32_t, std::map<int32_t, uint32_t>>> _chunksIds;
-	std::vector<std::pair<int32_t, int32_t>> _maxMinChunk;
 
-	std::vector<std::vector<Light>> _lightsByChunks;
+	uint32_t _lastLightId = 0;
+	std::map<uint32_t, Light> _lights;
 
-	VoxelChunk& _addChunk(const std::vector<int32_t>& pos, const std::vector<uint32_t>& sz);
+	std::vector<int32_t> _curAbsPos;
+
+	uint32_t _getIdx(const std::vector<int32_t>& pos) const;
 };

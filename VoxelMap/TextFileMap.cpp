@@ -5,8 +5,8 @@
 #include <sstream>
 #include <algorithm>
 
-TextFileMap::TextFileMap(const VoxelMapType& type) :
-	VoxelMap(type)
+TextFileMap::TextFileMap(const VoxelMapFormat& format) :
+	VoxelMap(format)
 {
 }
 
@@ -65,7 +65,7 @@ void TextFileMap::load()
 		for (uint32_t j = 0; j < voxelCount; ++j)
 		{
 			auto& voxTxt = *it++;
-			uint8_t vox = (voxTxt[0] == '-') ? 255 : std::stoi(voxTxt);
+			uint16_t vox = (voxTxt[0] == '-') ? uint16_t(-1) : std::stoi(voxTxt);
 
 			auto formattedType = _type.formatType(vox);
 			chunk.vTypes = utils::joinVectors(chunk.vTypes, formattedType);

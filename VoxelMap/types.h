@@ -35,30 +35,99 @@
 #define FRONT		4
 #define BACK		5
 
-enum class VoxelColorFormat
+enum class VoxelFullnessFormat
 {
-	NO_COLOR,					// 0 bytes
-	GRAYSCALE,					// 1 byte
-	RGB256,						// 1 byte
-	RGB256_WITH_ALPHA,			// 2 bytes: 1 byte color + 1 byte alpha
-	THREE_BYTES_RGB,			// 3 bytes (r g b)
-	THREE_BYTES_RGB_WITH_ALPHA	// 4 bytes (r g b a)
+	UINT8,							// 1 byte
+	UINT16,							// 2 bytes
+	UINT24,							// 3 bytes
+	UINT32							// 4 bytes
+};
+
+enum class ChunkFullnessFormat
+{
+	UINT8,							// 1 byte
+	UINT16,							// 2 bytes
+	UINT24,							// 3 bytes
+	UINT32							// 4 bytes
+};
+
+enum class ChunkOffsetFormat
+{
+	UINT8,							// 1 byte
+	UINT16,							// 2 bytes
+	UINT24,							// 3 bytes
+	UINT32							// 4 bytes
 };
 
 enum class VoxelTypeFormat
 {
-	NO_TYPE,					// 0 bytes
-	UINT8,						// 1 byte
-	UINT8_WITH_ORIENTATION,		// 2 bytes: 1 byte type + 1 byte orientation (0 flipZ flipY flipX - high half, orientation - low half)
-	UINT16,						// 2 bytes
-	UINT16_WITH_ORIENTATION,	// 3 bytes: 2 bytes type + 1 byte orientation
+	NO_TYPE,						// 0 bytes
+	UINT8,							// 1 byte
+	UINT16							// 2 bytes
+};
+
+enum class VoxelOrientationFormat
+{
+	NO_ORIENTATION,						// 0 bytes
+	UINT8							// 1 byte: mirror 0 2b:xrot 2b:yrot 2b:zrot
+};
+
+enum class ChunkSizeFormat
+{
+	NO_SIZE,						// 0 bytes
+	UINT8,							// 1 byte
+	UINT16,							// 2 bytes
+	BASE_POWER_UINT8,				// 2 bytes
+	UINT24,							// 3 bytes
+	UINT32							// 4 bytes
+};
+
+enum class VoxelColorFormat
+{
+	NO_COLOR,						// 0 bytes
+	GRAYSCALE,						// 1 byte
+	RGB256,							// 1 byte
+	RGB256_WITH_ALPHA,				// 2 bytes: 1 byte color + 1 byte alpha
+	RGB_THREE_BYTES,				// 3 bytes (r g b)
+	RGBA_FOUR_BYTES		            // 4 bytes (r g b a)
 };
 
 enum class VoxelNeighbourInfoFormat
 {
-	NO_NEIGHBOUR_INFO,			// 0 bytes
-	BINARY_6_DIR_INFO,			// 1 byte: 6 bits are used (from high to low: 0 0 l r d u b f)
-	BINARY_26_DIR_INFO			// 4 bytes: 26 bits are used
+	NO_NEIGHBOUR_INFO,				// 0 bytes
+	SIX_DIRS_ONE_BYTE,				// 1 byte: 6 bits are used (from high to low: 0 0 l r d u b f)
+	TWENTY_SIX_DIRS_FOUR_BYTES		// 4 bytes: 26 bits are used (from high to low: 0 0 0 0 0 0 l ld lu lb lf ldb ldf lub luf r rd ru rb rf rdb rdf rub ruf d db df u ub uf b f)
+};
+
+enum class ParalsInfoFormat
+{
+	NO_PARALS,						// 0 bytes
+	CUBIC_UINT8,					// 8 bytes
+	NON_CUBIC_UINT8,				// 24 bytes
+	CUBIC_FLOAT32,					// 24 bytes
+	NON_CUBIC_FLOAT32				// 72 bytes
+};
+
+struct VoxelFormat
+{
+	VoxelFullnessFormat      fullness;
+	VoxelTypeFormat          type;
+	VoxelOrientationFormat   orientation;
+	VoxelColorFormat         color;
+	VoxelNeighbourInfoFormat neighbour;
+	ParalsInfoFormat         parals;
+
+	uint32_t getSizeInBytes(bool alignToFourBytes = true);
+};
+
+struct ChunkFormat
+{
+	ChunkFullnessFormat fullness;
+	ChunkOffsetFormat   offset;
+	ChunkSizeFormat     size;
+	ParalsInfoFormat    parals;
+
+	uint32_t getSizeInBytes(bool alignToFourBytes = true);
 };
 
 namespace utils
@@ -74,5 +143,5 @@ namespace utils
 
 	float calculateDist(const std::vector<float>& start, const std::vector<float>& end, float div = 1.0f);
 
-	typedef std::tuple<int32_t, std::vector<uint8_t>, NeighbourConnections> VoxelData;
+	typedef std::tuple<uint32_t, std::vector<uint8_t>, NeighbourConnections> VoxelData;
 }
