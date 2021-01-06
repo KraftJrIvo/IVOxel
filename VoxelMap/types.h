@@ -4,8 +4,6 @@
 #include <string>
 #include <istream>
 
-#include "NeighbourConnections.h"
-
 // 3d coords
 #define DIMENSIONS 3
 #define X 0
@@ -20,22 +18,7 @@
 #define B 2
 #define A 3
 
-// orientaion
-#define NO_DIR		0
-#define LEFT		0
-#define RIGHT		1
-#define DOWN		2
-#define UP			3
-#define BACKWARD	4
-#define FORWARD		5
-
-// sides
-#define BOTTOM		2
-#define TOP			3
-#define FRONT		4
-#define BACK		5
-
-enum class VoxelFullnessFormat
+enum class VoxelFullnessFormat 
 {
 	UINT8,							// 1 byte
 	UINT16,							// 2 bytes
@@ -68,8 +51,8 @@ enum class VoxelTypeFormat
 
 enum class VoxelOrientationFormat
 {
-	NO_ORIENTATION,						// 0 bytes
-	UINT8							// 1 byte: mirror 0 2b:xrot 2b:yrot 2b:zrot
+	NO_ORIENTATION,					// 0 bytes
+	UINT8							// 1 byte (see VoxelOrientation type)
 };
 
 enum class ChunkSizeFormat
@@ -117,17 +100,17 @@ struct VoxelFormat
 	VoxelNeighbourInfoFormat neighbour;
 	ParalsInfoFormat         parals;
 
-	uint32_t getSizeInBytes(bool alignToFourBytes = true);
+	uint32_t getSizeInBytes(bool alignToFourBytes = true) const;
 };
 
-struct ChunkFormat
+struct VoxelChunkFormat
 {
 	ChunkFullnessFormat fullness;
 	ChunkOffsetFormat   offset;
 	ChunkSizeFormat     size;
 	ParalsInfoFormat    parals;
 
-	uint32_t getSizeInBytes(bool alignToFourBytes = true);
+	uint32_t getSizeInBytes(bool alignToFourBytes = true) const;
 };
 
 namespace utils
@@ -143,5 +126,31 @@ namespace utils
 
 	float calculateDist(const std::vector<float>& start, const std::vector<float>& end, float div = 1.0f);
 
-	typedef std::tuple<uint32_t, std::vector<uint8_t>, NeighbourConnections> VoxelData;
+	template <typename T>
+	void appendBytes(std::vector<uint8_t>& bytes, T val)
+	{
+		const uint8_t* pVal = (const uint8_t*)&val;
+		size_t sizeInBytes = sizeof(T);
+		bytes.insert(bytes.end(), pVal, pVal + sizeInBytes);
+	}
+
+	template <typename T>
+	void appendBytes(std::vector<uint8_t>& bytes, T val, size_t customSize)
+	{
+		const uint8_t* pVal = (const uint8_t*)val;
+		size_t sizeInBytes = customSize;
+		bytes.insert(bytes.end(), pVal, pVal + sizeInBytes);
+	}
+
+	void appendBytes(std::vector<uint8_t>& bytes, std::vector<uint8_t> extraBytes)
+	{
+		auto prevSz = bytes.size();
+		bytes.resize(bytes.size() + extraBytes.size());
+		memcpy(bytes.data() + prevSz, extraBytes.data(), extraBytes.size());
+	}
+
+	uint8_t packByte(const bool& a7, const bool& a6, const bool& a5, const bool& a4, const bool& a3, const bool& a2, const bool& a1, const bool& a0)
+	{
+		return (a7 ? 128 : 0) | (a6 ? 64 : 0) | (a5 ? 32 : 0) | (a4 ? 16 : 0) | (a3 ? 8 : 0) | (a2 ? 4 : 0) | (a1 ? 2 : 0) | (a0 ? 1 : 0);
+	}
 }

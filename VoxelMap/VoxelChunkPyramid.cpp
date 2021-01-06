@@ -12,7 +12,7 @@ VoxelChunkPyramid::VoxelChunkPyramid() :
 {	
 }
 
-VoxelChunkPyramid::VoxelChunkPyramid(const VoxelMapFormat& format_) :
+VoxelChunkPyramid::VoxelChunkPyramid(const VoxelChunkFormat& format_) :
 	format(format_)
 {
 	uint32_t maxDim = std::max(size[0], std::max(size[1], size[2]));

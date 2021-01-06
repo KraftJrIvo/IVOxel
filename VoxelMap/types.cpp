@@ -47,7 +47,7 @@ namespace utils
 
 }
 
-uint32_t VoxelFormat::getSizeInBytes(bool alignToFourBytes)
+uint32_t VoxelFormat::getSizeInBytes(bool alignToFourBytes) const
 {
 	uint32_t res = 0;
 
@@ -147,7 +147,7 @@ uint32_t VoxelFormat::getSizeInBytes(bool alignToFourBytes)
 	return res;
 }
 
-uint32_t ChunkFormat::getSizeInBytes(bool alignToFourBytes)
+uint32_t VoxelChunkFormat::getSizeInBytes(bool alignToFourBytes) const
 {
 	uint32_t res = 0;
 
@@ -208,6 +208,24 @@ uint32_t ChunkFormat::getSizeInBytes(bool alignToFourBytes)
 		break;
 	case ChunkSizeFormat::UINT32:
 		res += 4;
+		break;
+	default:
+		break;
+	}
+
+	switch (parals)
+	{
+	case ParalsInfoFormat::CUBIC_UINT8:
+		res += 8;
+		break;
+	case ParalsInfoFormat::NON_CUBIC_UINT8:
+		res += 3 * 8;
+		break;
+	case ParalsInfoFormat::CUBIC_FLOAT32:
+		res += sizeof(float) * 8;
+		break;
+	case ParalsInfoFormat::NON_CUBIC_FLOAT32:
+		res += sizeof(float) * 3 * 8;
 		break;
 	default:
 		break;

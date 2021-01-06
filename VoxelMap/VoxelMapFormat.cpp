@@ -1,190 +1,324 @@
 #include "VoxelMapFormat.h"
 
-VoxelMapFormat::VoxelMapFormat()
+VoxelMapFormat::VoxelMapFormat(VoxelChunkFormat VoxelChunkFormat_, VoxelFormat voxelFormat_) :
+	VoxelChunkFormat(VoxelChunkFormat_),
+	voxelFormat(voxelFormat_)
+{ }
+
+uint32_t VoxelMapFormat::getSizeInBytes(uint32_t nVoxels, bool alignToFourBytes) const
 {
-	computeSizeInBytes();
+	uint32_t res = VoxelChunkFormat.getSizeInBytes() + nVoxels * voxelFormat.getSizeInBytes();
+
+	if (alignToFourBytes)
+		return ceil(float(res) / 4.0f);
+
+	return res;
 }
 
-VoxelMapFormat::VoxelMapFormat(ChunkFormat chunkFormat, VoxelFormat voxelFormat)
+std::vector<uint8_t> VoxelMapFormat::formatVoxel(const Voxel& voxel, const std::vector<uint8_t>& neighs, const std::vector<uint8_t>& parals, bool alignToFourBytes) const
 {
-	computeSizeInBytes();
-}
+	std::vector<uint8_t> res;
+	res.reserve(voxelFormat.getSizeInBytes(alignToFourBytes));
 
-uint8_t VoxelMapFormat::computeSizeInBytes()
-{
-	sizeInBytes = 0;
+	switch (voxelFormat.fullness)
+	{
+	case VoxelFullnessFormat::UINT8:
+		utils::appendBytes(res, uint8_t(voxel.isEmpty()));
+		break;
+	case VoxelFullnessFormat::UINT16:
+		utils::appendBytes(res, uint16_t(voxel.isEmpty()), 2);
+		break;
+	case VoxelFullnessFormat::UINT24:
+		utils::appendBytes(res, uint32_t(voxel.isEmpty()), 3);
+		break;
+	case VoxelFullnessFormat::UINT32:
+		utils::appendBytes(res, uint32_t(voxel.isEmpty()), 4);
+		break;
+	default:
+		break;
+	}
 
-	sizeInBytesType = 0;
-	switch (typeFormat)
+	switch (voxelFormat.type)
 	{
 	case VoxelTypeFormat::UINT8:
-		sizeInBytesType = sizeInBytes += 1;
+		utils::appendBytes(res, uint8_t(voxel.type), 1);
 		break;
-	case VoxelTypeFormat::UINT8_WITH_ORIENTATION:
 	case VoxelTypeFormat::UINT16:
-		sizeInBytesType = sizeInBytes += 2;
+		utils::appendBytes(res, uint16_t(voxel.type), 2);
 		break;
-	case VoxelTypeFormat::UINT16_WITH_ORIENTATION:
-		sizeInBytesType = sizeInBytes += 3;
-		break;
-	case VoxelTypeFormat::NO_TYPE:
 	default:
 		break;
 	}
 
-	sizeInBytesColor = 0;
-	switch (colorFormat)
+	switch (voxelFormat.orientation)
 	{
-	case VoxelColorFormat::GRAYSCALE:
-	case VoxelColorFormat::RGB256:
-		sizeInBytes += sizeInBytesColor += 1;
+	case VoxelOrientationFormat::UINT8:
+		utils::appendBytes(res, voxel.getOrientation());
 		break;
-	case VoxelColorFormat::RGB256_WITH_ALPHA:
-		sizeInBytes += sizeInBytesColor += 2;
-		break;
-	case VoxelColorFormat::THREE_BYTES_RGB:
-		sizeInBytes += sizeInBytesColor += 3;
-		break;
-	case VoxelColorFormat::THREE_BYTES_RGB_WITH_ALPHA:
-		sizeInBytes += sizeInBytesColor += 4;
-		break;
-	case VoxelColorFormat::NO_COLOR:
 	default:
 		break;
 	}
 
-	sizeInBytesNeighbourInfo = 0;
-	switch (neightInfoFormat)
-	{
-	case VoxelNeighbourInfoFormat::BINARY_6_DIR_INFO:
-		sizeInBytes += sizeInBytesNeighbourInfo += 1;
-		break;
-	case VoxelNeighbourInfoFormat::BINARY_26_DIR_INFO:
-		sizeInBytes += sizeInBytesNeighbourInfo += 4;
-		break;
-	case VoxelNeighbourInfoFormat::NO_NEIGHBOUR_INFO:
-	default:
-		break;
-	}
-
-	return sizeInBytes;
-}
-
-std::vector<uint8_t> VoxelMapFormat::formatType(int32_t type, uint8_t orientation, bool flipX, bool flipY, bool flipZ)
-{
-	//TODO flip
-
-	uint8_t* ptr;
-
-	switch (typeFormat)
-	{
-	case VoxelTypeFormat::UINT8:
-		return { uint8_t(type) };
-	case VoxelTypeFormat::UINT8_WITH_ORIENTATION:
-		return { uint8_t(type), orientation };
-	case VoxelTypeFormat::UINT16:
-		ptr = (uint8_t*)(&type);
-		return { ptr[1], ptr[0] };
-	case VoxelTypeFormat::UINT16_WITH_ORIENTATION:
-		ptr = (uint8_t*)(&type);
-		return { ptr[1], ptr[0], orientation };
-	case VoxelTypeFormat::NO_TYPE:
-	default:
-		return {};
-	}
-}
-
-std::vector<uint8_t> VoxelMapFormat::formatColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a)
-{
 	uint8_t rgb8;
-
-	switch (colorFormat)
+	switch (voxelFormat.color)
 	{
 	case VoxelColorFormat::GRAYSCALE:
-		return { r };
+		utils::appendBytes(res, voxel.color[0]);
+		break;
 	case VoxelColorFormat::RGB256:
-		rgb8 = utils::encodeRGB(r, g, b);
-		return { rgb8 };
+		rgb8 = utils::encodeRGB(voxel.color[0], voxel.color[1], voxel.color[2]);
+		utils::appendBytes(res, rgb8);
+		break;
 	case VoxelColorFormat::RGB256_WITH_ALPHA:
-		rgb8 = utils::encodeRGB(r, g, b);
-		return { rgb8, a };
-	case VoxelColorFormat::THREE_BYTES_RGB:
-		return { r, g, b };
-	case VoxelColorFormat::THREE_BYTES_RGB_WITH_ALPHA:
-		return { r, g, b, a };
-	case VoxelColorFormat::NO_COLOR:
-	default:
+		rgb8 = utils::encodeRGB(voxel.color[0], voxel.color[1], voxel.color[2]);
+		utils::appendBytes(res, rgb8);
+		utils::appendBytes(res, voxel.color[3]);
+		break;
+	case VoxelColorFormat::RGB_THREE_BYTES:
+		utils::appendBytes(res, voxel.color[0]);
+		utils::appendBytes(res, voxel.color[1]);
+		utils::appendBytes(res, voxel.color[2]);
+		break;
+	case VoxelColorFormat::RGBA_FOUR_BYTES:
+		utils::appendBytes(res, voxel.color[0]);
+		utils::appendBytes(res, voxel.color[1]);
+		utils::appendBytes(res, voxel.color[2]);
+		utils::appendBytes(res, voxel.color[3]);
 		break;
 	}
+
+	utils::appendBytes(res, neighs);
+
+	utils::appendBytes(res, parals);
 }
 
-std::vector<uint8_t> VoxelMapFormat::formatNeighbours(const std::vector<int32_t>& neighsTypes, int32_t type)
+Voxel VoxelMapFormat::unformatVoxel(const uint8_t* data, uint8_t power) const
 {
-	//TODO
+	Voxel voxel(voxelFormat, power);
 
-	return {};
-}
+	switch (voxelFormat.fullness)
+	{
+	case VoxelFullnessFormat::UINT8:
+		data += 1;
+		break;
+	case VoxelFullnessFormat::UINT16:
+		data += 2;
+		break;
+	case VoxelFullnessFormat::UINT24:
+		data += 3;
+		break;
+	case VoxelFullnessFormat::UINT32:
+		data += 4;
+		break;
+	}
 
-utils::VoxelData VoxelMapFormat::unformatVoxelData(const uint8_t* data)
-{
-	//TODO orient
-
-	utils::VoxelData voxData;
-
-	uint8_t* ptr = (uint8_t*)data;
-
-	switch (typeFormat)
+	switch (voxel.format.type)
 	{
 	case VoxelTypeFormat::UINT8:
-	case VoxelTypeFormat::UINT8_WITH_ORIENTATION:
-		std::get<0>(voxData) = *((uint8_t*)ptr);
-		ptr += sizeof(uint8_t);
+		voxel.type = VoxelType(*data);
+		data++;
 		break;
 	case VoxelTypeFormat::UINT16:
-	case VoxelTypeFormat::UINT16_WITH_ORIENTATION:
-		std::get<0>(voxData) = *((uint16_t*)ptr);
-		ptr += sizeof(uint16_t);
+		voxel.type = VoxelType(*(uint16_t*)data);
+		data += 2;
 		break;
-	}
-
-	auto& color = std::get<1>(voxData);
-	color = {0, 0, 0, 255};
-	uint8_t rgb256;
-	switch (colorFormat)
-	{
-	case VoxelColorFormat::GRAYSCALE:
-		color[R] = color[G] = color[B] = *ptr;
-		ptr += sizeof(uint8_t);
-		break;
-	case VoxelColorFormat::RGB256:
-		rgb256 = *ptr;
-		color = utils::decodeRGB(rgb256);
-		ptr += sizeof(uint8_t);
-		break;
-	case VoxelColorFormat::RGB256_WITH_ALPHA:
-		rgb256 = *ptr;
-		color = utils::decodeRGB(rgb256);
-		ptr += sizeof(uint8_t);
-		color[A] = *ptr;
-		ptr += sizeof(uint8_t);
-		break;
-	case VoxelColorFormat::THREE_BYTES_RGB:
-		color[R] = *(ptr++);
-		color[G] = *(ptr++);
-		color[B] = *(ptr++);
-		break;
-	case VoxelColorFormat::THREE_BYTES_RGB_WITH_ALPHA:
-		color[R] = *(ptr++);
-		color[G] = *(ptr++);
-		color[B] = *(ptr++);
-		color[A] = *(ptr++);
-		break;
-	case VoxelColorFormat::NO_COLOR:
 	default:
 		break;
 	}
 
-	//TODO unformat neighbours
+	switch (voxel.format.orientation)
+	{
+	case VoxelOrientationFormat::UINT8:
+		voxel.setOrientation(*data++);
+		break;
+	default:
+		break;
+	}
 
-	return voxData;
+	std::vector<uint8_t> rgb;
+	switch (voxel.format.color)
+	{
+	case VoxelColorFormat::GRAYSCALE:
+		voxel.color[0] = voxel.color[1] = voxel.color[2] = data[0];
+		voxel.color[3] = 255;
+		break;
+	case VoxelColorFormat::RGB256:
+		rgb = utils::decodeRGB(data[0]);
+		voxel.color = {rgb[0], rgb[1], rgb[2], 255};
+		break;
+	case VoxelColorFormat::RGB256_WITH_ALPHA:
+		rgb = utils::decodeRGB(data[0]);
+		voxel.color = { rgb[0], rgb[1], rgb[2], data[1] };
+		break;
+	case VoxelColorFormat::RGB_THREE_BYTES:
+		voxel.color = { data[0], data[1], data[2], 255 };
+		break;
+	case VoxelColorFormat::RGBA_FOUR_BYTES:
+		voxel.color = { data[0], data[1], data[2], data[3] };
+		break;
+	}
+}
+
+std::vector<uint8_t> VoxelMapFormat::formatChunkHeader(const VoxelChunk& chunk, uint32_t voxDataOffset, const std::vector<uint8_t>& parals, bool alignToFourBytes) const
+{
+	std::vector<uint8_t> res;
+	res.reserve(chunkFormat.getSizeInBytes(alignToFourBytes));
+
+	switch (chunkFormat.fullness)
+	{
+	case ChunkFullnessFormat::UINT8:
+		utils::appendBytes(res, chunk.isEmpty());
+		break;
+	case ChunkFullnessFormat::UINT16:
+		utils::appendBytes(res, uint16_t(chunk.isEmpty()));
+		break;
+	case ChunkFullnessFormat::UINT24:
+		utils::appendBytes(res, uint32_t(chunk.isEmpty()), 3);
+		break;
+	case ChunkFullnessFormat::UINT32:
+		utils::appendBytes(res, uint32_t(chunk.isEmpty()));
+		break;
+	default:
+		break;
+	}
+
+	switch (chunkFormat.offset)
+	{
+	case ChunkOffsetFormat::UINT8:
+		utils::appendBytes(res, uint8_t(voxDataOffset));
+		break;
+	case ChunkOffsetFormat::UINT16:
+		utils::appendBytes(res, uint16_t(voxDataOffset));
+		break;
+	case ChunkOffsetFormat::UINT24:
+		utils::appendBytes(res, voxDataOffset, 3);
+		break;
+	case ChunkOffsetFormat::UINT32:
+		utils::appendBytes(res, voxDataOffset);
+		break;
+	default:
+		break;
+	}
+
+	switch (chunkFormat.size)
+	{
+	case ChunkSizeFormat::UINT8:
+		utils::appendBytes(res, uint8_t(chunk.side));
+		break;
+	case ChunkSizeFormat::UINT16:
+		utils::appendBytes(res, uint16_t(chunk.side));
+		break;
+	case ChunkSizeFormat::BASE_POWER_UINT8:
+		utils::appendBytes(res, chunk.pyramid.base);
+		utils::appendBytes(res, chunk.pyramid.power);
+		break;
+	case ChunkSizeFormat::UINT24:
+		utils::appendBytes(res, uint32_t(chunk.side), 3);
+		break;
+	case ChunkSizeFormat::UINT32:
+		utils::appendBytes(res, uint32_t(chunk.side));
+		break;
+	default:
+		break;
+	}
+
+	utils::appendBytes(res, parals);
+
+	return res;
+}
+
+std::vector<uint8_t> VoxelMapFormat::formatChunk(const VoxelChunk& chunk, bool alignToFourBytes) const
+{
+	std::vector<uint8_t> res;
+	uint32_t size = voxelFormat.getSizeInBytes(alignToFourBytes) * pow(chunk.side, 3);
+	res.reserve(size);
+
+	for (uint32_t x = 0; x < chunk.side; ++x)
+		for (uint32_t y = 0; y < chunk.side; ++y)
+			for (uint32_t z = 0; z < chunk.side; ++z)
+			{
+				auto voxPos = { x * chunk.minOffset, y * chunk.minOffset, z * chunk.minOffset };
+				auto vox = chunk.getVoxel(voxPos);
+				auto neighs = chunk.getNeighbours(vox, voxPos, voxelFormat.neighbour);
+				auto parals = chunk.getVoxParals(vox, voxPos, voxelFormat.parals);
+				utils::appendBytes(res, formatVoxel(vox, neighs, parals, alignToFourBytes));
+			}
+
+	return res;
+}
+
+VoxelChunk VoxelMapFormat::unformatChunk(const uint8_t* header, const uint8_t* data, bool alignToFourBytes) const
+{
+	std::vector<Voxel> voxels;
+
+	switch (chunkFormat.fullness)
+	{
+	case ChunkFullnessFormat::UINT8:
+		header++;
+		break;
+	case ChunkFullnessFormat::UINT16:
+		header+=2;
+		break;
+	case ChunkFullnessFormat::UINT24:
+		header += 3;
+		break;
+	case ChunkFullnessFormat::UINT32:
+		header += 4;
+		break;
+	}
+
+	uint32_t offset = 0;
+	switch (chunkFormat.offset)
+	{
+	case ChunkOffsetFormat::UINT8:
+		offset = *header++;
+		break;
+	case ChunkOffsetFormat::UINT16:
+		offset = *((uint16_t*)header);
+		header += 2;
+		break;
+	case ChunkOffsetFormat::UINT24:
+		offset = (*((uint32_t*)header) >> 1) & 0x00ffffff;
+		header += 3;
+		break;
+	case ChunkOffsetFormat::UINT32:
+		offset = *((uint32_t*)header);
+		header += 4;
+		break;
+	default:
+		break;
+	}
+
+	uint32_t side = 0;
+	uint8_t power = 0;
+	switch (chunkFormat.size)
+	{
+	case ChunkSizeFormat::UINT8:
+		side = *header++;
+		break;
+	case ChunkSizeFormat::UINT16:
+		side = *((uint16_t*)header);
+		break;
+	case ChunkSizeFormat::BASE_POWER_UINT8:
+		side = pow(header[0], header[1]);
+		power = header[1];
+		break;
+	case ChunkSizeFormat::UINT24:
+		side = (*((uint32_t*)header) >> 1) & 0x00ffffff;
+		break;
+	case ChunkSizeFormat::UINT32:
+		side = *((uint32_t*)header);
+		break;
+	default:
+		break;
+	}
+
+	auto voxSz = voxelFormat.getSizeInBytes(alignToFourBytes);
+	auto sideSq = side * side;
+	for (uint32_t x = 0; x < side; ++x)
+		for (uint32_t y = 0; y < side; ++y)
+			for (uint32_t z = 0; z < side; ++z)
+				voxels.push_back(unformatVoxel(data + offset + voxSz * (z * sideSq + y * side + x), power));
+
+	return VoxelChunk(voxels, chunkFormat);
 }

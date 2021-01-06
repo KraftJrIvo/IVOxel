@@ -49,7 +49,7 @@ bool VoxelMap::checkLoadNeeded(const std::vector<int32_t>& pos)
 	{
 		auto diff = { pos[X] - _curAbsPos[X], pos[Y] - _curAbsPos[Y], pos[Z] - _curAbsPos[Z] };
 
-
+		// TODO
 
 		_curAbsPos = pos;
 

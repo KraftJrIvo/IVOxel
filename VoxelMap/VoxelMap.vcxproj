@@ -20,7 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Light.h" />
-    <ClInclude Include="NeighbourConnections.h" />
     <ClInclude Include="types.h" />
     <ClInclude Include="Voxel.h" />
     <ClInclude Include="VoxelChunk.h" />
@@ -32,7 +31,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Light.cpp" />
-    <ClCompile Include="NeighbourConnections.cpp" />
     <ClCompile Include="types.cpp" />
     <ClCompile Include="Voxel.cpp" />
     <ClCompile Include="VoxelChunk.cpp" />
