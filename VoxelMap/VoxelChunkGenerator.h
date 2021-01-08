@@ -1,6 +1,7 @@
 #pragma once
 
 #include "VoxelChunk.h"
+#include "VoxelMapFormat.h"
 
 class VoxelChunkGenerator
 {

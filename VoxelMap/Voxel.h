@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "types.h"
 
 enum class VoxelType
@@ -24,7 +26,7 @@ enum class VoxelOrientation
 class Voxel
 {
 public:
-	Voxel(const VoxelFormat& format, uint8_t power = 0, VoxelType type = VoxelType::AIR, VoxelOrientation orientation = VoxelOrientation::DEFAULT,
+	Voxel(uint8_t power = 0, VoxelType type = VoxelType::AIR, VoxelOrientation orientation = VoxelOrientation::DEFAULT,
 		const std::vector<uint8_t>& rgba = {0,0,0,0});
 
 	std::vector<uint32_t> getData();
@@ -32,7 +34,6 @@ public:
 	uint8_t getOrientation() const;
 	void setOrientation(uint8_t orientation);
 
-	const VoxelFormat& format;
 	uint8_t power;
 	VoxelType type;
 	VoxelOrientation orientation;

@@ -1,7 +1,6 @@
 #include "Voxel.h"
 
-Voxel::Voxel(const VoxelFormat& format_, uint8_t power_, VoxelType type_, VoxelOrientation orientation_, const std::vector<uint8_t>& rgba) :
-	format(format_),
+Voxel::Voxel(uint8_t power_, VoxelType type_, VoxelOrientation orientation_, const std::vector<uint8_t>& rgba) :
 	power(power_),
 	type(type_),
 	orientation(orientation_),
