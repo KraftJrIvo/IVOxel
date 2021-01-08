@@ -1,13 +1,13 @@
 #include "VoxelMapFormat.h"
 
-VoxelMapFormat::VoxelMapFormat(VoxelChunkFormat VoxelChunkFormat_, VoxelFormat voxelFormat_) :
-	VoxelChunkFormat(VoxelChunkFormat_),
+VoxelMapFormat::VoxelMapFormat(VoxelChunkFormat chunkFormat_, VoxelFormat voxelFormat_) :
+	chunkFormat(chunkFormat_),
 	voxelFormat(voxelFormat_)
 { }
 
 uint32_t VoxelMapFormat::getSizeInBytes(uint32_t nVoxels, bool alignToFourBytes) const
 {
-	uint32_t res = VoxelChunkFormat.getSizeInBytes() + nVoxels * voxelFormat.getSizeInBytes();
+	uint32_t res = chunkFormat.getSizeInBytes() + nVoxels * voxelFormat.getSizeInBytes();
 
 	if (alignToFourBytes)
 		return ceil(float(res) / 4.0f);

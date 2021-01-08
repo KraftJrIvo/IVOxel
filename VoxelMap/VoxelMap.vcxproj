@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="Light.h" />
     <ClInclude Include="types.h" />
+    <ClInclude Include="VCGeneratorSin.h" />
     <ClInclude Include="Voxel.h" />
     <ClInclude Include="VoxelChunk.h" />
     <ClInclude Include="VoxelChunkStorer.h" />
@@ -32,6 +33,7 @@
   <ItemGroup>
     <ClCompile Include="Light.cpp" />
     <ClCompile Include="types.cpp" />
+    <ClCompile Include="VCGeneratorSin.cpp" />
     <ClCompile Include="Voxel.cpp" />
     <ClCompile Include="VoxelChunk.cpp" />
     <ClCompile Include="VoxelChunkGenerator.cpp" />

@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\generators">
+      <UniqueIdentifier>{0e2f019a-81ef-482b-acba-f50ba9761494}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VoxelChunk.h">
@@ -42,6 +45,9 @@
     <ClInclude Include="VoxelChunkStorer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="VCGeneratorSin.h">
+      <Filter>Header Files\generators</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VoxelChunk.cpp">
@@ -69,6 +75,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="VoxelChunkStorer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VCGeneratorSin.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
