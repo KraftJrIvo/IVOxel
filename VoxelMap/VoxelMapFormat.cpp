@@ -94,7 +94,7 @@ std::vector<uint8_t> VoxelMapFormat::formatVoxel(const Voxel& voxel, const std::
 
 Voxel VoxelMapFormat::unformatVoxel(const uint8_t* data, uint8_t power) const
 {
-	Voxel voxel(voxelFormat, power);
+	Voxel voxel(power);
 
 	switch (voxelFormat.fullness)
 	{
@@ -112,7 +112,7 @@ Voxel VoxelMapFormat::unformatVoxel(const uint8_t* data, uint8_t power) const
 		break;
 	}
 
-	switch (voxel.format.type)
+	switch (voxelFormat.type)
 	{
 	case VoxelTypeFormat::UINT8:
 		voxel.type = VoxelType(*data);
@@ -126,7 +126,7 @@ Voxel VoxelMapFormat::unformatVoxel(const uint8_t* data, uint8_t power) const
 		break;
 	}
 
-	switch (voxel.format.orientation)
+	switch (voxelFormat.orientation)
 	{
 	case VoxelOrientationFormat::UINT8:
 		voxel.setOrientation(*data++);
@@ -136,7 +136,7 @@ Voxel VoxelMapFormat::unformatVoxel(const uint8_t* data, uint8_t power) const
 	}
 
 	std::vector<uint8_t> rgb;
-	switch (voxel.format.color)
+	switch (voxelFormat.color)
 	{
 	case VoxelColorFormat::GRAYSCALE:
 		voxel.color[0] = voxel.color[1] = voxel.color[2] = data[0];

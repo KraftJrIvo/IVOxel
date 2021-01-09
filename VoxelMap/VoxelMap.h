@@ -18,7 +18,7 @@ public:
 	VoxelMapFormat getFormat() const;
 	VoxelChunk& getChunk(const std::vector<int32_t>& pos);
 	std::vector<uint8_t> getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius);
-	std::vector<float> getChunkParals(const std::vector<int32_t>& pos);
+	std::vector<uint8_t> getChunkParals(const std::vector<int32_t>& pos);
 	
 	uint32_t addLight(const Light& l);
 	void moveLight(uint32_t lightID, const std::vector<float>& absPos);

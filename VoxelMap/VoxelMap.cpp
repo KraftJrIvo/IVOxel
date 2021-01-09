@@ -84,6 +84,10 @@ std::vector<uint8_t> VoxelMap::getChunksDataAt(const std::vector<int32_t>& absPo
 		for (int32_t y = pos[0] - radius; ++y; y <= pos[0] + radius)
 			for (int32_t z = pos[0] - radius; ++z; z <= pos[0] + radius)
 			{
+				auto chunk = getChunk({x, y, z});
+				auto parals = getChunkParals({ x, y, z });
+				_format.formatChunkHeader(chunk, 123, parals, )
+
 				// empty? 1 byte
 				uint8_t empty = getChunk(pos).isEmpty();
 				std::memcpy(chunkDataPtr, &empty, sizeof(uint8_t));
@@ -124,9 +128,65 @@ std::vector<uint8_t> VoxelMap::getChunksDataAt(const std::vector<int32_t>& absPo
 	return utils::joinVectors(chunkData, voxData);
 }
 
-std::vector<float> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
+std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 {
-	std::vector<float> res;
+	std::vector<uint8_t> res;
+	uint8_t oct = 0;
+
+	auto checkParal = [&](const std::vector<int16_t>& from, const std::vector<int16_t>& to)
+	{
+		for (int8_t x = from[0]; x <= to[0]; x++)
+			for (int8_t y = from[1]; y <= to[1]; y++)
+				for (int8_t z = from[2]; z <= to[2]; z++)
+					if (!getChunk({x,y,z}).isEmpty())
+						return false;
+		return true;
+	};
+
+	for (int16_t xOff = -1; xOff <= 1; xOff += 2)
+		for (int16_t yOff = -1; yOff <= 1; yOff += 2)
+			for (int16_t zOff = -1; zOff <= 1; zOff += 2)
+			{
+				int16_t x, y, z;
+				bool xGo = true, yGo = true, zGo = true, stop = false;
+				for (x = 0; abs(x) < 256 && !stop; x += xOff * xGo)
+					for (y = 0; abs(y) < 256 && !stop; y += yOff * yGo)
+						for (z = 0; abs(z) < 256 && !stop; z += zOff * zGo)
+						{
+							xGo = checkParal({ short(x + xOff), 0, 0 }, { short(x + xOff), y, z });
+							zGo = checkParal({ 0, 0, short(z + zOff) }, { xGo ? short(x + xOff) : x, y, short(z + zOff) });
+							yGo = checkParal({ 0, short(y + yOff), 0 }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z });
+
+							if (format == ParalsInfoFormat::CUBIC_UINT8 || format == ParalsInfoFormat::CUBIC_FLOAT32)
+								if (!xGo || !yGo || !zGo)
+								{
+									stop = true;
+
+									if (format == ParalsInfoFormat::CUBIC_FLOAT32)
+										res.push_back(x);
+									else
+										utils::appendBytes(res, x * offset);
+								}
+								else
+									if (!xGo && !yGo && !zGo)
+									{
+										stop = true;
+										if (format == ParalsInfoFormat::NON_CUBIC_FLOAT32)
+										{
+											utils::appendBytes(res, x * offset);
+											utils::appendBytes(res, y * offset);
+											utils::appendBytes(res, z * offset);
+										}
+										else
+										{
+											res.push_back(x);
+											res.push_back(y);
+											res.push_back(z);
+										}
+									}
+						}
+				oct++;
+			}
 
 	return res;
 }
