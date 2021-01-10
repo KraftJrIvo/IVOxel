@@ -8,13 +8,13 @@ void ShaderDataLight::update(VulkanDescriptorPool& pool, uint32_t frameID, uint3
 	auto lsbc = game.getMap().getLightsByChunks();
 	uint32_t curLight = 0;
 	const size_t colorSz = 3 * sizeof(float);
-	const size_t posSz = DIMENSIONS * sizeof(float);
+	const size_t posSz = 3 * sizeof(float);
 	static float t = 0;
 	for (auto& ls : lsbc)
 	{
 		for (auto& l : ls)
 		{
-			std::vector<float> color = { l.rgba[R] / 255.0f, l.rgba[G] / 255.0f, l.rgba[B] / 255.0f };
+			std::vector<float> color = { l.rgba[0] / 255.0f, l.rgba[1] / 255.0f, l.rgba[2] / 255.0f };
 
 			auto pos = l.position;
 

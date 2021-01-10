@@ -16,6 +16,9 @@
     <Filter Include="Header Files\generators">
       <UniqueIdentifier>{0e2f019a-81ef-482b-acba-f50ba9761494}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\generators">
+      <UniqueIdentifier>{67fed9d7-cc1c-4695-99e3-554c632a7026}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VoxelChunk.h">
@@ -78,7 +81,7 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="VCGeneratorSin.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\generators</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

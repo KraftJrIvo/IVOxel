@@ -4,20 +4,6 @@
 #include <string>
 #include <istream>
 
-// 3d coords
-#define DIMENSIONS 3
-#define X 0
-#define Y 1
-#define Z 2
-
-// color
-#define RGB 3
-#define RGBA 4
-#define R 0
-#define G 1
-#define B 2
-#define A 3
-
 enum class VoxelFullnessFormat 
 {
 	UINT8,							// 1 byte
@@ -89,28 +75,6 @@ enum class ParalsInfoFormat
 	NON_CUBIC_UINT8,				// 24 bytes
 	CUBIC_FLOAT32,					// 24 bytes
 	NON_CUBIC_FLOAT32				// 72 bytes
-};
-
-struct VoxelFormat
-{
-	VoxelFullnessFormat      fullness;
-	VoxelTypeFormat          type;
-	VoxelOrientationFormat   orientation;
-	VoxelColorFormat         color;
-	VoxelNeighbourInfoFormat neighbour;
-	ParalsInfoFormat         parals;
-
-	uint32_t getSizeInBytes(bool alignToFourBytes = true) const;
-};
-
-struct VoxelChunkFormat
-{
-	ChunkFullnessFormat fullness;
-	ChunkOffsetFormat   offset;
-	ChunkSizeFormat     size;
-	ParalsInfoFormat    parals;
-
-	uint32_t getSizeInBytes(bool alignToFourBytes = true) const;
 };
 
 namespace utils

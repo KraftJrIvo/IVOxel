@@ -18,12 +18,12 @@ Camera::Camera(float fov, const std::vector<uint16_t>& resolution) :
 
 void Camera::move(const std::vector<float>& delta)
 {
-	for (uint8_t i = 0; i < DIMENSIONS; ++i)
+	for (uint8_t i = 0; i < 3; ++i)
 		translation[i] += delta[i];
 }
 
 void Camera::rotate(const std::vector<float>& delta)
 {
-	for (uint8_t i = 0; i < DIMENSIONS; ++i)
+	for (uint8_t i = 0; i < 3; ++i)
 		rotation[i] += delta[i];
 }

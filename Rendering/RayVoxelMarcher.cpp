@@ -21,30 +21,30 @@ void RayVoxelMarcher::setStart(const Ray& ray)
 std::vector<float> RayVoxelMarcher::marchAndGetNextDir(const std::vector<std::pair<int32_t, int32_t>>& maxMins, float side)
 {
 	std::vector<int8_t> isNegative(3);
-	for (uint8_t i = 0; i < DIMENSIONS; ++i)
+	for (uint8_t i = 0; i < 3; ++i)
 		isNegative[i] = (_direction[i] < 0);
 
 	std::vector<float> vecStart = getCurEntryPoint(side);
 
 	std::vector<float> path(3);
-	for (uint8_t i = 0; i < DIMENSIONS; ++i)
+	for (uint8_t i = 0; i < 3; ++i)
 	{
 		path[i] = isNegative[i] ? -vecStart[i] : (1 - vecStart[i]);
 		path[i] = (path[i] == 0) ? 0.000001f : path[i];
 	}
 
 	std::vector<float> diffs(3);
-	for (uint8_t i = 0; i < DIMENSIONS; ++i)
+	for (uint8_t i = 0; i < 3; ++i)
 		diffs[i] = _direction[i] / path[i];
 
-	float maxDiff = std::max(diffs[X], std::max(diffs[Y], diffs[Z]));
+	float maxDiff = std::max(diffs[0], std::max(diffs[1], diffs[2]));
 
 	std::vector<float> result(3, 0);
-	for (uint8_t i = 0; i < DIMENSIONS; ++i)
+	for (uint8_t i = 0; i < 3; ++i)
 		result[i] = char((1 - 2 * isNegative[i]) * (fabs(maxDiff - diffs[i]) < 0.000001f));
 
 	std::vector<float> intersection(3);
-	for (uint8_t i = 0; i < DIMENSIONS; ++i)
+	for (uint8_t i = 0; i < 3; ++i)
 	{
 		uint8_t otherCoord1 = (i == X) ? Y : X;
 		uint8_t otherCoord2 = (i == Z) ? Y : Z;
@@ -70,7 +70,7 @@ std::vector<float> RayVoxelMarcher::getCurEntryPoint(float side)
 
 	std::vector<float> curPos = { _curPos[0]/side, _curPos[1]/side, _curPos[2]/side };
 
-	for (uint8_t i = 0; i < DIMENSIONS; ++i)
+	for (uint8_t i = 0; i < 3; ++i)
 	{
 		while (curPos[i] < 0) curPos[i]++;
 		result[i] = (_lastResult[i] == -1) ? 0.999999f : (curPos[i] - floor(curPos[i]));

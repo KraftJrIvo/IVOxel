@@ -8,20 +8,18 @@ VoxelChunkPyramid::VoxelChunkPyramid() :
 	base(0),
 	power(0),
 	side(0),
-	nVoxBytes(0)
-{	
-}
+	nVoxBytes(0),
+	alignToFourBytes(false)
+{ }
 
-VoxelChunkPyramid::VoxelChunkPyramid(const VoxelFormat& format_) :
-	format(format_)
+VoxelChunkPyramid::VoxelChunkPyramid(const VoxelFormat& format_, uint32_t side, bool alignToFourBytes_) :
+	format(format_),
+	alignToFourBytes(alignToFourBytes_)
 {
-	uint32_t maxDim = std::max(size[0], std::max(size[1], size[2]));
-	base = (maxDim % 3 == 0) ? 3 : 2;
-	power = uint32_t(std::ceil(std::log2(maxDim) / std::log2(base)));
-
+	base = (side % 3 == 0) ? 3 : 2;
+	power = uint32_t(std::ceil(std::log2(side) / std::log2(base)));
 	side = std::pow(base, power);
-
-	nVoxBytes = format.sizeInBytes;
+	nVoxBytes = format.getSizeInBytes(alignToFourBytes);
 }
 
 void VoxelChunkPyramid::build(const std::vector<Voxel>& voxels)
@@ -34,19 +32,15 @@ void VoxelChunkPyramid::build(const std::vector<Voxel>& voxels)
 	leavesOnLayers.resize(nLayers);
 	offsets.resize(nLayers);
 
-	uint32_t sideSqr = size[X] * size[Y];
-	uint32_t sideCub = sideSqr * size[Z];
-	uint32_t rowLen = type.sizeInBytesType * side;
-	uint32_t layerLen = type.sizeInBytesType * sideSqr;
+	std::vector<uint32_t> size = {side, side, side};
 
-	std::vector<uint8_t> emptyType = type.formatType(-1);
-	std::vector<uint8_t> emptyColor = type.formatColor(0,0,0,0);
-	std::vector<uint8_t> emptyNeigh = type.formatNeighbours({}, -1);
+	uint32_t sideSqr = size[0] * size[1];
+	uint32_t sideCub = sideSqr * size[2];
 
 	std::vector<uint16_t> bytesForLayers;
 	for (uint32_t i = 0; i < nLayers; ++i)
 	{
-		uint32_t vol = std::pow(std::pow(base, i), DIMENSIONS);
+		uint32_t vol = std::pow(std::pow(base, i), 3);
 		uint16_t bytesForThis = uint16_t(std::ceil(std::log2(vol) / 8.0f));
 		bytesForThis = (bytesForThis == 1 || bytesForThis == 2) ? bytesForThis : (bytesForThis == 0 ? 1 : 4);
 		bytesForLayers.push_back(bytesForThis);
@@ -54,26 +48,23 @@ void VoxelChunkPyramid::build(const std::vector<Voxel>& voxels)
 
 	auto checkIfHomogenous = [&](uint32_t x, uint32_t y, uint32_t z, uint32_t step)
 	{
-		if (z >= size[Z] || y >= size[Y] || x > size[X])
+		if (z >= size[2] || y >= size[1] || x > size[0])
 			return true;
 
-		uint32_t offset1 = type.sizeInBytesType * (sideSqr * z + side * y + x);
+		uint32_t offset1 = (sideSqr * z + side * y + x);
 		for (uint32_t zz = 0; zz < step; ++zz)
 		{
-			if (z + zz >= size[Z])
+			if (z + zz >= size[2])
 				return false;
 			for (uint32_t yy = 0; yy < step; ++yy)
 			{
-				if (y + yy >= size[Y])
+				if (y + yy >= size[1])
 					return false;
 				for (uint32_t xx = 0; xx < step; ++xx)
 				{
-					for (uint8_t bb = 0; bb < type.sizeInBytesType; ++bb)
-					{
-						uint32_t offset2 = type.sizeInBytesType * (sideSqr * (z + zz) + side * (y + yy) + (x + xx)) + bb;
-						if (types[offset1] != types[offset2])
-							return false;
-					}
+					uint32_t offset2 = (sideSqr * (z + zz) + side * (y + yy) + (x + xx));
+					if (voxels[offset1].type != voxels[offset2].type)
+						return false;
 				}
 			}
 		}
@@ -85,6 +76,8 @@ void VoxelChunkPyramid::build(const std::vector<Voxel>& voxels)
 	uint32_t nVoxels = 0;
 	uint32_t nComplex = 0;
 	uint32_t nOffsetBytes = 0;
+
+	Voxel emptyVox;
 
 	std::vector<std::vector<uint8_t>> tempData(nLayers);
 
@@ -135,17 +128,14 @@ void VoxelChunkPyramid::build(const std::vector<Voxel>& voxels)
 						nLeaves++;
 						nVoxels++;
 
-						bool oob = (curZ >= size[Z] || curY >= size[Y] || curX > size[X]);
+						bool oob = (curZ >= size[2] || curY >= size[1] || curX > size[0]);
 						uint32_t offset = (sideSqr * curZ + side * curY + curX);
 
 						leavesOnLayers[pwr].push_back(voxID);
 						int32_t curOffset = -int32_t(leavesOnLayers[pwr].size());
 						offsets[pwr].push_back(curOffset);
 
-						std::vector<uint8_t> typeData = oob ? emptyType : std::vector<uint8_t>(types.begin() + type.sizeInBytesType * offset, types.begin() + type.sizeInBytesType * (offset + 1));
-						std::vector<uint8_t> colorData = oob ? emptyColor : std::vector<uint8_t>(colors.begin() + type.sizeInBytesColor * offset, colors.begin() + type.sizeInBytesColor * (offset + 1));
-						std::vector<uint8_t> neighData = oob ? emptyNeigh : std::vector<uint8_t>(neighbours.begin() + type.sizeInBytesNeighbourInfo * offset, neighbours.begin() + type.sizeInBytesNeighbourInfo * (offset + 1));
-						std::vector<uint8_t> allData = utils::joinVectors(typeData, utils::joinVectors(colorData, neighData));
+						std::vector<uint8_t> allData = oob ? format.formatVoxel(emptyVox, {}, {}, alignToFourBytes) : format.formatVoxel(voxels[offset], {}, {}, alignToFourBytes);
 
 						tempData[pwr] = utils::joinVectors(tempData[pwr], allData);
 					}
@@ -167,7 +157,8 @@ void VoxelChunkPyramid::build(const std::vector<Voxel>& voxels)
 	auto dataPtr = data.data() + sizeof(uint32_t);
 	std::memcpy(dataPtr, &base, sizeof(uint8_t));
 	std::memcpy(dataPtr + 1, &power, sizeof(uint8_t));
-	std::memcpy(dataPtr + 2, &type.sizeInBytes, sizeof(uint8_t));
+	uint8_t sizeInBytes = format.getSizeInBytes();
+	std::memcpy(dataPtr + 2, &sizeInBytes, sizeof(uint8_t));
 	dataPtr += 3 * sizeof(uint8_t);
 	for (int i = 0; i < nLayers; ++i)
 	{
@@ -203,7 +194,7 @@ uint8_t VoxelChunkPyramid::getPyramLayerBytesCount(uint8_t base, uint8_t power)
 			return it2->second;
 	}
 
-	uint32_t vol = std::pow(std::pow(base, power), DIMENSIONS);
+	uint32_t vol = std::pow(std::pow(base, power), 3);
 	uint16_t bytesForThis = uint16_t(std::ceil(std::log2(vol) / 8.0f));
 	bytesForThis = (bytesForThis == 1 || bytesForThis == 2) ? bytesForThis : (bytesForThis == 0 ? 1 : 4);
 	auto result = bytesForPyramLayers[base][power] = bytesForThis;

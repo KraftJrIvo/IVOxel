@@ -16,5 +16,5 @@ VoxelChunk VCGenerator::generate(const VoxelMapFormat& format, uint32_t side, co
                 voxels.push_back(v);
             }
 
-    return VoxelChunk(voxels, format.chunkFormat);
+    return VoxelChunk(voxels, format.chunkFormat, format.voxelFormat);
 }

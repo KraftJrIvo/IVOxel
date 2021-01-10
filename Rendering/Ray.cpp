@@ -29,13 +29,13 @@ Ray::Ray(uint8_t nBounces, const std::vector<float>& _start, const Eigen::Vector
 
 void Ray::normalize()
 {
-	float hypot = sqrt(direction[X] * direction[X] + direction[Y] * direction[Y] + direction[Z] * direction[Z]);
-	direction = { direction[X] / hypot, direction[Y] / hypot, direction[Z] / hypot };
+	float hypot = sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
+	direction = { direction[0] / hypot, direction[1] / hypot, direction[2] / hypot };
 }
 
 void Ray::mixColor(const std::vector<uint8_t>& _color)
 {
-	for (uint8_t i = 0; i < RGB; ++i)
+	for (uint8_t i = 0; i < 3; ++i)
 		color[i] = _color[i] * strength;
 }
 

@@ -7,7 +7,8 @@ class VoxelChunkStorer
 public:
 	VoxelChunkStorer() = default;
 	VoxelChunkStorer(std::string worldDir);
-	VoxelChunk loadChunk(const std::vector<int32_t>& pos);
-	VoxelChunk saveChunk(const VoxelChunk& chunk);
+	bool loadChunk(const std::vector<int32_t>& pos, VoxelChunk* chunk);
+	void saveChunk(const VoxelChunk& chunk);
 private:
+	std::string _worldDir;
 };
