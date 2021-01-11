@@ -135,7 +135,11 @@ void VoxelChunkPyramid::build(const std::vector<Voxel>& voxels)
 						int32_t curOffset = -int32_t(leavesOnLayers[pwr].size());
 						offsets[pwr].push_back(curOffset);
 
-						std::vector<uint8_t> allData = oob ? format.formatVoxel(emptyVox, {}, {}, alignToFourBytes) : format.formatVoxel(voxels[offset], {}, {}, alignToFourBytes);
+						Voxel tempVox = voxels[offset];
+						if (oob) emptyVox.power = pwr;
+						else tempVox.power = pwr;
+
+						std::vector<uint8_t> allData = oob ? format.formatVoxel(emptyVox, {}, {}, alignToFourBytes) : format.formatVoxel(tempVox, {}, {}, alignToFourBytes);
 
 						tempData[pwr] = utils::joinVectors(tempData[pwr], allData);
 					}

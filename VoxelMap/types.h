@@ -4,13 +4,14 @@
 #include <string>
 #include <istream>
 
-enum class VoxelFullnessFormat 
+enum class VoxelFullnessFormat
 {
 	UINT8,							// 1 byte
 	UINT16,							// 2 bytes
 	UINT24,							// 3 bytes
 	UINT32							// 4 bytes
 };
+uint8_t getSizeInBytes(VoxelFullnessFormat vff);
 
 enum class ChunkFullnessFormat
 {
@@ -19,6 +20,7 @@ enum class ChunkFullnessFormat
 	UINT24,							// 3 bytes
 	UINT32							// 4 bytes
 };
+uint8_t getSizeInBytes(ChunkFullnessFormat cff);
 
 enum class ChunkOffsetFormat
 {
@@ -27,6 +29,7 @@ enum class ChunkOffsetFormat
 	UINT24,							// 3 bytes
 	UINT32							// 4 bytes
 };
+uint8_t getSizeInBytes(ChunkOffsetFormat cof);
 
 enum class VoxelTypeFormat
 {
@@ -34,12 +37,14 @@ enum class VoxelTypeFormat
 	UINT8,							// 1 byte
 	UINT16							// 2 bytes
 };
+uint8_t getSizeInBytes(VoxelTypeFormat vtf);
 
 enum class VoxelOrientationFormat
 {
 	NO_ORIENTATION,					// 0 bytes
 	UINT8							// 1 byte (see VoxelOrientation type)
 };
+uint8_t getSizeInBytes(VoxelOrientationFormat vof);
 
 enum class ChunkSizeFormat
 {
@@ -50,6 +55,14 @@ enum class ChunkSizeFormat
 	UINT24,							// 3 bytes
 	UINT32							// 4 bytes
 };
+uint8_t getSizeInBytes(ChunkSizeFormat csf);
+
+enum class VoxelPowerFormat
+{
+	NO_SIZE,						// 0 bytes
+	UINT8							// 1 byte
+};
+uint8_t getSizeInBytes(VoxelPowerFormat vsf);
 
 enum class VoxelColorFormat
 {
@@ -60,6 +73,7 @@ enum class VoxelColorFormat
 	RGB_THREE_BYTES,				// 3 bytes (r g b)
 	RGBA_FOUR_BYTES		            // 4 bytes (r g b a)
 };
+uint8_t getSizeInBytes(VoxelColorFormat vcf);
 
 enum class VoxelNeighbourInfoFormat
 {
@@ -67,6 +81,7 @@ enum class VoxelNeighbourInfoFormat
 	SIX_DIRS_ONE_BYTE,				// 1 byte: 6 bits are used (from high to low: 0 0 l r d u b f)
 	TWENTY_SIX_DIRS_FOUR_BYTES		// 4 bytes: 26 bits are used (from high to low: 0 0 0 0 0 0 l ld lu lb lf ldb ldf lub luf r rd ru rb rf rdb rdf rub ruf d db df u ub uf b f)
 };
+uint8_t getSizeInBytes(VoxelNeighbourInfoFormat vnif);
 
 enum class ParalsInfoFormat
 {
@@ -76,6 +91,7 @@ enum class ParalsInfoFormat
 	CUBIC_FLOAT32,					// 24 bytes
 	NON_CUBIC_FLOAT32				// 72 bytes
 };
+uint8_t getSizeInBytes(ParalsInfoFormat pif);
 
 namespace utils
 {

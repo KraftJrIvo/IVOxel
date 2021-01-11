@@ -49,3 +49,147 @@ namespace utils
 	}
 
 }
+
+uint8_t getSizeInBytes(VoxelFullnessFormat vff)
+{
+	switch (vff)
+	{
+	case VoxelFullnessFormat::UINT8:
+		return 1;
+	case VoxelFullnessFormat::UINT16:
+		return 2;
+	case VoxelFullnessFormat::UINT24:
+		return 3;
+	case VoxelFullnessFormat::UINT32:
+		return 4;
+	}
+	return 0;
+}
+
+uint8_t getSizeInBytes(ChunkFullnessFormat cff)
+{
+	switch (cff)
+	{
+	case ChunkFullnessFormat::UINT8:
+		return 1;
+	case ChunkFullnessFormat::UINT16:
+		return 2;
+	case ChunkFullnessFormat::UINT24:
+		return 3;
+	case ChunkFullnessFormat::UINT32:
+		return 4;
+	}
+	return 0;
+}
+
+uint8_t getSizeInBytes(ChunkOffsetFormat cof)
+{
+	switch (cof)
+	{
+	case ChunkOffsetFormat::UINT8:
+		return 1;
+	case ChunkOffsetFormat::UINT16:
+		return 2;
+	case ChunkOffsetFormat::UINT24:
+		return 3;
+	case ChunkOffsetFormat::UINT32:
+		return 4;
+	}
+	return 0;
+}
+
+uint8_t getSizeInBytes(VoxelTypeFormat vtf)
+{
+	switch (vtf)
+	{
+	case VoxelTypeFormat::UINT8:
+		return 1;
+	case VoxelTypeFormat::UINT16:
+		return 2;
+	}
+	return 0;
+}
+
+uint8_t getSizeInBytes(VoxelOrientationFormat vof)
+{
+	switch (vof)
+	{
+	case VoxelOrientationFormat::UINT8:
+		return 1;
+	}
+	return 0;
+}
+
+uint8_t getSizeInBytes(ChunkSizeFormat csf)
+{
+	switch (csf)
+	{
+	case ChunkSizeFormat::UINT8:
+		return 1;
+	case ChunkSizeFormat::UINT16:
+		return 2;
+	case ChunkSizeFormat::BASE_POWER_UINT8:
+		return 2;
+	case ChunkSizeFormat::UINT24:
+		return 3;
+	case ChunkSizeFormat::UINT32:
+		return 4;
+	}
+	return 0;
+}
+
+uint8_t getSizeInBytes(VoxelPowerFormat vsf)
+{
+	switch (vsf)
+	{
+	case VoxelPowerFormat::UINT8:
+		return 1;
+	}
+	return 0;
+}
+
+uint8_t getSizeInBytes(VoxelColorFormat vcf)
+{
+	switch (vcf)
+	{
+	case VoxelColorFormat::GRAYSCALE:
+		return 1;
+	case VoxelColorFormat::RGB256:
+		return 1;
+	case VoxelColorFormat::RGB256_WITH_ALPHA:
+		return 2;
+	case VoxelColorFormat::RGB_THREE_BYTES:
+		return 3;
+	case VoxelColorFormat::RGBA_FOUR_BYTES:
+		return 4;
+	}
+	return 0;
+}
+
+uint8_t getSizeInBytes(VoxelNeighbourInfoFormat vnif)
+{
+	switch (vnif)
+	{
+	case VoxelNeighbourInfoFormat::SIX_DIRS_ONE_BYTE:
+		return 1;
+	case VoxelNeighbourInfoFormat::TWENTY_SIX_DIRS_FOUR_BYTES:
+		return 4;
+	}
+	return 0;
+}
+
+uint8_t getSizeInBytes(ParalsInfoFormat pif)
+{
+	switch (pif)
+	{
+	case ParalsInfoFormat::CUBIC_UINT8:
+		return 8;
+	case ParalsInfoFormat::NON_CUBIC_UINT8:
+		return 3 * 8;
+	case ParalsInfoFormat::CUBIC_FLOAT32:
+		return sizeof(float) * 8;
+	case ParalsInfoFormat::NON_CUBIC_FLOAT32:
+		return sizeof(float) * 3 * 8;
+	}
+	return 0;
+}

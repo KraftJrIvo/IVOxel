@@ -130,7 +130,7 @@ Voxel VoxelChunk::getVoxel(const std::vector<float>& chunkPos) const
 
 	ptr += voxSizeInBytes * nLeavesBeforeCurrent;
 
-	return voxFormatForPyr.unformatVoxel(ptr, curPwr);
+	return voxFormatForPyr.unformatVoxel(ptr);
 }
 
 std::vector<uint8_t> VoxelChunk::getNeighbours(const Voxel& vox, const std::vector<float>& chunkPos, const VoxelNeighbourInfoFormat& format, std::vector<VoxelType> connectableTypes) const
@@ -263,92 +263,12 @@ float VoxelChunk::getClosestSidePointDistance(const std::vector<int8_t>& dir, st
 
 uint32_t VoxelChunkFormat::getSizeInBytes(bool alignToFourBytes) const
 {
-	uint32_t res = 0;
-
-	ChunkFullnessFormat fullness;
-	ChunkOffsetFormat   offset;
-	ChunkSizeFormat     size;
-	ParalsInfoFormat    parals;
-
-	switch (fullness)
-	{
-	case ChunkFullnessFormat::UINT8:
-		res++;
-		break;
-	case ChunkFullnessFormat::UINT16:
-		res += 2;
-		break;
-	case ChunkFullnessFormat::UINT24:
-		res += 3;
-		break;
-	case ChunkFullnessFormat::UINT32:
-		res += 4;
-		break;
-	default:
-		break;
-	}
-
-	switch (offset)
-	{
-	case ChunkOffsetFormat::UINT8:
-		res++;
-		break;
-	case ChunkOffsetFormat::UINT16:
-		res += 2;
-		break;
-	case ChunkOffsetFormat::UINT24:
-		res += 3;
-		break;
-	case ChunkOffsetFormat::UINT32:
-		res += 4;
-		break;
-	default:
-		break;
-	}
-
-	switch (size)
-	{
-	case ChunkSizeFormat::UINT8:
-		res++;
-		break;
-	case ChunkSizeFormat::UINT16:
-		res += 2;
-		break;
-	case ChunkSizeFormat::BASE_POWER_UINT8:
-		res += 2;
-		break;
-	case ChunkSizeFormat::UINT24:
-		res += 3;
-		break;
-	case ChunkSizeFormat::UINT32:
-		res += 4;
-		break;
-	default:
-		break;
-	}
-
-	switch (parals)
-	{
-	case ParalsInfoFormat::CUBIC_UINT8:
-		res += 8;
-		break;
-	case ParalsInfoFormat::NON_CUBIC_UINT8:
-		res += 3 * 8;
-		break;
-	case ParalsInfoFormat::CUBIC_FLOAT32:
-		res += sizeof(float) * 8;
-		break;
-	case ParalsInfoFormat::NON_CUBIC_FLOAT32:
-		res += sizeof(float) * 3 * 8;
-		break;
-	default:
-		break;
-	}
-
+	uint32_t sz = ::getSizeInBytes(fullness) + ::getSizeInBytes(offset) + ::getSizeInBytes(size) + ::getSizeInBytes(parals);
+	
 	if (alignToFourBytes)
-		return ceil(float(res) / 4.0f);
+		return ceil(float(sz) / 4.0f);
 
-	return res;
+	return sz;
 }
 
 std::vector<uint8_t> VoxelChunkFormat::formatChunkHeader(const VoxelChunk& chunk, uint32_t voxDataOffset, const std::vector<uint8_t>& parals, bool alignToFourBytes) const

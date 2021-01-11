@@ -51,6 +51,9 @@
     <ClInclude Include="VCGeneratorSin.h">
       <Filter>Header Files\generators</Filter>
     </ClInclude>
+    <ClInclude Include="VoxelMapRayTracer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="VoxelChunk.cpp">
@@ -82,6 +85,9 @@
     </ClCompile>
     <ClCompile Include="VCGeneratorSin.cpp">
       <Filter>Source Files\generators</Filter>
+    </ClCompile>
+    <ClCompile Include="VoxelMapRayTracer.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

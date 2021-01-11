@@ -82,102 +82,12 @@ void Voxel::setOrientation(uint8_t orient)
 
 uint32_t VoxelFormat::getSizeInBytes(bool alignToFourBytes) const
 {
-	uint32_t res = 0;
-
-	switch (fullness)
-	{
-	case VoxelFullnessFormat::UINT8:
-		res++;
-		break;
-	case VoxelFullnessFormat::UINT16:
-		res += 2;
-		break;
-	case VoxelFullnessFormat::UINT24:
-		res += 3;
-		break;
-	case VoxelFullnessFormat::UINT32:
-		res += 4;
-		break;
-	default:
-		break;
-	}
-
-	switch (type)
-	{
-	case VoxelTypeFormat::UINT8:
-		res++;
-		break;
-	case VoxelTypeFormat::UINT16:
-		res += 2;
-		break;
-	default:
-		break;
-	}
-
-	switch (orientation)
-	{
-	case VoxelOrientationFormat::UINT8:
-		res += 1;
-		break;
-	default:
-		break;
-	}
-
-	switch (color)
-	{
-	case VoxelColorFormat::GRAYSCALE:
-		res++;
-		break;
-	case VoxelColorFormat::RGB256:
-		res++;
-		break;
-	case VoxelColorFormat::RGB256_WITH_ALPHA:
-		res += 2;
-		break;
-	case VoxelColorFormat::RGB_THREE_BYTES:
-		res += 3;
-		break;
-	case VoxelColorFormat::RGBA_FOUR_BYTES:
-		res += 4;
-		break;
-	default:
-		break;
-	}
-
-	switch (neighbour)
-	{
-	case VoxelNeighbourInfoFormat::SIX_DIRS_ONE_BYTE:
-		res++;
-		break;
-	case VoxelNeighbourInfoFormat::TWENTY_SIX_DIRS_FOUR_BYTES:
-		res += 4;
-		break;
-	default:
-		break;
-	}
-
-	switch (parals)
-	{
-	case ParalsInfoFormat::CUBIC_UINT8:
-		res += 8;
-		break;
-	case ParalsInfoFormat::NON_CUBIC_UINT8:
-		res += 3 * 8;
-		break;
-	case ParalsInfoFormat::CUBIC_FLOAT32:
-		res += sizeof(float) * 8;
-		break;
-	case ParalsInfoFormat::NON_CUBIC_FLOAT32:
-		res += sizeof(float) * 3 * 8;
-		break;
-	default:
-		break;
-	}
-
+	uint32_t size = ::getSizeInBytes(fullness) + ::getSizeInBytes(power) + ::getSizeInBytes(type) + ::getSizeInBytes(orientation) + ::getSizeInBytes(color) + ::getSizeInBytes(neighbour) + ::getSizeInBytes(parals);
+	
 	if (alignToFourBytes)
-		return ceil(float(res) / 4.0f);
+		return ceil(float(size) / 4.0f);
 
-	return res;
+	return size;
 }
 
 std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, const std::vector<uint8_t>& neighs, const std::vector<uint8_t>& parals, bool alignToFourBytes) const
@@ -198,6 +108,15 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, const std::vec
 		break;
 	case VoxelFullnessFormat::UINT32:
 		utils::appendBytes(res, uint32_t(voxel.isEmpty()), 4);
+		break;
+	default:
+		break;
+	}
+
+	switch (power)
+	{
+	case VoxelPowerFormat::UINT8:
+		utils::appendBytes(res, uint8_t(voxel.power));
 		break;
 	default:
 		break;
@@ -257,9 +176,9 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, const std::vec
 	utils::appendBytes(res, parals);
 }
 
-Voxel VoxelFormat::unformatVoxel(const uint8_t* data, uint8_t power) const
+Voxel VoxelFormat::unformatVoxel(const uint8_t* data) const
 {
-	Voxel voxel(power);
+	Voxel voxel;
 
 	switch (fullness)
 	{
@@ -274,6 +193,14 @@ Voxel VoxelFormat::unformatVoxel(const uint8_t* data, uint8_t power) const
 		break;
 	case VoxelFullnessFormat::UINT32:
 		data += 4;
+		break;
+	}
+
+	switch (power)
+	{
+	case VoxelPowerFormat::UINT8:
+		voxel.power = data[0];
+		data++;
 		break;
 	}
 

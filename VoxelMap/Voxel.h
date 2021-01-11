@@ -49,6 +49,7 @@ struct VoxelModifyData
 struct VoxelFormat
 {
 	VoxelFullnessFormat      fullness;
+	VoxelPowerFormat	     power;
 	VoxelTypeFormat          type;
 	VoxelOrientationFormat   orientation;
 	VoxelColorFormat         color;
@@ -57,5 +58,5 @@ struct VoxelFormat
 
 	uint32_t getSizeInBytes(bool alignToFourBytes = true) const;
 	std::vector<uint8_t> formatVoxel(const Voxel& voxel, const std::vector<uint8_t>& neighs, const std::vector<uint8_t>& parals, bool alignToFourBytes = true) const;
-	Voxel unformatVoxel(const uint8_t* data, uint8_t power) const;
+	Voxel unformatVoxel(const uint8_t* data) const;
 };
