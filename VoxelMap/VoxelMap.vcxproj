@@ -30,6 +30,7 @@
     <ClInclude Include="VoxelChunkGenerator.h" />
     <ClInclude Include="VoxelChunkPyramid.h" />
     <ClInclude Include="VoxelMapRayTracer.h" />
+    <ClInclude Include="VoxelType.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Light.cpp" />
@@ -43,6 +44,7 @@
     <ClCompile Include="VoxelMapFormat.cpp" />
     <ClCompile Include="VoxelChunkPyramid.cpp" />
     <ClCompile Include="VoxelMapRayTracer.cpp" />
+    <ClCompile Include="VoxelType.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

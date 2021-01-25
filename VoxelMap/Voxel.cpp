@@ -1,88 +1,27 @@
 #include "Voxel.h"
 
-Voxel::Voxel(uint8_t power_, VoxelType type_, VoxelOrientation orientation_, const std::vector<uint8_t>& rgba) :
+Voxel::Voxel(std::shared_ptr<VoxelShape> shape_ = nullptr, std::shared_ptr<VoxelMaterial> material_ = nullptr, uint8_t power_ = 0, VoxelOrientation orientation_ = VoxelOrientation(), const std::vector<uint8_t>& rgba = { 0,0,0,0 }) :
 	power(power_),
-	type(type_),
+	shape(shape_),
+	material(material_),
 	orientation(orientation_),
 	color(rgba)
 { }
 
-std::vector<uint32_t> Voxel::getData()
-{
-	std::vector<uint32_t> res(24, 0);
-
-	auto ptr = res.data();
-	bool empty = isEmpty();
-	std::memcpy(ptr, &type, sizeof(uint32_t)); ptr += sizeof(uint32_t);
-	std::memcpy(ptr, &type, sizeof(uint32_t)); ptr += sizeof(uint32_t);
-
-	return res;
-}
-
 bool Voxel::isEmpty() const
 {
-	return type == VoxelType::AIR;
+	return shape == nullptr;
 }
 
-uint8_t Voxel::getOrientation() const
+bool Voxel::isTransparent() const
 {
-	switch (orientation)
-	{
-	case VoxelOrientation::NONE:
-		return -1;
-	case VoxelOrientation::DEFAULT:
-		return 0;
-	case VoxelOrientation::LEFT:
-		return 1;
-	case VoxelOrientation::RIGHT:
-		return 2;
-	case VoxelOrientation::DOWN:
-		return 3;
-	case VoxelOrientation::UP:
-		return 4;
-	case VoxelOrientation::BACK:
-		return 5;
-	case VoxelOrientation::FRONT:
-		return 6;
-	default:
-		return -1;
-	}
-}
-
-void Voxel::setOrientation(uint8_t orient)
-{
-	switch (orient)
-	{
-	case 255:
-		orientation = VoxelOrientation::NONE;
-		break;
-	case 0:
-		orientation = VoxelOrientation::DEFAULT;
-		break;
-	case 1:
-		orientation = VoxelOrientation::LEFT;
-		break;
-	case 2:
-		orientation = VoxelOrientation::RIGHT;
-		break;
-	case 3:
-		orientation = VoxelOrientation::DOWN;
-		break;
-	case 4:
-		orientation = VoxelOrientation::UP;
-		break;
-	case 5:
-		orientation = VoxelOrientation::BACK;
-		break;
-	case 6:
-		orientation = VoxelOrientation::FRONT;
-		break;
-	}
+	return material->opacity < 1.0f;
 }
 
 uint32_t VoxelFormat::getSizeInBytes(bool alignToFourBytes) const
 {
-	uint32_t size = ::getSizeInBytes(fullness) + ::getSizeInBytes(power) + ::getSizeInBytes(type) + ::getSizeInBytes(orientation) + ::getSizeInBytes(color) + ::getSizeInBytes(neighbour) + ::getSizeInBytes(parals);
+	uint32_t size = ::getSizeInBytes(fullness) + ::getSizeInBytes(power) + ::getSizeInBytes(shape) + ::getSizeInBytes(material) + 
+		::getSizeInBytes(orientation) + ::getSizeInBytes(color) + ::getSizeInBytes(neighbour) + ::getSizeInBytes(parals);
 	
 	if (alignToFourBytes)
 		return ceil(float(size) / 4.0f);
@@ -122,24 +61,60 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, const std::vec
 		break;
 	}
 
-	switch (type)
+	switch (shape)
 	{
-	case VoxelTypeFormat::UINT8:
-		utils::appendBytes(res, uint8_t(voxel.type), 1);
+	case VoxelShapeFormat::UINT8:
+		utils::appendBytes(res, (uint8_t)coder->encodeShape(voxel.shape));
 		break;
-	case VoxelTypeFormat::UINT16:
-		utils::appendBytes(res, uint16_t(voxel.type), 2);
+	case VoxelShapeFormat::UINT16:
+		utils::appendBytes(res, (uint16_t)coder->encodeShape(voxel.shape));
 		break;
 	default:
 		break;
 	}
 
+	switch (material)
+	{
+	case VoxelMaterialFormat::UINT8:
+		utils::appendBytes(res, (uint8_t)coder->encodeMaterial(voxel.material));
+		break;
+	case VoxelMaterialFormat::UINT16:
+		utils::appendBytes(res, (uint16_t)coder->encodeMaterial(voxel.material));
+		break;
+	default:
+		break;
+	}
+
+	auto encodeOri1 = [&]() {
+		uint8_t rx = voxel.orientation.rotation[0] / 3.14159 / 2.0;
+		uint8_t ry = voxel.orientation.rotation[1] / 3.14159 / 2.0;
+		uint8_t rz = voxel.orientation.rotation[2] / 3.14159 / 2.0;
+		return (((voxel.orientation.mirror ? 1 : 0) << 7) & rx << 4 & ry << 2 & rz);
+	};
+	auto encodeOri4 = [&]() {
+		uint8_t rx = voxel.orientation.rotation[0] / (3.14159 / 120.0f);
+		uint8_t ry = voxel.orientation.rotation[1] / (3.14159 / 120.0f);
+		uint8_t rz = voxel.orientation.rotation[2] / (3.14159 / 120.0f);
+		std::vector<uint8_t> ori = { (uint8_t)voxel.orientation.mirror, rx, ry, rz };
+		return ori;
+	};
+	auto encodeOri16 = [&]() {
+		std::vector<float> ori = { voxel.orientation.mirror ? 1.0f : 0.0f, voxel.orientation.rotation[0], voxel.orientation.rotation[1], voxel.orientation.rotation[2] };
+		return ori;
+	};
+
 	switch (orientation)
 	{
 	case VoxelOrientationFormat::UINT8:
-		utils::appendBytes(res, voxel.getOrientation());
+		utils::appendBytes(res, encodeOri1());
 		break;
-	default:
+	case VoxelOrientationFormat::UINT32:
+		utils::appendBytes(res, encodeOri4());
+		break;
+	case VoxelOrientationFormat::FULL_16BYTES:
+		utils::appendBytes(res, encodeOri16());
+		break;
+	break;	default:
 		break;
 	}
 
@@ -176,7 +151,7 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, const std::vec
 	utils::appendBytes(res, parals);
 }
 
-Voxel VoxelFormat::unformatVoxel(const uint8_t* data) const
+Voxel VoxelFormat::unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) const
 {
 	Voxel voxel;
 
@@ -204,26 +179,86 @@ Voxel VoxelFormat::unformatVoxel(const uint8_t* data) const
 		break;
 	}
 
-	switch (type)
+	uint32_t shId;
+	switch (shape)
 	{
-	case VoxelTypeFormat::UINT8:
-		voxel.type = VoxelType(*data);
+	case VoxelShapeFormat::UINT8:
+		shId = data[0];
 		data++;
 		break;
-	case VoxelTypeFormat::UINT16:
-		voxel.type = VoxelType(*(uint16_t*)data);
+	case VoxelShapeFormat::UINT16:
+		shId = ((uint16_t*)data)[0];
 		data += 2;
+		break;
+	case VoxelShapeFormat::UINT32:
+		shId = ((uint32_t*)data)[0];
+		data += 4;
 		break;
 	default:
 		break;
 	}
+	voxel.shape = vts.hasShape(shId) ? vts.getShape(shId) : vts.addShape(shId, coder->decodeShape(data));
+
+	uint32_t mtId;
+	switch (material)
+	{
+	case VoxelMaterialFormat::UINT8:
+		mtId = data[0];
+		data++;
+		break;
+	case VoxelMaterialFormat::UINT16:
+		mtId = ((uint16_t*)data)[0];
+		data += 2;
+		break;
+	case VoxelMaterialFormat::UINT32:
+		mtId = ((uint32_t*)data)[0];
+		data += 4;
+		break;
+	default:
+		break;
+	}
+	voxel.material = vts.hasMaterial(mtId) ? vts.getMaterial(mtId) : vts.addMaterial(mtId, coder->decodeMaterial(data));
+
+	auto decodeOri1 = [&](const uint8_t* data) {
+		VoxelOrientation ori;
+		ori.mirror = (data[0] >> 7);
+		ori.rotation[0] = ((data[0] >> 4) & 0x11) * 3.14159 / 2.0;
+		ori.rotation[1] = ((data[0] >> 2) & 0x11) * 3.14159 / 2.0;
+		ori.rotation[2] = (data[0] & 0x11) * 3.14159 / 2.0;
+		return ori;
+	};
+	auto decodeOri4 = [&](const uint8_t* data) {
+		VoxelOrientation ori;
+		ori.mirror = data[0];
+		ori.rotation[0] = data[1] * (3.14159 / 120.0f);
+		ori.rotation[1] = data[2] * (3.14159 / 120.0f);
+		ori.rotation[2] = data[3] * (3.14159 / 120.0f);
+		return ori;
+	};
+	auto decodeOri16 = [&](const uint8_t* data) {
+		VoxelOrientation ori;
+		auto dataf = (float*)data;
+		ori.mirror = dataf[0];
+		ori.rotation[0] = dataf[1];
+		ori.rotation[1] = dataf[2];
+		ori.rotation[2] = dataf[3];
+		return ori;
+	};
 
 	switch (orientation)
 	{
 	case VoxelOrientationFormat::UINT8:
-		voxel.setOrientation(*data++);
+		voxel.orientation = decodeOri1(data++);
 		break;
-	default:
+	case VoxelOrientationFormat::UINT32:
+		voxel.orientation = decodeOri4(data);
+		data += 4;
+		break;
+	case VoxelOrientationFormat::FULL_16BYTES:
+		voxel.orientation = decodeOri16(data);
+		data += 16;
+		break;
+	break;	default:
 		break;
 	}
 

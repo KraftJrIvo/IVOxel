@@ -31,18 +31,30 @@ enum class ChunkOffsetFormat
 };
 uint8_t getSizeInBytes(ChunkOffsetFormat cof);
 
-enum class VoxelTypeFormat
+enum class VoxelShapeFormat
 {
 	NO_TYPE,						// 0 bytes
 	UINT8,							// 1 byte
-	UINT16							// 2 bytes
+	UINT16,							// 2 bytes
+	UINT32,							// 4 bytes
 };
-uint8_t getSizeInBytes(VoxelTypeFormat vtf);
+uint8_t getSizeInBytes(VoxelShapeFormat vsf);
+
+enum class VoxelMaterialFormat
+{
+	NO_TYPE,						// 0 bytes
+	UINT8,							// 1 byte
+	UINT16,							// 2 bytes
+	UINT32							// 4 bytes
+};
+uint8_t getSizeInBytes(VoxelMaterialFormat vmf);
 
 enum class VoxelOrientationFormat
 {
 	NO_ORIENTATION,					// 0 bytes
-	UINT8							// 1 byte (see VoxelOrientation type)
+	UINT8,							// 1 byte:   mirror 0 rx rx ry ry rz rz (only orthagonal rotations encoded in 2 bits)
+	UINT32,							// 4 bytes:  mirror rx ry rz (byte per axis, integer number of pi/120 angle parts)
+	FULL_16BYTES					// 16 bytes: mirror rx ry rz (full float value per axis)
 };
 uint8_t getSizeInBytes(VoxelOrientationFormat vof);
 

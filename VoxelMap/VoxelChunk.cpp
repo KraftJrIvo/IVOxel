@@ -62,7 +62,7 @@ bool VoxelChunk::isEmpty() const
 	return false;
 }
 
-Voxel VoxelChunk::getVoxel(const std::vector<float>& chunkPos) const
+Voxel VoxelChunk::getVoxel(VoxelTypeStorer& vts, const std::vector<float>& chunkPos) const
 {
 	std::vector<uint32_t> pos = { uint32_t(floor(chunkPos[0])), uint32_t(floor(chunkPos[1])), uint32_t(floor(chunkPos[2])) };
 
@@ -130,7 +130,7 @@ Voxel VoxelChunk::getVoxel(const std::vector<float>& chunkPos) const
 
 	ptr += voxSizeInBytes * nLeavesBeforeCurrent;
 
-	return voxFormatForPyr.unformatVoxel(ptr);
+	return voxFormatForPyr.unformatVoxel(vts, ptr);
 }
 
 std::vector<uint8_t> VoxelChunk::getNeighbours(const Voxel& vox, const std::vector<float>& chunkPos, const VoxelNeighbourInfoFormat& format, std::vector<VoxelType> connectableTypes) const

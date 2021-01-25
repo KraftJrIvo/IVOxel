@@ -2,40 +2,22 @@
 
 #include <vector>
 
+#include <glm/glm.hpp>
+
 #include "types.h"
-
-enum class VoxelType
-{
-	AIR,
-	CUBE,
-	SPHERE
-};
-
-enum class VoxelOrientation
-{
-	NONE,
-	DEFAULT,
-	LEFT,
-	RIGHT,
-	DOWN,
-	UP,
-	BACK,
-	FRONT
-};
+#include "VoxelType.h"
 
 class Voxel
 {
 public:
-	Voxel(uint8_t power = 0, VoxelType type = VoxelType::AIR, VoxelOrientation orientation = VoxelOrientation::DEFAULT,
-		const std::vector<uint8_t>& rgba = {0,0,0,0});
-
-	std::vector<uint32_t> getData();
+	Voxel(std::shared_ptr<VoxelShape> shape = nullptr, std::shared_ptr<VoxelMaterial> material = nullptr, uint8_t power = 0, VoxelOrientation orientation = VoxelOrientation::DEFAULT, const std::vector<uint8_t>& rgba = {0,0,0,0});
 	bool isEmpty() const;
-	uint8_t getOrientation() const;
-	void setOrientation(uint8_t orientation);
+	bool isTransparent() const;
+
+	std::shared_ptr<VoxelShape> shape;
+	std::shared_ptr<VoxelMaterial> material;
 
 	uint8_t power;
-	VoxelType type;
 	VoxelOrientation orientation;
 	std::vector<uint8_t> color;
 };
@@ -50,13 +32,16 @@ struct VoxelFormat
 {
 	VoxelFullnessFormat      fullness;
 	VoxelPowerFormat	     power;
-	VoxelTypeFormat          type;
+	VoxelShapeFormat         shape;
+	VoxelMaterialFormat      material;
 	VoxelOrientationFormat   orientation;
 	VoxelColorFormat         color;
 	VoxelNeighbourInfoFormat neighbour;
 	ParalsInfoFormat         parals;
 
+	VoxelTypeCoder* coder;
+
 	uint32_t getSizeInBytes(bool alignToFourBytes = true) const;
 	std::vector<uint8_t> formatVoxel(const Voxel& voxel, const std::vector<uint8_t>& neighs, const std::vector<uint8_t>& parals, bool alignToFourBytes = true) const;
-	Voxel unformatVoxel(const uint8_t* data) const;
+	Voxel unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) const;
 };

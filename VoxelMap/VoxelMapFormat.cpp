@@ -15,7 +15,7 @@ uint32_t VoxelMapFormat::getSizeInBytes(uint32_t nVoxels, bool alignToFourBytes)
 	return res;
 }
 
-VoxelChunk VoxelMapFormat::unformatChunk(const uint8_t* header, const uint8_t* data, bool alignToFourBytes) const
+VoxelChunk VoxelMapFormat::unformatChunk(const VoxelTypeStorer& vts, const uint8_t* header, const uint8_t* data, bool alignToFourBytes) const
 {
 	std::vector<Voxel> voxels;
 
@@ -86,7 +86,7 @@ VoxelChunk VoxelMapFormat::unformatChunk(const uint8_t* header, const uint8_t* d
 	for (uint32_t x = 0; x < side; ++x)
 		for (uint32_t y = 0; y < side; ++y)
 			for (uint32_t z = 0; z < side; ++z)
-				voxels.push_back(voxelFormat.unformatVoxel(data + off + voxSz * (z * sideSq + y * side + x)));
+				voxels.push_back(voxelFormat.unformatVoxel(vts, data + off + voxSz * (z * sideSq + y * side + x)));
 
 	return VoxelChunk(voxels, chunkFormat, voxelFormat);
 }

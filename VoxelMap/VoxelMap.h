@@ -32,6 +32,8 @@ protected:
 	uint32_t _loadDiameter;
 	VoxelChunk _emptyChunk;
 
+	VoxelTypeStorer _voxTypeStorer;
+
 	VoxelMapFormat _format;
 	const VoxelChunkGenerator& _generator;
 	VoxelChunkStorer _storer;

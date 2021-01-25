@@ -23,6 +23,6 @@ struct VoxelMapFormat
 
 	uint32_t getSizeInBytes(uint32_t nVoxels, bool alignToFourBytes = true) const;
 
-	VoxelChunk unformatChunk(const uint8_t* header, const uint8_t* data, bool alignToFourBytes = true) const;
+	VoxelChunk unformatChunk(const VoxelTypeStorer& vts, const uint8_t* header, const uint8_t* data, bool alignToFourBytes = true) const;
 	VoxelChunkHeader unformatChunkHeader(const uint8_t* data, bool alignToFourBytes = true) const;
 };

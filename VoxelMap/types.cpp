@@ -98,13 +98,25 @@ uint8_t getSizeInBytes(ChunkOffsetFormat cof)
 	return 0;
 }
 
-uint8_t getSizeInBytes(VoxelTypeFormat vtf)
+uint8_t getSizeInBytes(VoxelShapeFormat vtf)
 {
 	switch (vtf)
 	{
-	case VoxelTypeFormat::UINT8:
+	case VoxelShapeFormat::UINT8:
 		return 1;
-	case VoxelTypeFormat::UINT16:
+	case VoxelShapeFormat::UINT16:
+		return 2;
+	}
+	return 0;
+}
+
+uint8_t getSizeInBytes(VoxelMaterialFormat vtf)
+{
+	switch (vtf)
+	{
+	case VoxelMaterialFormat::UINT8:
+		return 1;
+	case VoxelMaterialFormat::UINT16:
 		return 2;
 	}
 	return 0;

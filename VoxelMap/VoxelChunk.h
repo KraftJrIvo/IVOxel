@@ -44,7 +44,7 @@ public:
 	VoxelChunkPyramid pyramid;
 
 	void changeVoxels(const std::vector<VoxelModifyData>& voxelsMod);
-	Voxel getVoxel(const std::vector<float>& voxInChunkPos) const;
+	Voxel getVoxel(VoxelTypeStorer& vts, const std::vector<float>& voxInChunkPos) const;
 	std::vector<uint8_t> getNeighbours(const Voxel& vox, const std::vector<float>& voxInChunkPos, const VoxelNeighbourInfoFormat& format, std::vector<VoxelType> connectableTypes = {}) const;
 	std::vector<uint8_t> getVoxParals(const Voxel& vox, const std::vector<float>& voxInChunkPos, const ParalsInfoFormat& format, std::vector<VoxelType> transparentTypes = {}) const;
 	float getClosestSidePointDistance(const std::vector<int8_t>& dir, std::vector<VoxelType> transparentTypes = {});
