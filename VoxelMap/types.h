@@ -69,12 +69,12 @@ enum class ChunkSizeFormat
 };
 uint8_t getSizeInBytes(ChunkSizeFormat csf);
 
-enum class VoxelPowerFormat
+enum class VoxelSizeFormat
 {
 	NO_SIZE,						// 0 bytes
 	UINT8							// 1 byte
 };
-uint8_t getSizeInBytes(VoxelPowerFormat vsf);
+uint8_t getSizeInBytes(VoxelSizeFormat vsf);
 
 enum class VoxelColorFormat
 {
@@ -144,5 +144,17 @@ namespace utils
 	uint8_t packByte(const bool& a7, const bool& a6, const bool& a5, const bool& a4, const bool& a3, const bool& a2, const bool& a1, const bool& a0)
 	{
 		return (a7 ? 128 : 0) | (a6 ? 64 : 0) | (a5 ? 32 : 0) | (a4 ? 16 : 0) | (a3 ? 8 : 0) | (a2 ? 4 : 0) | (a1 ? 2 : 0) | (a0 ? 1 : 0);
+	}
+
+	void unpackByte(const uint8_t* byte, bool& a7, bool& a6, bool& a5, bool& a4, bool& a3, bool& a2, bool& a1, bool& a0)
+	{
+		a7 = (*byte) & 128;
+		a6 = (*byte) & 64;
+		a5 = (*byte) & 32;
+		a4 = (*byte) & 16;
+		a3 = (*byte) & 8;
+		a2 = (*byte) & 4;
+		a1 = (*byte) & 2;
+		a0 = (*byte) & 1;
 	}
 }

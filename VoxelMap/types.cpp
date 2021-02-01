@@ -150,12 +150,12 @@ uint8_t getSizeInBytes(ChunkSizeFormat csf)
 	return 0;
 }
 
-uint8_t getSizeInBytes(VoxelPowerFormat vsf)
+uint8_t getSizeInBytes(VoxelSizeFormat vsf)
 {
 	switch (vsf)
 	{
-	case VoxelPowerFormat::UINT8:
-		return 1;
+	case VoxelSizeFormat::UINT8:
+		return 1;	
 	}
 	return 0;
 }

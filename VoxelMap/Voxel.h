@@ -10,14 +10,13 @@
 class Voxel
 {
 public:
-	Voxel(std::shared_ptr<VoxelShape> shape = nullptr, std::shared_ptr<VoxelMaterial> material = nullptr, uint8_t power = 0, VoxelOrientation orientation = VoxelOrientation::DEFAULT, const std::vector<uint8_t>& rgba = {0,0,0,0});
+	Voxel(std::shared_ptr<VoxelShape> shape = nullptr, std::shared_ptr<VoxelMaterial> material = nullptr, VoxelOrientation orientation = VoxelOrientation::DEFAULT, const std::vector<uint8_t>& rgba = {0,0,0,0});
 	bool isEmpty() const;
 	bool isTransparent() const;
 
 	std::shared_ptr<VoxelShape> shape;
 	std::shared_ptr<VoxelMaterial> material;
 
-	uint8_t power;
 	VoxelOrientation orientation;
 	std::vector<uint8_t> color;
 };
@@ -28,10 +27,25 @@ struct VoxelModifyData
 	uint32_t x, y, z;
 };
 
+struct VoxelNeighbours
+{
+	bool l, r, d, u, b, f;
+	bool ld, lu, lb, lf, rd, ru, rb, rf, db, df, ub, uf;
+	bool ldb, ldf, lub, luf, rdb, rdf, rub, ruf;
+};
+
+struct VoxelState
+{
+	bool full;
+	uint32_t size;
+	VoxelNeighbours neighs;
+	std::vector<glm::uvec3> parals;
+};
+
 struct VoxelFormat
 {
 	VoxelFullnessFormat      fullness;
-	VoxelPowerFormat	     power;
+	VoxelSizeFormat	         size;
 	VoxelShapeFormat         shape;
 	VoxelMaterialFormat      material;
 	VoxelOrientationFormat   orientation;
@@ -42,6 +56,9 @@ struct VoxelFormat
 	VoxelTypeCoder* coder;
 
 	uint32_t getSizeInBytes(bool alignToFourBytes = true) const;
-	std::vector<uint8_t> formatVoxel(const Voxel& voxel, const std::vector<uint8_t>& neighs, const std::vector<uint8_t>& parals, bool alignToFourBytes = true) const;
+	std::vector<uint8_t> formatVoxel(const Voxel& voxel, uint32_t size, const std::vector<uint8_t>& neighs, const std::vector<uint8_t>& parals, bool alignToFourBytes = true) const;
+	VoxelState getVoxelState(const uint8_t* data) const;
 	Voxel unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) const;
+	std::vector<glm::uvec3> unformatParals(const uint8_t* data) const;
+	VoxelNeighbours unformatNeighs(const uint8_t* data) const;
 };

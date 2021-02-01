@@ -66,25 +66,25 @@ bool VoxelMapRayTracer::_rayTraceChunk(const VoxelChunkHeader& chunkH, vec3 rayS
     while (keepTracing)
     {
         glm::uint voxOff = chunkH.voxOffset + curVoxPos[2] * chunkH.side * chunkH.side + curVoxPos[1] * chunkH.side + curVoxPos[0];
-        auto voxel = _format.voxelFormat.unformatVoxel(_vts, _mapData.data() + voxOff);
+        //auto voxel = _format.voxelFormat.unformatVoxel(_vts, _mapData.data() + voxOff);
+        auto voxelState = _format.voxelFormat.getVoxelState(_vts, _mapData.data() + voxOff);
 
-        stepsToTake = uint(sideSteps / pow(chunkH.base, voxel.power));
+        stepsToTake = uint(sideSteps / voxelState.size);
 
         float voxRatio = float(stepsToTake) / float(sideSteps);
 
-        if (!voxel.isEmpty())
+        if (voxelState.full)
         {
             vec3 entry = _getCurEntryPoint(marchPos, stepsToTake, lastRes);
 
             vec3 absPos = vec3(curChunkPos) + (vec3(curVoxPos - curVoxPos % stepsToTake) / float(sideSteps));
 
-            if (_rayTraceVoxel(voxel, entry, rayDir, absPos, voxRatio, absCoord, normal, color))
+            if (_rayTraceVoxel(voxOff, entry, rayDir, absPos, voxRatio, absCoord, normal, color))
                 return true;
         }
 
         vec3 absCoordVox = {0,0,0};
-        voxel.
-        _marchAndGetNextDir(rayDir, stepsToTake, ivec2(0, sideSteps), marchFinish, marchPos, lastRes, absCoordVox);
+        _marchAndGetNextDir(rayDir, stepsToTake, ivec2(0, sideSteps), , marchFinish, marchPos, lastRes, absCoordVox);
         absCoord += absCoordVox * voxRatio;
 
         curVoxPos = ivec3(floor(marchPos));
@@ -95,8 +95,10 @@ bool VoxelMapRayTracer::_rayTraceChunk(const VoxelChunkHeader& chunkH, vec3 rayS
     return false;
 }
 
-bool VoxelMapRayTracer::_rayTraceVoxel(const Voxel& vox, vec3 rayStart, vec3 rayDir, vec3 absPos, float voxRatio, vec3& absCoord, vec3& normal, vec3& color)
+bool VoxelMapRayTracer::_rayTraceVoxel(glm::uint voxOff, vec3 rayStart, vec3 rayDir, vec3 absPos, float voxRatio, vec3& absCoord, vec3& normal, vec3& color)
 {
+    Voxel voxel = _format.voxelFormat.unformatVoxel(_vts, _mapData.data() + voxOff);
+
     vec3 dir = rayDir;
     dir = normalize(dir);
 

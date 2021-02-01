@@ -1,7 +1,6 @@
 #include "Voxel.h"
 
-Voxel::Voxel(std::shared_ptr<VoxelShape> shape_ = nullptr, std::shared_ptr<VoxelMaterial> material_ = nullptr, uint8_t power_ = 0, VoxelOrientation orientation_ = VoxelOrientation(), const std::vector<uint8_t>& rgba = { 0,0,0,0 }) :
-	power(power_),
+Voxel::Voxel(std::shared_ptr<VoxelShape> shape_ = nullptr, std::shared_ptr<VoxelMaterial> material_ = nullptr, VoxelOrientation orientation_ = VoxelOrientation(), const std::vector<uint8_t>& rgba = { 0,0,0,0 }) :
 	shape(shape_),
 	material(material_),
 	orientation(orientation_),
@@ -20,16 +19,16 @@ bool Voxel::isTransparent() const
 
 uint32_t VoxelFormat::getSizeInBytes(bool alignToFourBytes) const
 {
-	uint32_t size = ::getSizeInBytes(fullness) + ::getSizeInBytes(power) + ::getSizeInBytes(shape) + ::getSizeInBytes(material) + 
+	uint32_t sz = ::getSizeInBytes(fullness) + ::getSizeInBytes(size) + ::getSizeInBytes(shape) + ::getSizeInBytes(material) + 
 		::getSizeInBytes(orientation) + ::getSizeInBytes(color) + ::getSizeInBytes(neighbour) + ::getSizeInBytes(parals);
 	
 	if (alignToFourBytes)
-		return ceil(float(size) / 4.0f);
+		return ceil(float(sz) / 4.0f);
 
-	return size;
+	return sz;
 }
 
-std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, const std::vector<uint8_t>& neighs, const std::vector<uint8_t>& parals, bool alignToFourBytes) const
+std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, uint32_t size_, const std::vector<uint8_t>& neighs, const std::vector<uint8_t>& parals, bool alignToFourBytes) const
 {
 	std::vector<uint8_t> res;
 	res.reserve(getSizeInBytes(alignToFourBytes));
@@ -52,10 +51,10 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, const std::vec
 		break;
 	}
 
-	switch (power)
+	switch (size)
 	{
-	case VoxelPowerFormat::UINT8:
-		utils::appendBytes(res, uint8_t(voxel.power));
+	case VoxelSizeFormat::UINT8:
+		utils::appendBytes(res, uint8_t(size_));
 		break;
 	default:
 		break;
@@ -151,52 +150,67 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, const std::vec
 	utils::appendBytes(res, parals);
 }
 
-Voxel VoxelFormat::unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) const
+VoxelState VoxelFormat::getVoxelState(const uint8_t* data) const
 {
-	Voxel voxel;
+	VoxelState state;
 
 	switch (fullness)
 	{
 	case VoxelFullnessFormat::UINT8:
-		data += 1;
+		state.full = data[0];
 		break;
 	case VoxelFullnessFormat::UINT16:
-		data += 2;
+		state.full = ((uint16_t*)data)[0];
 		break;
 	case VoxelFullnessFormat::UINT24:
-		data += 3;
+		state.full = ((uint32_t*)data)[0];
 		break;
 	case VoxelFullnessFormat::UINT32:
-		data += 4;
+		state.full = ((uint32_t*)data)[0];
 		break;
 	}
 
-	switch (power)
+	data += ::getSizeInBytes(fullness);
+
+	switch (size)
 	{
-	case VoxelPowerFormat::UINT8:
-		voxel.power = data[0];
-		data++;
+	case VoxelSizeFormat::UINT8:
+		state.size = data[0];
 		break;
 	}
+	
+	data += ::getSizeInBytes(size) + ::getSizeInBytes(shape) + ::getSizeInBytes(material) + ::getSizeInBytes(orientation) + ::getSizeInBytes(color);
+
+	state.neighs = unformatNeighs(data);
+	data += ::getSizeInBytes(neighbour);
+
+	state.parals = unformatParals(data);
+
+	return state;
+}
+
+Voxel VoxelFormat::unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) const
+{
+	Voxel voxel;
+
+	data += ::getSizeInBytes(fullness) + ::getSizeInBytes(size);
 
 	uint32_t shId;
 	switch (shape)
 	{
 	case VoxelShapeFormat::UINT8:
 		shId = data[0];
-		data++;
 		break;
 	case VoxelShapeFormat::UINT16:
 		shId = ((uint16_t*)data)[0];
-		data += 2;
 		break;
 	case VoxelShapeFormat::UINT32:
 		shId = ((uint32_t*)data)[0];
-		data += 4;
 		break;
 	default:
 		break;
 	}
+	data += ::getSizeInBytes(shape);
 	voxel.shape = vts.hasShape(shId) ? vts.getShape(shId) : vts.addShape(shId, coder->decodeShape(data));
 
 	uint32_t mtId;
@@ -204,19 +218,17 @@ Voxel VoxelFormat::unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) cons
 	{
 	case VoxelMaterialFormat::UINT8:
 		mtId = data[0];
-		data++;
 		break;
 	case VoxelMaterialFormat::UINT16:
 		mtId = ((uint16_t*)data)[0];
-		data += 2;
 		break;
 	case VoxelMaterialFormat::UINT32:
 		mtId = ((uint32_t*)data)[0];
-		data += 4;
 		break;
 	default:
 		break;
 	}
+	data += ::getSizeInBytes(material);
 	voxel.material = vts.hasMaterial(mtId) ? vts.getMaterial(mtId) : vts.addMaterial(mtId, coder->decodeMaterial(data));
 
 	auto decodeOri1 = [&](const uint8_t* data) {
@@ -248,19 +260,18 @@ Voxel VoxelFormat::unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) cons
 	switch (orientation)
 	{
 	case VoxelOrientationFormat::UINT8:
-		voxel.orientation = decodeOri1(data++);
+		voxel.orientation = decodeOri1(data);
 		break;
 	case VoxelOrientationFormat::UINT32:
 		voxel.orientation = decodeOri4(data);
-		data += 4;
 		break;
 	case VoxelOrientationFormat::FULL_16BYTES:
 		voxel.orientation = decodeOri16(data);
-		data += 16;
 		break;
-	break;	default:
+	default:
 		break;
 	}
+	data += ::getSizeInBytes(orientation);
 
 	std::vector<uint8_t> rgb;
 	switch (color)
@@ -284,4 +295,14 @@ Voxel VoxelFormat::unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) cons
 		voxel.color = { data[0], data[1], data[2], data[3] };
 		break;
 	}
+}
+
+std::vector<glm::uvec3> VoxelFormat::unformatParals(const uint8_t* data) const
+{
+	return std::vector<glm::uvec3>();
+}
+
+VoxelNeighbours VoxelFormat::unformatNeighs(const uint8_t* data) const
+{
+	return VoxelNeighbours();
 }
