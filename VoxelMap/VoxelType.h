@@ -13,13 +13,7 @@ struct VoxelShape
 
 	std::string name = "none";
 
-	virtual bool raytrace(const glm::vec3& start, const glm::vec3& dir,
-		bool l, bool r, bool d, bool u, bool b, bool f,
-		glm::vec3& hit, glm::vec3& normal) = 0;
-
-	virtual bool raytrace(const glm::vec3& start, const glm::vec3& dir,
-		bool l, bool ld, bool lu, bool lb, bool lf, bool ldb, bool ldf, bool lub, bool luf, bool r, bool rd, bool ru, bool rb, bool rf, bool rdb, bool rdf, bool rub, bool ruf, bool d, bool db, bool df, bool u, bool ub, bool uf, bool b, bool f,
-		glm::vec3& hit, glm::vec3& normal) = 0;
+	virtual bool raytrace(const glm::vec3& start, const glm::vec3& dir, const VoxelNeighbours& neighs, glm::vec3& hit, glm::vec3& normal) = 0;
 
 	virtual std::string getRaytraceShaderCode() = 0;
 };

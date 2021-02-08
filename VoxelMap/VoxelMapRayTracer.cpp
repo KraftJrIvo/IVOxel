@@ -16,6 +16,11 @@ void VoxelMapRayTracer::setMapData(const std::vector<uint8_t>& data)
     _mapData = data;
 }
 
+void VoxelMapRayTracer::setLightData(const std::vector<uint8_t>& data)
+{
+    _lightData = data;
+}
+
 void VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, glm::vec3& absCoord, vec3& normal, vec3& color)
 {
     vec3 resultColor = vec3(0, 0, 0);
@@ -32,7 +37,7 @@ void VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, glm::vec3& absCo
     {
         uint32_t idx = curChunkPos[2] * _chunkLoadDiameter * _chunkLoadDiameter + curChunkPos[1] * _chunkLoadDiameter + curChunkPos[0];
         uint32_t off = _format.chunkFormat.getSizeInBytes() * idx;
-        auto chunkH = _format.unformatChunkHeader(_mapData.data() + off, _alignToFourBytes);
+        auto chunkH = _format.getChunkState(_mapData.data() + off, _alignToFourBytes);
 
         vec3 prevAbsCoord = absCoord;
         notFinish = !_rayTraceChunk(chunkH, _getCurEntryPoint(marchAbsPos, 1.0, lastRes), rayDir, curChunkPos, absCoord, normal, color);
@@ -42,12 +47,12 @@ void VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, glm::vec3& absCo
             absCoord = prevAbsCoord;
 
             chunkH.parals.data();
-            curChunkPos += ivec3(_marchAndGetNextDir(rayDir, 1, ivec2(-1, 2), marchFinish, marchAbsPos, lastRes, absCoord));
+            curChunkPos += ivec3(_marchAndGetNextDir(rayDir, 1, ivec2(-1, 2), chunkH.parals.data(), marchFinish, marchAbsPos, lastRes, absCoord));
         }
     }
 }
 
-bool VoxelMapRayTracer::_rayTraceChunk(const VoxelChunkHeader& chunkH, vec3 rayStart, vec3 rayDir, ivec3 curChunkPos, vec3& absCoord, vec3& normal, vec3& color)
+bool VoxelMapRayTracer::_rayTraceChunk(const VoxelChunkState& chunkH, vec3 rayStart, vec3 rayDir, ivec3 curChunkPos, vec3& absCoord, vec3& normal, vec3& color)
 {
     vec3 resultColor = vec3(0, 0, 0);
 
@@ -67,7 +72,7 @@ bool VoxelMapRayTracer::_rayTraceChunk(const VoxelChunkHeader& chunkH, vec3 rayS
     {
         glm::uint voxOff = chunkH.voxOffset + curVoxPos[2] * chunkH.side * chunkH.side + curVoxPos[1] * chunkH.side + curVoxPos[0];
         //auto voxel = _format.voxelFormat.unformatVoxel(_vts, _mapData.data() + voxOff);
-        auto voxelState = _format.voxelFormat.getVoxelState(_vts, _mapData.data() + voxOff);
+        auto voxelState = _format.getVoxelState(_mapData.data() + voxOff);
 
         stepsToTake = uint(sideSteps / voxelState.size);
 
@@ -79,12 +84,12 @@ bool VoxelMapRayTracer::_rayTraceChunk(const VoxelChunkHeader& chunkH, vec3 rayS
 
             vec3 absPos = vec3(curChunkPos) + (vec3(curVoxPos - curVoxPos % stepsToTake) / float(sideSteps));
 
-            if (_rayTraceVoxel(voxOff, entry, rayDir, absPos, voxRatio, absCoord, normal, color))
+            if (_rayTraceVoxel(voxOff, voxelState.neighs, entry, rayDir, absPos, voxRatio, absCoord, normal, color))
                 return true;
         }
 
         vec3 absCoordVox = {0,0,0};
-        _marchAndGetNextDir(rayDir, stepsToTake, ivec2(0, sideSteps), , marchFinish, marchPos, lastRes, absCoordVox);
+        _marchAndGetNextDir(rayDir, stepsToTake, ivec2(0, sideSteps), voxelState.parals.data(), marchFinish, marchPos, lastRes, absCoordVox);
         absCoord += absCoordVox * voxRatio;
 
         curVoxPos = ivec3(floor(marchPos));
@@ -95,7 +100,7 @@ bool VoxelMapRayTracer::_rayTraceChunk(const VoxelChunkHeader& chunkH, vec3 rayS
     return false;
 }
 
-bool VoxelMapRayTracer::_rayTraceVoxel(glm::uint voxOff, vec3 rayStart, vec3 rayDir, vec3 absPos, float voxRatio, vec3& absCoord, vec3& normal, vec3& color)
+bool VoxelMapRayTracer::_rayTraceVoxel(glm::uint voxOff, const VoxelNeighbours& neighs, vec3 rayStart, vec3 rayDir, vec3 absPos, float voxRatio, vec3& absCoord, vec3& normal, vec3& color)
 {
     Voxel voxel = _format.voxelFormat.unformatVoxel(_vts, _mapData.data() + voxOff);
 
@@ -107,13 +112,7 @@ bool VoxelMapRayTracer::_rayTraceVoxel(glm::uint voxOff, vec3 rayStart, vec3 ray
 
     float lenVox = 0;
 
-
-    shape->raytrace(rayStart, rayDir, )
-
-    if (voxType == 0)
-        lenVox = raytrace_cube(rayStart, dir, hit, normal);
-    else if (voxType == 1)
-        lenVox = raytrace_sphere(rayStart, dir, hit, normal);
+    voxel.shape->raytrace(rayStart, dir, neighs, hit, normal);
 
     hit *= voxRatio;
     lenVox *= voxRatio;
@@ -122,7 +121,7 @@ bool VoxelMapRayTracer::_rayTraceVoxel(glm::uint voxOff, vec3 rayStart, vec3 ray
 
     vec3 colorCoeffs = { 0,0,0 };
 
-    vec3 color = voxColor;
+    color = voxel.color;
     vec3 absRayStart = absPos + hit;
 
     if (lenVox >= 0)
@@ -188,7 +187,7 @@ vec3 VoxelMapRayTracer::_getCurEntryPoint(vec3 absPos, float side, vec3 lastRes)
     return result;
 }
 
-vec3 VoxelMapRayTracer::_marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, glm::vec4 parals, bool& finish, vec3& absPos, vec3& lastRes, glm::vec3& absCoord)
+vec3 VoxelMapRayTracer::_marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, glm::uvec3* parals, bool& finish, vec3& absPos, vec3& lastRes, glm::vec3& absCoord)
 {
     vec3 isNeg;
     for (int i = 0; i < 3; ++i)
@@ -196,10 +195,13 @@ vec3 VoxelMapRayTracer::_marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, 
 
     vec3 vecStart = _getCurEntryPoint(absPos, side, lastRes);
 
+    int paralN = (vec3(4.0, 2.0, 1.0) * isNeg).length();
+    uvec3 paral = parals[paralN];
+
     vec3 path;
     for (int i = 0; i < 3; ++i)
     {
-        path[i] = (isNeg[i] != 0) ? -vecStart[i] : (1.0 - vecStart[i]);
+        path[i] = (isNeg[i] != 0) ? -vecStart[i] : (paral[i] - vecStart[i]);
         path[i] = (path[i] == 0) ? _epsilon : path[i];
     }
 

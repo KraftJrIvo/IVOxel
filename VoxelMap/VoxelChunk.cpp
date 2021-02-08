@@ -189,9 +189,9 @@ std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vecto
 	uint32_t voxSide = pow(pyramid.base, vox.power);
 	float offset = 1.0f / float(voxSide);
 
-	for (int16_t xOff = -1; xOff <= 1; xOff += 2)
+	for (int16_t zOff = -1; zOff <= 1; zOff += 2)
 		for (int16_t yOff = -1; yOff <= 1; yOff += 2)
-			for (int16_t zOff = -1; zOff <= 1; zOff += 2)
+			for (int16_t xOff = -1; xOff <= 1; xOff += 2)
 			{
 				int16_t x, y, z;
 				bool xGo = true, yGo = true, zGo = true, stop = false;

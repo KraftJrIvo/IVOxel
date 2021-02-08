@@ -15,7 +15,7 @@ uint32_t VoxelMapFormat::getSizeInBytes(uint32_t nVoxels, bool alignToFourBytes)
 	return res;
 }
 
-VoxelChunk VoxelMapFormat::unformatChunk(const VoxelTypeStorer& vts, const uint8_t* header, const uint8_t* data, bool alignToFourBytes) const
+VoxelChunk VoxelMapFormat::unformatChunk(VoxelTypeStorer& vts, const uint8_t* header, const uint8_t* data, bool alignToFourBytes) const
 {
 	std::vector<Voxel> voxels;
 
@@ -91,9 +91,9 @@ VoxelChunk VoxelMapFormat::unformatChunk(const VoxelTypeStorer& vts, const uint8
 	return VoxelChunk(voxels, chunkFormat, voxelFormat);
 }
 
-VoxelChunkHeader VoxelMapFormat::unformatChunkHeader(const uint8_t* data, bool alignToFourBytes) const
+VoxelChunkState VoxelMapFormat::getChunkState(const uint8_t* data, bool alignToFourBytes) const
 {
-	VoxelChunkHeader vch;
+	VoxelChunkState vch;
 
 	const uint8_t* dataStart = data;
 
@@ -165,5 +165,79 @@ VoxelChunkHeader VoxelMapFormat::unformatChunkHeader(const uint8_t* data, bool a
 		break;
 	}
 
-	vch.parals = std::vector<uint8_t>(data, data + ::getSizeInBytes(chunkFormat.parals));
+	vch.parals = unformatParals(chunkFormat.parals, data);
+}
+
+std::vector<glm::uvec3> VoxelMapFormat::unformatParals(ParalsInfoFormat format, const uint8_t* data) const
+{
+	std::vector<glm::uvec3> res(8);
+
+	switch (format)
+	{
+	case ParalsInfoFormat::CUBIC_UINT8:
+		for (int i = 0; i < 8; ++i)
+			res[i][0] = res[i][1] = res[i][2] = data[i];
+		break;
+	case ParalsInfoFormat::NON_CUBIC_UINT8:
+		for (int i = 0; i < 8; ++i)
+		{
+			res[i][0] = data[i * 3];
+			res[i][1] = data[i * 3 + 1];
+			res[i][2] = data[i * 3 + 2];
+		}
+		break;
+	case ParalsInfoFormat::CUBIC_FLOAT32:
+		for (int i = 0; i < 8; ++i)
+			res[i][0] = res[i][1] = res[i][2] = ((float*)data)[i];
+		break;
+	case ParalsInfoFormat::NON_CUBIC_FLOAT32:
+		for (int i = 0; i < 8; ++i)
+		{
+			res[i][0] = ((float*)data)[i * 3];
+			res[i][1] = ((float*)data)[i * 3 + 1];
+			res[i][2] = ((float*)data)[i * 3 + 2];
+		}
+		break;
+	}
+
+	return res;
+}
+
+VoxelState VoxelMapFormat::getVoxelState(const uint8_t* data) const
+{
+	VoxelState state;
+
+	switch (voxelFormat.fullness)
+	{
+	case VoxelFullnessFormat::UINT8:
+		state.full = data[0];
+		break;
+	case VoxelFullnessFormat::UINT16:
+		state.full = ((uint16_t*)data)[0];
+		break;
+	case VoxelFullnessFormat::UINT24:
+		state.full = ((uint32_t*)data)[0];
+		break;
+	case VoxelFullnessFormat::UINT32:
+		state.full = ((uint32_t*)data)[0];
+		break;
+	}
+
+	data += ::getSizeInBytes(voxelFormat.fullness);
+
+	switch (voxelFormat.size)
+	{
+	case VoxelSizeFormat::UINT8:
+		state.size = data[0];
+		break;
+	}
+
+	data += ::getSizeInBytes(voxelFormat.size) + ::getSizeInBytes(voxelFormat.shape) + ::getSizeInBytes(voxelFormat.material) + ::getSizeInBytes(voxelFormat.orientation) + ::getSizeInBytes(voxelFormat.color);
+
+	state.neighs = voxelFormat.unformatNeighs(data);
+	data += ::getSizeInBytes(voxelFormat.neighbour);
+
+	state.parals = unformatParals(voxelFormat.parals, data);
+
+	return state;
 }

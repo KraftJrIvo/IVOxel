@@ -19,11 +19,11 @@ public:
 	VoxelChunk& getChunk(const std::vector<int32_t>& pos);
 	std::vector<uint8_t> getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius, bool alignToFourBytes = true);
 	std::vector<uint8_t> getChunkParals(const std::vector<int32_t>& pos);
+	std::vector<uint8_t> getLightDataAt(const std::vector<int32_t>& absPos, uint8_t radius) const;
 	
 	uint32_t addLight(const Light& l);
 	void moveLight(uint32_t lightID, const std::vector<float>& absPos);
 	void removeLight(uint32_t lightID);
-	std::vector<Light> getLightsByChunk(const std::vector<int32_t>& pos, uint32_t radius = 0) const;
 
 	bool checkLoadNeeded(const std::vector<int32_t>& pos);
 

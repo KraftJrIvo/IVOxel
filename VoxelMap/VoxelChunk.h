@@ -17,14 +17,14 @@ struct VoxelChunkFormat
 	std::vector<uint8_t> formatChunk(const VoxelChunk& chunk, bool alignToFourBytes = true) const;
 };
 
-struct VoxelChunkHeader
+struct VoxelChunkState
 {
 	uint8_t fullness;
 	uint32_t voxOffset;
 	uint8_t base;
 	uint8_t power;
 	uint8_t side;
-	std::vector<uint8_t> parals;
+	std::vector<glm::uvec3> parals;
 };
 
 class VoxelChunk

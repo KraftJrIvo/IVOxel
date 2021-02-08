@@ -10,6 +10,7 @@ class VoxelMapRayTracer
 public:
 	VoxelMapRayTracer(const VoxelMapFormat& format, VoxelTypeStorer& vts, uint32_t chunkLoadRadius, float epsilon, bool alignToFourBytes = true);
 	void setMapData(const std::vector<uint8_t>& data);
+	void setLightData(const std::vector<uint8_t>& data);
 	void raytraceMap(glm::vec3 rayStart, glm::vec3 rayDir, glm::vec3& absCoord, glm::vec3& normal, glm::vec3& color);
 
 private:
@@ -20,9 +21,10 @@ private:
 	const bool _alignToFourBytes;
 	VoxelTypeStorer& _vts;
 	std::vector<uint8_t> _mapData;
+	std::vector<uint8_t> _lightData;
 
-	bool _rayTraceChunk(const VoxelChunkHeader& chunkH, glm::vec3 rayStart, glm::vec3 rayDir, glm::ivec3 curChunkPos, glm::vec3& absCoord, glm::vec3& normal, glm::vec3& color);
-	bool _rayTraceVoxel(glm::uint voxOff, glm::vec3 rayStart, glm::vec3 rayDir, glm::vec3 absPos, float voxRatio, glm::vec3& absCoord, glm::vec3& normal, glm::vec3& color);
+	bool _rayTraceChunk(const VoxelChunkState& chunkH, glm::vec3 rayStart, glm::vec3 rayDir, glm::ivec3 curChunkPos, glm::vec3& absCoord, glm::vec3& normal, glm::vec3& color);
+	bool _rayTraceVoxel(glm::uint voxOff, const VoxelNeighbours& neighs, glm::vec3 rayStart, glm::vec3 rayDir, glm::vec3 absPos, float voxRatio, glm::vec3& absCoord, glm::vec3& normal, glm::vec3& color);
 	glm::vec3 _getCurEntryPoint(glm::vec3 absPos, float side, glm::vec3 lastRes);
-	glm::vec3 _marchAndGetNextDir(glm::vec3 dir, float side, glm::ivec2 minmax, glm::vec4 parals, bool& finish, glm::vec3& absPos, glm::vec3& lastRes, glm::vec3& absCoord);
+	glm::vec3 _marchAndGetNextDir(glm::vec3 dir, float side, glm::ivec2 minmax, glm::uvec3* parals, bool& finish, glm::vec3& absPos, glm::vec3& lastRes, glm::vec3& absCoord);
 };

@@ -137,9 +137,9 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 	std::vector<uint8_t> res;
 	uint8_t oct = 0;
 
-	for (int8_t xOff = -1; xOff <= 1; xOff += 2)
+	for (int8_t zOff = -1; zOff <= 1; zOff += 2)
 		for (int8_t yOff = -1; yOff <= 1; yOff += 2)
-			for (int8_t zOff = -1; zOff <= 1; zOff += 2)
+			for (int8_t xOff = -1; xOff <= 1; xOff += 2)
 			{
 				int16_t x, y, z;
 				float xf, yf, zf;
@@ -186,6 +186,27 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 						}
 				oct++;
 			}
+
+	return res;
+}
+
+std::vector<uint8_t> VoxelMap::getLightDataAt(const std::vector<int32_t>& absPos, uint8_t radius) const
+{
+	auto lights = _generator.generateLights(absPos, radius);
+
+	std::vector<float> vals;
+	for (auto& light : lights)
+	{
+		vals.push_back(light.position[0]);
+		vals.push_back(light.position[1]);
+		vals.push_back(light.position[2]);
+		vals.push_back(light.rgba[0]);
+		vals.push_back(light.rgba[1]);
+		vals.push_back(light.rgba[2]);
+		vals.push_back(light.rgba[3]);
+	}
+
+	std::vector<uint8_t> res = std::vector<uint8_t>(vals.begin(), vals.begin() + 7 * sizeof(float));
 
 	return res;
 }

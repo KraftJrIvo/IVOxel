@@ -23,6 +23,8 @@ struct VoxelMapFormat
 
 	uint32_t getSizeInBytes(uint32_t nVoxels, bool alignToFourBytes = true) const;
 
-	VoxelChunk unformatChunk(const VoxelTypeStorer& vts, const uint8_t* header, const uint8_t* data, bool alignToFourBytes = true) const;
-	VoxelChunkHeader unformatChunkHeader(const uint8_t* data, bool alignToFourBytes = true) const;
+	VoxelChunk unformatChunk(VoxelTypeStorer& vts, const uint8_t* header, const uint8_t* data, bool alignToFourBytes = true) const;
+	VoxelChunkState getChunkState(const uint8_t* data, bool alignToFourBytes = true) const;
+	std::vector<glm::uvec3> unformatParals(ParalsInfoFormat format, const uint8_t* data) const;
+	VoxelState getVoxelState(const uint8_t* data) const;
 };

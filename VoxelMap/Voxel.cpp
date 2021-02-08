@@ -150,45 +150,6 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, uint32_t size_
 	utils::appendBytes(res, parals);
 }
 
-VoxelState VoxelFormat::getVoxelState(const uint8_t* data) const
-{
-	VoxelState state;
-
-	switch (fullness)
-	{
-	case VoxelFullnessFormat::UINT8:
-		state.full = data[0];
-		break;
-	case VoxelFullnessFormat::UINT16:
-		state.full = ((uint16_t*)data)[0];
-		break;
-	case VoxelFullnessFormat::UINT24:
-		state.full = ((uint32_t*)data)[0];
-		break;
-	case VoxelFullnessFormat::UINT32:
-		state.full = ((uint32_t*)data)[0];
-		break;
-	}
-
-	data += ::getSizeInBytes(fullness);
-
-	switch (size)
-	{
-	case VoxelSizeFormat::UINT8:
-		state.size = data[0];
-		break;
-	}
-	
-	data += ::getSizeInBytes(size) + ::getSizeInBytes(shape) + ::getSizeInBytes(material) + ::getSizeInBytes(orientation) + ::getSizeInBytes(color);
-
-	state.neighs = unformatNeighs(data);
-	data += ::getSizeInBytes(neighbour);
-
-	state.parals = unformatParals(data);
-
-	return state;
-}
-
 Voxel VoxelFormat::unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) const
 {
 	Voxel voxel;
@@ -297,12 +258,24 @@ Voxel VoxelFormat::unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) cons
 	}
 }
 
-std::vector<glm::uvec3> VoxelFormat::unformatParals(const uint8_t* data) const
-{
-	return std::vector<glm::uvec3>();
-}
-
 VoxelNeighbours VoxelFormat::unformatNeighs(const uint8_t* data) const
 {
-	return VoxelNeighbours();
+	VoxelNeighbours res;
+	bool tmp;
+
+	switch (neighbour)
+	{
+	case VoxelNeighbourInfoFormat::TWENTY_SIX_DIRS_FOUR_BYTES:
+		utils::unpackByte(data, tmp, tmp, tmp, tmp, tmp, tmp, res.l, res.ld);
+		utils::unpackByte(data, res.lu, res.lb, res.lf, res.ldb, res.ldf, res.lub, res.luf, res.r);
+		utils::unpackByte(data, res.rd, res.ru, res.rb, res.rf, res.rdb, res.rdf, res.rub, res.ruf);
+		utils::unpackByte(data, res.d, res.db, res.df, res.u, res.ub, res.uf, res.b, res.f);
+		break;
+	case VoxelNeighbourInfoFormat::SIX_DIRS_ONE_BYTE:
+		bool tmp;
+		utils::unpackByte(data, tmp, tmp, res.l, res.r, res.d, res.u, res.b, res.f);
+		break;
+	}
+
+	return res;
 }
