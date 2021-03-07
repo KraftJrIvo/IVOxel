@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <windows.h>
 #include <vulkan/vulkan.h>
 
 namespace vkTypes

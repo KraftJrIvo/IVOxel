@@ -13,7 +13,7 @@ class VoxelMap
 {
 public:
 	VoxelMap() = default;
-	VoxelMap(const VoxelMapFormat& format, const VoxelChunkGenerator& generator, uint32_t loadRadius = 7);
+	VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator, uint32_t loadRadius = 7);
 
 	VoxelMapFormat getFormat() const;
 	VoxelChunk& getChunk(const std::vector<int32_t>& pos);
@@ -35,7 +35,7 @@ protected:
 	VoxelTypeStorer _voxTypeStorer;
 
 	VoxelMapFormat _format;
-	const VoxelChunkGenerator& _generator;
+	VoxelChunkGenerator& _generator;
 	VoxelChunkStorer _storer;
 
 	std::vector<VoxelChunk> _chunks;

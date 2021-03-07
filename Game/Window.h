@@ -1,7 +1,11 @@
 #pragma once
 
-#include "VulkanTypes.h"
 #include <string>
+#include <vector>
+
+#include <windows.h>
+
+#include <glm/glm.hpp>
 
 class Window
 {
@@ -16,8 +20,8 @@ public:
 	std::pair<uint32_t, uint32_t> getSizeScaled();
 	bool wasResized();
 	float getRenderScale();
-	VkRect2D getRenderArea();
-	VkRect2D getRenderAreaScaled();
+	glm::ivec4 getRenderArea();
+	glm::ivec4 getRenderAreaScaled();
 
 	const HINSTANCE& getHInstance();
 	const HWND& getHWND();

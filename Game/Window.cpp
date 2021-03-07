@@ -1,5 +1,6 @@
 #include "Window.h"
 
+#include <algorithm>
 
 Window::Window(uint32_t size_x, uint32_t size_y, std::wstring name, float renderScale)
 {
@@ -60,24 +61,16 @@ float Window::getRenderScale()
 	return renderScale;
 }
 
-VkRect2D Window::getRenderArea()
+glm::ivec4 Window::getRenderArea()
 {
-	VkRect2D renderArea;
-	renderArea.offset = { 0,0 };
-	auto wSz		  = getSize();
-	renderArea.extent = { (uint32_t)(wSz.first / renderScale), (uint32_t)(wSz.second / renderScale) };
-
-	return renderArea;
+	auto wSz = getSize();
+	return glm::ivec4(0, 0, (uint32_t)(wSz.first / renderScale), (uint32_t)(wSz.second / renderScale));
 }
 
-VkRect2D Window::getRenderAreaScaled()
+glm::ivec4 Window::getRenderAreaScaled()
 {
-	VkRect2D renderArea;
-	renderArea.offset = { 0,0 };
 	auto wSz = getSize();
-	renderArea.extent = { wSz.first, wSz.second };
-
-	return renderArea;
+	return glm::ivec4(0, 0, wSz.first, wSz.second);
 }
 
 const HINSTANCE& Window::getHInstance()
@@ -89,10 +82,6 @@ const HWND& Window::getHWND()
 {
 	return _win32_window;
 }
-
-#include <assert.h>
-
-#if VK_USE_PLATFORM_WIN32_KHR
 
 // Microsoft Windows specific versions of window functions
 LRESULT CALLBACK WindowsEventHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -329,5 +318,3 @@ std::vector<float> Window::getCurDeltaTrans()
 
 	return delta;
 }
-
-#endif

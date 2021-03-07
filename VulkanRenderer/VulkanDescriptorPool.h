@@ -3,13 +3,15 @@
 #include <list>
 #include <memory>
 
+#include <GameDataContainer.h>
+
 #include "VulkanDevice.h"
 #include "VulkanSwapchain.h"
 #include "VulkanBuffer.h"
 
 struct ShaderData;
 
-class VulkanDescriptorPool
+class VulkanDescriptorPool : public GameDataContainer
 {
 public:
 	void initLayouts(const VulkanDevice& device, const std::list<std::shared_ptr<ShaderData>>& shaderData);
@@ -19,7 +21,7 @@ public:
 	const std::vector<VkDescriptorSetLayout>& getLayouts();
 	const std::vector<VkDescriptorSet>& getSets(uint32_t frameID);
 
-	void setData(uint32_t frameID, uint32_t dataID, void* ptr);
+	void setData(uint32_t frameID, uint32_t dataID, void* ptr) override;
 
 private:
 	VkDescriptorPool _pool;

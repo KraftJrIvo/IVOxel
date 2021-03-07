@@ -2,9 +2,9 @@
 
 #include "GameState.h"
 
-#include "ShaderDataCamera.h"
-#include "ShaderDataLight.h"
-#include "ShaderDataMap.h"
+#include "GameDataCamera.h"
+#include "GameDataLight.h"
+#include "GameDataMap.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
@@ -12,11 +12,17 @@
 void GameState::init(Window* window)
 { 
 	_window = window;
-	_curRot = glm::vec2(0.0f, -90.0f);
-	_curTrans = glm::vec3(1.5f, 0.5f, 0.5f);
+
+	_cam.fov = 90.0f;
+	auto ra = getRenderArea();
+	_cam.res = { ra[2], ra[3] };
+	_curRot = glm::vec3(0.0f, -90.0f, 0.0f);
+	_cam.rotate(_curRot);
+	_cam.translate(glm::vec3(1.5f, 0.5f, 0.5f));
+	
 	_startTime = std::chrono::high_resolution_clock::now();
 
-	_shaderData = { std::make_shared<ShaderDataCamera>(), std::make_shared<ShaderDataLight>(), std::make_shared<ShaderDataMap>() };
+	_GameData = { std::make_shared<GameDataCamera>(), std::make_shared<GameDataLight>(), std::make_shared<GameDataMap>() };
 }
 
 void GameState::setMap(const VoxelMap& map)
@@ -27,13 +33,13 @@ void GameState::setMap(const VoxelMap& map)
 glm::vec4 GameState::getRenderArea() const
 {
 	auto ra = _window->getRenderArea();
-	return glm::vec4(ra.offset.x, ra.offset.y, ra.extent.width, ra.extent.height);
+	return ra;
 }
 
-glm::vec2 GameState::getRotDelta() const
+glm::vec3 GameState::getRotDelta() const
 {
 	auto dr = _window->getCurDeltaRot();
-	return glm::vec2(dr[0], dr[1]);
+	return glm::vec3(dr[0], dr[1], 0);
 }
 
 glm::vec3 GameState::getTransDelta() const
@@ -45,7 +51,9 @@ glm::vec3 GameState::getTransDelta() const
 void GameState::updateRot()
 {
 	auto area = getRenderArea();
-	_curRot += 500.0f * getRotDelta() / (float)area.z;
+	auto delta = 500.0f * getRotDelta() / (float)area.z;
+	_cam.rotate(delta);
+	_curRot += delta;
 }
 
 void GameState::updateTrans()
@@ -53,7 +61,7 @@ void GameState::updateTrans()
 	glm::mat4 rotmat(1.0);
 	rotmat = glm::rotate(rotmat, glm::radians(-_curRot.y - 90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	rotmat = glm::rotate(rotmat, glm::radians(-_curRot.x), glm::vec3(1.0f, 0.0f, 0.0f));
-	_curTrans += glm::mat3(rotmat) * getTransDelta() / 100.0f;
+	_cam.translate(glm::mat3(rotmat) * getTransDelta() / 100.0f);
 }
 
 float GameState::getTime()
@@ -62,9 +70,14 @@ float GameState::getTime()
 	return std::chrono::duration<float, std::chrono::seconds::period>(currentTime - _startTime).count();
 }
 
-void GameState::update(VulkanDescriptorPool& pool, uint32_t frameID)
+Camera& GameState::getCam()
+{
+	return _cam;
+}
+
+void GameState::update(GameDataContainer* container, uint32_t frameID)
 {
 	int i = 0;
-	for (auto& sd : _shaderData)
-		sd->update(pool, frameID, i++, *this);
+	for (auto& sd : _GameData)
+		sd->update(container, frameID, i++, *this);
 }

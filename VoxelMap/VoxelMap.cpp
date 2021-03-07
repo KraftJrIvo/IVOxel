@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-VoxelMap::VoxelMap(const VoxelMapFormat& format, const VoxelChunkGenerator& generator, uint32_t loadRadius) :
+VoxelMap::VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator, uint32_t loadRadius) :
 	_format(format),
 	_generator(generator),
 	_loadRadius(loadRadius),
@@ -197,13 +197,14 @@ std::vector<uint8_t> VoxelMap::getLightDataAt(const std::vector<int32_t>& absPos
 	std::vector<float> vals;
 	for (auto& light : lights)
 	{
+		vals.push_back(1.0f); // to fit 2 x vec4 and mark that light exists at this offset
 		vals.push_back(light.position[0]);
 		vals.push_back(light.position[1]);
 		vals.push_back(light.position[2]);
-		vals.push_back(light.rgba[0]);
-		vals.push_back(light.rgba[1]);
-		vals.push_back(light.rgba[2]);
-		vals.push_back(light.rgba[3]);
+		vals.push_back((float)light.rgba[0] / 255.0f);
+		vals.push_back((float)light.rgba[1] / 255.0f);
+		vals.push_back((float)light.rgba[2] / 255.0f);
+		vals.push_back((float)light.rgba[3] / 255.0f);
 	}
 
 	std::vector<uint8_t> res = std::vector<uint8_t>(vals.begin(), vals.begin() + 7 * sizeof(float));
