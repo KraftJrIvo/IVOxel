@@ -50,8 +50,10 @@ VulkanRenderer::~VulkanRenderer()
 	_surface.destroy(_vulkan);
 }
 
-void VulkanRenderer::init()
+void VulkanRenderer::init(GameState& gs)
 {
+	_game = gs;
+
 	std::vector<uint32_t> queueFamilies = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT };
 	std::vector<VkPhysicalDeviceType> deviceTypesByPriority = { VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU };
 
@@ -74,10 +76,8 @@ void VulkanRenderer::init()
 	}
 }
 
-void VulkanRenderer::run(const VoxelMap& map)
+void VulkanRenderer::startRender()
 {
-	_game.setMap(map);
-
 	auto queue = _mainDevice.getQueueByType(VK_QUEUE_GRAPHICS_BIT);
 
 	auto cbBeginInfo = vkTypes::getCBBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -100,7 +100,7 @@ void VulkanRenderer::run(const VoxelMap& map)
 
 	uint32_t frameID = 0;
 
-	while (runOnce())
+	while (_runOnce())
 	{
 		fpsCounter.tellFPS(1000);
 
@@ -148,7 +148,7 @@ void VulkanRenderer::run(const VoxelMap& map)
 
 		vkResetFences(_mainDevice.get(), 1, &_frameFences[frameID]);
 
-		_game.update(_descrPool, frameID);
+		_game.update(&_descrPool, frameID);
 
 		std::vector<VkSemaphore> waitSemaphores = { _semImgAvailable[frameID] };
 		std::vector<VkSemaphore> signalSemaphores = { _semRenderDone[frameID] };
@@ -167,7 +167,7 @@ void VulkanRenderer::run(const VoxelMap& map)
 	vkQueueWaitIdle(queue);
 }
 
-bool VulkanRenderer::runOnce()
+bool VulkanRenderer::_runOnce()
 {
 	return window.Update();
 }
@@ -194,7 +194,6 @@ void VulkanRenderer::_endRender(uint32_t frameID)
 void VulkanRenderer::stop()
 {
 	window.Close();
-	_keepGoing = false;
 }
 
 void VulkanRenderer::_initSync()

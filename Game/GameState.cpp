@@ -11,8 +11,7 @@
 
 void GameState::init(Window* window)
 { 
-	_window = window;
-
+	_cam.window = window;
 	_cam.fov = 90.0f;
 	auto ra = getRenderArea();
 	_cam.res = { ra[2], ra[3] };
@@ -25,26 +24,26 @@ void GameState::init(Window* window)
 	_GameData = { std::make_shared<GameDataCamera>(), std::make_shared<GameDataLight>(), std::make_shared<GameDataMap>() };
 }
 
-void GameState::setMap(const VoxelMap& map)
+void GameState::setMap(VoxelMap* map)
 {
 	_map = map;
 }
 
 glm::vec4 GameState::getRenderArea() const
 {
-	auto ra = _window->getRenderArea();
+	auto ra = _cam.window->getRenderArea();
 	return ra;
 }
 
 glm::vec3 GameState::getRotDelta() const
 {
-	auto dr = _window->getCurDeltaRot();
+	auto dr = _cam.window->getCurDeltaRot();
 	return glm::vec3(dr[0], dr[1], 0);
 }
 
 glm::vec3 GameState::getTransDelta() const
 {
-	auto dt = _window->getCurDeltaTrans();
+	auto dt = _cam.window->getCurDeltaTrans();
 	return glm::vec3(dt[0], dt[1], dt[2]);
 }
 

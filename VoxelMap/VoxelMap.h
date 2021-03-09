@@ -16,6 +16,7 @@ public:
 	VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator, uint32_t loadRadius = 7);
 
 	VoxelMapFormat getFormat() const;
+	VoxelTypeStorer& getVoxelTypeStorer();
 	VoxelChunk& getChunk(const std::vector<int32_t>& pos);
 	std::vector<uint8_t> getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius, bool alignToFourBytes = true);
 	std::vector<uint8_t> getChunkParals(const std::vector<int32_t>& pos);

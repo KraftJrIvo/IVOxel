@@ -20,14 +20,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CPURenderer.h" />
-    <ClInclude Include="GPURenderer.h" />
     <ClInclude Include="IVoxelRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CPURenderer.cpp" />
-    <ClCompile Include="GPURenderer.cpp" />
-    <ClCompile Include="Ray.cpp" />
-    <ClCompile Include="RayVoxelMarcher.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -87,7 +83,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\VoxelMap;..\VulkanRenderer;$(VULKAN_SDK)\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>..\VoxelMap;..\Game;$(VULKAN_SDK)\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -96,7 +92,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>..\VoxelMap;..\VulkanRenderer;$(VULKAN_SDK)\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <IncludePath>..\VoxelMap;..\Game;$(VULKAN_SDK)\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

@@ -15,7 +15,7 @@ class GameState
 public:
 	void init(Window* window);
 	
-	void setMap(const VoxelMap& map);
+	void setMap(VoxelMap* map);
 	
 	glm::vec4 getRenderArea() const;
 	glm::vec3 getRotDelta() const;
@@ -27,15 +27,14 @@ public:
 	const std::list<std::shared_ptr<GameData>>& getGameData() { return _GameData; }
 	const glm::vec2& getRot() { return _curRot; }
 	const glm::vec3& getTrans() { return _cam.pos; }
-	VoxelMap& getMap() { return _map; }
+	VoxelMap* getMap() { return _map; }
 	float getTime();
 	Camera& getCam();
 	
 	void update(GameDataContainer* container, uint32_t frameID);
 
 private:
-	Window* _window;
-	VoxelMap _map;
+	VoxelMap* _map = nullptr;
 
 	std::list<std::shared_ptr<GameData>> _GameData;
 

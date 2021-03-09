@@ -1,5 +1,9 @@
 #pragma once
 
+#include <IVoxelRenderer.h>
+
+#include <GameState.h>
+
 #include "VulkanInstance.h"
 #include "VulkanSurface.h"
 #include "VulkanShaderManager.h"
@@ -12,18 +16,16 @@
 #include "VulkanFrameBuffers.h"
 #include "VulkanCommandBuffers.h"
 #include "VulkanDepthStencilImage.h"
-#include "GameState.h"
 
-class VulkanRenderer
+class VulkanRenderer : public IVoxelRenderer
 {
 public:
 	VulkanRenderer();
 	~VulkanRenderer();
 	
-	void init();
-	void run(const VoxelMap& map);
-	void stop();
-	bool runOnce();
+	void init(GameState& gs);
+	void startRender() override;
+	void stop() override;
 
 private:
 	VulkanInstance _vulkan;
@@ -64,6 +66,7 @@ private:
 	void _beginRender(uint32_t frameID);
 	void _endRender(uint32_t frameID);
 
-	bool _keepGoing = true;
+	bool _runOnce();
+
 	bool _firstInit = true;
 };

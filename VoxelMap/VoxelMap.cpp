@@ -29,20 +29,9 @@ VoxelMapFormat VoxelMap::getFormat() const
 	return _format;
 }
 
-std::vector<Light> VoxelMap::getLightsByChunk(const std::vector<int32_t>& pos, uint32_t radius) const
+VoxelTypeStorer& VoxelMap::getVoxelTypeStorer()
 {
-	std::vector<Light> lights;
-
-	for (auto l : _lights)
-	{
-		auto& lpos = l.second.position;
-		if (lpos[0] <= pos[0] + radius && lpos[0] >= pos[0] - radius &&
-			lpos[1] <= pos[1] + radius && lpos[1] >= pos[1] - radius &&
-			lpos[2] <= pos[2] + radius && lpos[2] >= pos[2] - radius)
-			lights.push_back(l.second);
-	}
-
-	return lights;
+	return _voxTypeStorer;
 }
 
 bool VoxelMap::checkLoadNeeded(const std::vector<int32_t>& pos)
