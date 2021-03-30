@@ -44,14 +44,14 @@ public:
 	VoxelChunkPyramid pyramid;
 
 	void changeVoxels(const std::vector<VoxelModifyData>& voxelsMod);
-	Voxel getVoxel(VoxelTypeStorer& vts, const std::vector<float>& voxInChunkPos) const;
-	std::vector<uint8_t> getNeighbours(const Voxel& vox, const std::vector<float>& voxInChunkPos, const VoxelNeighbourInfoFormat& format, std::vector<VoxelType> connectableTypes = {}) const;
-	std::vector<uint8_t> getVoxParals(const Voxel& vox, const std::vector<float>& voxInChunkPos, const ParalsInfoFormat& format, std::vector<VoxelType> transparentTypes = {}) const;
-	float getClosestSidePointDistance(const std::vector<int8_t>& dir, std::vector<VoxelType> transparentTypes = {});
+	Voxel getVoxel(const std::vector<float>& voxInChunkPos) const;
+	std::vector<uint8_t> getNeighbours(const Voxel& vox, const std::vector<float>& voxInChunkPos, const VoxelNeighbourInfoFormat& format) const;
+	std::vector<uint8_t> getVoxParals(const Voxel& vox, const std::vector<float>& voxInChunkPos, const ParalsInfoFormat& format) const;
+	float getClosestSidePointDistance(const std::vector<int8_t>& dir);
 	bool isEmpty() const;
 
 private:
 
 	void _buildPyramid(const std::vector<Voxel>& voxels, bool alignToFourBytes = true);
-	bool _checkParal(const std::vector<int16_t>& from, const std::vector<int16_t>& to, float offset, std::vector<VoxelType> transparentTypes = {}) const;
+	bool _checkParal(const std::vector<int16_t>& from, const std::vector<int16_t>& to, float offset) const;
 };

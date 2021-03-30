@@ -53,7 +53,7 @@ bool VoxelMap::checkLoadNeeded(const std::vector<int32_t>& pos)
 						auto idx2 = _getIdx({ x + diff[0], y + diff[1], z + diff[2] });
 						_chunks[idx2] = _chunks[idx1];
 						if (!_storer.loadChunk(cpos, &_chunks[idx1]))
-							_chunks[idx1] = _generator.generate(_format, _loadDiameter, cpos);
+							_chunks[idx1] = _generator.generateChunk(_format, _loadDiameter, cpos);
 					}
 				}
 

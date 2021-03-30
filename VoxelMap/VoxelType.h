@@ -5,6 +5,7 @@
 #include <memory>
 
 #include <glm/glm.hpp>
+#include "types.h"
 
 struct VoxelShape
 {
@@ -13,7 +14,7 @@ struct VoxelShape
 
 	std::string name = "none";
 
-	virtual bool raytrace(const glm::vec3& start, const glm::vec3& dir, const VoxelNeighbours& neighs, glm::vec3& hit, glm::vec3& normal) = 0;
+	virtual bool raytrace(glm::vec3 start, glm::vec3 dir, VoxelNeighbours neighs, glm::vec3& hit, glm::vec3& normal) = 0;
 
 	virtual std::string getRaytraceShaderCode() = 0;
 };

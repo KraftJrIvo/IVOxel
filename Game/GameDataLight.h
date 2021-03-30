@@ -14,5 +14,5 @@ struct GameDataLight : public GameData
         size = sizeof(data);
     }
 
-    void update(GameDataContainer* container, uint32_t frameID, uint32_t dataID, GameState& game, bool alignToFourBytes = true override;
+    void update(GameDataContainer* container, uint32_t frameID, uint32_t dataID, GameState& game, bool alignToFourBytes = true) override;
 };

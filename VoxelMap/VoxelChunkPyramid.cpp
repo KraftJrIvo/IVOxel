@@ -63,7 +63,7 @@ void VoxelChunkPyramid::build(const std::vector<Voxel>& voxels)
 				for (uint32_t xx = 0; xx < step; ++xx)
 				{
 					uint32_t offset2 = (sideSqr * (z + zz) + side * (y + yy) + (x + xx));
-					if (voxels[offset1].type != voxels[offset2].type)
+					if (voxels[offset1].shape != voxels[offset2].shape || voxels[offset1].material != voxels[offset2].material)
 						return false;
 				}
 			}
@@ -136,10 +136,10 @@ void VoxelChunkPyramid::build(const std::vector<Voxel>& voxels)
 						offsets[pwr].push_back(curOffset);
 
 						Voxel tempVox = voxels[offset];
-						if (oob) emptyVox.power = pwr;
-						else tempVox.power = pwr;
+						if (oob) emptyVox.size = pwr;
+						else tempVox.size = pwr;
 
-						std::vector<uint8_t> allData = oob ? format.formatVoxel(emptyVox, {}, {}, alignToFourBytes) : format.formatVoxel(tempVox, {}, {}, alignToFourBytes);
+						std::vector<uint8_t> allData = oob ? format.formatVoxel(emptyVox, pwr, {}, {}, alignToFourBytes) : format.formatVoxel(tempVox, pwr, {}, {}, alignToFourBytes);
 
 						tempData[pwr] = utils::joinVectors(tempData[pwr], allData);
 					}

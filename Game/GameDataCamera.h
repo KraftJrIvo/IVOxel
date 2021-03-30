@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 
 #include "GameData.h"
+#include "Camera.h"
 
 struct GameDataCamera : public GameData
 {

@@ -1,6 +1,6 @@
 #include "VCGeneratorSin.h"
 
-VoxelChunk VCGenerator::generateChunk(const VoxelMapFormat& format, uint32_t side, const std::vector<int32_t>& pos) const
+VoxelChunk VCGeneratorSin::generateChunk(const VoxelMapFormat& format, uint32_t side, const std::vector<int32_t>& pos) const
 {
     std::vector<Voxel> voxels(pow(side, 3));
 
@@ -12,14 +12,14 @@ VoxelChunk VCGenerator::generateChunk(const VoxelMapFormat& format, uint32_t sid
             {
                 float val = 0.5f + (sin(pos[0] + x) + sin(pos[2] + z)) / 4.0f;
                 bool ground = y < val;
-                Voxel v = Voxel(0, ground ? VoxelType::CUBE : VoxelType::AIR, VoxelOrientation::DEFAULT, { 100, 100, 255, 255 });
+                Voxel v = Voxel(ground ? _groundType.first : nullptr, ground ? _groundType.second : nullptr, {{0,0,0}, false}, { 100, 100, 255, 255 });
                 voxels.push_back(v);
             }
 
     return VoxelChunk(voxels, format.chunkFormat, format.voxelFormat);
 }
 
-std::vector<Light> VCGenerator::generateLights(const std::vector<int32_t>& pos, float radius, float time) const
+std::vector<Light> VCGeneratorSin::generateLights(const std::vector<int32_t>& pos, float radius, float time) const
 {
     int LIGHTS_PER_N_CHUNKS = 3;
     float diam = radius * 2.0f;
@@ -37,4 +37,9 @@ std::vector<Light> VCGenerator::generateLights(const std::vector<int32_t>& pos, 
         }
     }
     return lights;
+}
+
+void VCGeneratorSin::setGroundType(const std::pair<std::shared_ptr<VoxelShape>, std::shared_ptr<VoxelMaterial>>& gt)
+{
+    _groundType = gt;
 }

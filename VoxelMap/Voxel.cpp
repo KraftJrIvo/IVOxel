@@ -1,6 +1,6 @@
 #include "Voxel.h"
 
-Voxel::Voxel(std::shared_ptr<VoxelShape> shape_ = nullptr, std::shared_ptr<VoxelMaterial> material_ = nullptr, VoxelOrientation orientation_ = VoxelOrientation(), const std::vector<uint8_t>& rgba = { 0,0,0,0 }) :
+Voxel::Voxel(std::shared_ptr<VoxelShape> shape_, std::shared_ptr<VoxelMaterial> material_, VoxelOrientation orientation_, const glm::vec4& rgba) :
 	shape(shape_),
 	material(material_),
 	orientation(orientation_),
@@ -150,11 +150,21 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, uint32_t size_
 	utils::appendBytes(res, parals);
 }
 
-Voxel VoxelFormat::unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) const
+Voxel VoxelFormat::unformatVoxel(const uint8_t* data) const
 {
 	Voxel voxel;
 
-	data += ::getSizeInBytes(fullness) + ::getSizeInBytes(size);
+	data += ::getSizeInBytes(fullness);
+
+	switch (size)
+	{
+	case VoxelSizeFormat::UINT8:
+		voxel.size = data[0];
+		break;
+	default:
+		break;
+	}
+	data += ::getSizeInBytes(size);
 
 	uint32_t shId;
 	switch (shape)
@@ -172,7 +182,7 @@ Voxel VoxelFormat::unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) cons
 		break;
 	}
 	data += ::getSizeInBytes(shape);
-	voxel.shape = vts.hasShape(shId) ? vts.getShape(shId) : vts.addShape(shId, coder->decodeShape(data));
+	voxel.shape = storer->hasShape(shId) ? storer->getShape(shId) : storer->addShape(shId, coder->decodeShape(data));
 
 	uint32_t mtId;
 	switch (material)
@@ -190,7 +200,7 @@ Voxel VoxelFormat::unformatVoxel(VoxelTypeStorer& vts, const uint8_t* data) cons
 		break;
 	}
 	data += ::getSizeInBytes(material);
-	voxel.material = vts.hasMaterial(mtId) ? vts.getMaterial(mtId) : vts.addMaterial(mtId, coder->decodeMaterial(data));
+	voxel.material = storer->hasMaterial(mtId) ? storer->getMaterial(mtId) : storer->addMaterial(mtId, coder->decodeMaterial(data));
 
 	auto decodeOri1 = [&](const uint8_t* data) {
 		VoxelOrientation ori;

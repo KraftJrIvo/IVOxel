@@ -95,12 +95,12 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
 
 bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& neighs, vec3 rayStart, vec3 rayDir, vec3 absPos, float voxRatio, vec3& absCoord, vec3& normal, vec3& color, bool light) const
 {
-    Voxel voxel = _format.voxelFormat.unformatVoxel(_vts, _mapData.data() + voxOff);
+    Voxel voxel = _format.voxelFormat.unformatVoxel(_mapData.data() + voxOff);
     
     vec3 dir = rayDir;
     dir = normalize(dir);
     
-    vec3 hitCoord, normal;
+    vec3 hitCoord;
     bool hit = voxel.shape->raytrace(rayStart, dir, neighs, hitCoord, normal);
     hitCoord *= voxRatio;
     normal = normalize(normal);

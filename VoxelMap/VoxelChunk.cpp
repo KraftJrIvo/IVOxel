@@ -20,14 +20,14 @@ void VoxelChunk::_buildPyramid(const std::vector<Voxel>& voxels, bool alignToFou
 	pyramid.build(voxels);
 }
 
-bool VoxelChunk::_checkParal(const std::vector<int16_t>& from, const std::vector<int16_t>& to, float offset, std::vector<VoxelType> transparentTypes) const
+bool VoxelChunk::_checkParal(const std::vector<int16_t>& from, const std::vector<int16_t>& to, float offset) const
 {
 	for (int8_t x = from[0]; x <= to[0]; x++)
 		for (int8_t y = from[1]; y <= to[1]; y++)
 			for (int8_t z = from[2]; z <= to[2]; z++)
 			{
 				std::vector<float> pos = { x * offset + offset / 2.0f, y * offset + offset / 2.0f, z * offset + offset / 2.0f };
-				if (std::find(transparentTypes.begin(), transparentTypes.end(), getVoxel(pos).type) == transparentTypes.end())
+				if (getVoxel(pos).shape)
 					return false;
 			}
 	return true;
@@ -62,7 +62,7 @@ bool VoxelChunk::isEmpty() const
 	return false;
 }
 
-Voxel VoxelChunk::getVoxel(VoxelTypeStorer& vts, const std::vector<float>& chunkPos) const
+Voxel VoxelChunk::getVoxel(const std::vector<float>& chunkPos) const
 {
 	std::vector<uint32_t> pos = { uint32_t(floor(chunkPos[0])), uint32_t(floor(chunkPos[1])), uint32_t(floor(chunkPos[2])) };
 
@@ -130,63 +130,57 @@ Voxel VoxelChunk::getVoxel(VoxelTypeStorer& vts, const std::vector<float>& chunk
 
 	ptr += voxSizeInBytes * nLeavesBeforeCurrent;
 
-	return voxFormatForPyr.unformatVoxel(vts, ptr);
+	return voxFormatForPyr.unformatVoxel(ptr);
 }
 
-std::vector<uint8_t> VoxelChunk::getNeighbours(const Voxel& vox, const std::vector<float>& chunkPos, const VoxelNeighbourInfoFormat& format, std::vector<VoxelType> connectableTypes) const
+std::vector<uint8_t> VoxelChunk::getNeighbours(const Voxel& vox, const std::vector<float>& chunkPos, const VoxelNeighbourInfoFormat& format) const
 {
-	if (connectableTypes.size() == 0)
-		connectableTypes.push_back(vox.type);
-	
-	uint32_t voxSide = pow(pyramid.base, vox.power);
+	uint32_t voxSide = pow(pyramid.base, vox.size);
 	float offset = 1.0f / float(voxSide);
 	std::vector<float> pos = { floor(chunkPos[0] / offset) + offset / 2.0f, floor(chunkPos[1] / offset) + offset / 2.0f, floor(chunkPos[2] / offset) + offset / 2.0f };
 
-	bool l = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] - offset, pos[1], pos[2] }).type) != connectableTypes.end();
-	bool r = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] + offset, pos[1], pos[2] }).type) != connectableTypes.end();
-	bool d = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0],          pos[1] - offset, pos[2] }).type) != connectableTypes.end();
-	bool u = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0],          pos[1] + offset, pos[2] }).type) != connectableTypes.end();
-	bool b = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0],          pos[1],          pos[2] - offset }).type) != connectableTypes.end();
-	bool f = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0],          pos[1],          pos[2] + offset }).type) != connectableTypes.end();
+	bool l = getVoxel({ pos[0] - offset, pos[1], pos[2] }).shape == vox.shape;
+	bool r = getVoxel({ pos[0] + offset, pos[1], pos[2] }).shape == vox.shape;
+	bool d = getVoxel({ pos[0],          pos[1] - offset, pos[2] }).shape == vox.shape;
+	bool u = getVoxel({ pos[0],          pos[1] + offset, pos[2] }).shape == vox.shape;
+	bool b = getVoxel({ pos[0],          pos[1],          pos[2] - offset }).shape == vox.shape;
+	bool f = getVoxel({ pos[0],          pos[1],          pos[2] + offset }).shape == vox.shape;
 
 	if (format == VoxelNeighbourInfoFormat::SIX_DIRS_ONE_BYTE)
 		return { utils::packByte(0, 0, l, r, d, u, b, f) };
 	
-	bool ld  = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] - offset, pos[1] - offset, pos[2]          }).type) != connectableTypes.end();
-	bool lu  = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] - offset, pos[1] + offset, pos[2]          }).type) != connectableTypes.end();
-	bool lb  = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] - offset, pos[1],          pos[2] - offset }).type) != connectableTypes.end();
-	bool lf  = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] - offset, pos[1],          pos[2] + offset }).type) != connectableTypes.end();
-	bool ldb = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] - offset, pos[1] - offset, pos[2] - offset }).type) != connectableTypes.end();
-	bool lub = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] - offset, pos[1] + offset, pos[2] - offset }).type) != connectableTypes.end();
-	bool ldf = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] - offset, pos[1] - offset, pos[2] + offset }).type) != connectableTypes.end();
-	bool luf = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] - offset, pos[1] + offset, pos[2] + offset }).type) != connectableTypes.end();
-	bool rd  = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] + offset, pos[1] - offset, pos[2]          }).type) != connectableTypes.end();
-	bool ru  = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] + offset, pos[1] + offset, pos[2]          }).type) != connectableTypes.end();
-	bool rb  = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] + offset, pos[1],          pos[2] - offset }).type) != connectableTypes.end();
-	bool rf  = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] + offset, pos[1],          pos[2] + offset }).type) != connectableTypes.end();
-	bool rdb = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] + offset, pos[1] - offset, pos[2] - offset }).type) != connectableTypes.end();
-	bool rub = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] + offset, pos[1] + offset, pos[2] - offset }).type) != connectableTypes.end();
-	bool rdf = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] + offset, pos[1] - offset, pos[2] + offset }).type) != connectableTypes.end();
-	bool ruf = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0] + offset, pos[1] + offset, pos[2] + offset }).type) != connectableTypes.end();
+	bool ld  = getVoxel({ pos[0] - offset, pos[1] - offset, pos[2]          }).shape == vox.shape;
+	bool lu  = getVoxel({ pos[0] - offset, pos[1] + offset, pos[2]          }).shape == vox.shape;
+	bool lb  = getVoxel({ pos[0] - offset, pos[1],          pos[2] - offset }).shape == vox.shape;
+	bool lf  = getVoxel({ pos[0] - offset, pos[1],          pos[2] + offset }).shape == vox.shape;
+	bool ldb = getVoxel({ pos[0] - offset, pos[1] - offset, pos[2] - offset }).shape == vox.shape;
+	bool lub = getVoxel({ pos[0] - offset, pos[1] + offset, pos[2] - offset }).shape == vox.shape;
+	bool ldf = getVoxel({ pos[0] - offset, pos[1] - offset, pos[2] + offset }).shape == vox.shape;
+	bool luf = getVoxel({ pos[0] - offset, pos[1] + offset, pos[2] + offset }).shape == vox.shape;
+	bool rd  = getVoxel({ pos[0] + offset, pos[1] - offset, pos[2]          }).shape == vox.shape;
+	bool ru  = getVoxel({ pos[0] + offset, pos[1] + offset, pos[2]          }).shape == vox.shape;
+	bool rb  = getVoxel({ pos[0] + offset, pos[1],          pos[2] - offset }).shape == vox.shape;
+	bool rf  = getVoxel({ pos[0] + offset, pos[1],          pos[2] + offset }).shape == vox.shape;
+	bool rdb = getVoxel({ pos[0] + offset, pos[1] - offset, pos[2] - offset }).shape == vox.shape;
+	bool rub = getVoxel({ pos[0] + offset, pos[1] + offset, pos[2] - offset }).shape == vox.shape;
+	bool rdf = getVoxel({ pos[0] + offset, pos[1] - offset, pos[2] + offset }).shape == vox.shape;
+	bool ruf = getVoxel({ pos[0] + offset, pos[1] + offset, pos[2] + offset }).shape == vox.shape;
 	
-	bool db = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0], pos[1] - offset, pos[2] - offset }).type) != connectableTypes.end();
-	bool df = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0], pos[1] - offset, pos[2] + offset }).type) != connectableTypes.end();
-	bool ub = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0], pos[1] + offset, pos[2] - offset }).type) != connectableTypes.end();
-	bool uf = std::find(connectableTypes.begin(), connectableTypes.end(), getVoxel({ pos[0], pos[1] + offset, pos[2] + offset }).type) != connectableTypes.end();
+	bool db = getVoxel({ pos[0], pos[1] - offset, pos[2] - offset }).shape == vox.shape;
+	bool df = getVoxel({ pos[0], pos[1] - offset, pos[2] + offset }).shape == vox.shape;
+	bool ub = getVoxel({ pos[0], pos[1] + offset, pos[2] - offset }).shape == vox.shape;
+	bool uf = getVoxel({ pos[0], pos[1] + offset, pos[2] + offset }).shape == vox.shape;
 
 	//0 0 0 0 0 0 l ld lu lb lf ldb ldf lub luf r rd ru rb rf rdb rdf rub ruf d db df u ub uf b f
 	return { utils::packByte(0, 0, 0, 0, 0, 0, l, ld), utils::packByte(lu, lb, lf, ldb, ldf, lub, luf, r), utils::packByte(r, rd, ru, rb, rf, rdb, rdf, rub), utils::packByte(d, db, df, u, ub, uf, b, f) };
 }
 
-std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vector<float>& voxInChunkPos, const ParalsInfoFormat& format, std::vector<VoxelType> transparentTypes) const
+std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vector<float>& voxInChunkPos, const ParalsInfoFormat& format) const
 {
 	std::vector<uint8_t> res;
 	uint8_t oct = 0;
 
-	if (transparentTypes.size() == 0)
-		transparentTypes.push_back(VoxelType::AIR);
-
-	uint32_t voxSide = pow(pyramid.base, vox.power);
+	uint32_t voxSide = pow(pyramid.base, vox.size);
 	float offset = 1.0f / float(voxSide);
 
 	for (int16_t zOff = -1; zOff <= 1; zOff += 2)
@@ -199,9 +193,9 @@ std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vecto
 					for (y = 0; abs(y) < 256 && !stop; y += yOff * yGo)
 						for (z = 0; abs(z) < 256 && !stop; z += zOff * zGo)
 						{
-							xGo = _checkParal({ short(x + xOff), 0, 0 }, { short(x + xOff), y, z }, offset, transparentTypes);
-							zGo = _checkParal({ 0, 0, short(z + zOff) }, { xGo ? short(x + xOff) : x, y, short(z + zOff) }, offset, transparentTypes);
-							yGo = _checkParal({ 0, short(y + yOff), 0 }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z }, offset, transparentTypes);
+							xGo = _checkParal({ short(x + xOff), 0, 0 }, { short(x + xOff), y, z }, offset);
+							zGo = _checkParal({ 0, 0, short(z + zOff) }, { xGo ? short(x + xOff) : x, y, short(z + zOff) }, offset);
+							yGo = _checkParal({ 0, short(y + yOff), 0 }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z }, offset);
 
 							if (format == ParalsInfoFormat::CUBIC_UINT8 || format == ParalsInfoFormat::CUBIC_FLOAT32)
 								if (!xGo || !yGo || !zGo)
@@ -237,12 +231,9 @@ std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vecto
 	return res;
 }
 
-float VoxelChunk::getClosestSidePointDistance(const std::vector<int8_t>& dir, std::vector<VoxelType> transparentTypes)
+float VoxelChunk::getClosestSidePointDistance(const std::vector<int8_t>& dir)
 {
 	float dist = 0;
-
-	if (transparentTypes.size() == 0)
-		transparentTypes.push_back(VoxelType::AIR);
 
 	uint8_t axis = (dir[0] != 0) ? 0 : (dir[1] != 0) ? 1 : (dir[2] != 0) ? 2 : -1;
 	float start = dir[axis] < 0 ? 1.0f : 0.0f;
@@ -251,7 +242,7 @@ float VoxelChunk::getClosestSidePointDistance(const std::vector<int8_t>& dir, st
 	for (float a = start; a < finish; a += offset)
 	{
 		bool layerOk = _checkParal({ short(axis == 0 ? a : 0), short(axis == 1 ? a : 0), short(axis == 2 ? a : 0) }, 
-			                       { short(axis == 0 ? a : side - 1), short(axis == 1 ? a : side - 1), short(axis == 2 ? a : side - 1) }, minOffset, transparentTypes);
+			                       { short(axis == 0 ? a : side - 1), short(axis == 1 ? a : side - 1), short(axis == 2 ? a : side - 1) }, minOffset);
 		if (layerOk)
 			dist += minOffset;
 		else
@@ -353,7 +344,7 @@ std::vector<uint8_t> VoxelChunkFormat::formatChunk(const VoxelChunk& chunk, bool
 				auto vox = chunk.getVoxel(voxPos);
 				auto neighs = chunk.getNeighbours(vox, voxPos, chunk.voxFormat.neighbour);
 				auto parals = chunk.getVoxParals(vox, voxPos, chunk.voxFormat.parals);
-				utils::appendBytes(res, chunk.voxFormat.formatVoxel(vox, neighs, parals, alignToFourBytes));
+				utils::appendBytes(res, chunk.voxFormat.formatVoxel(vox, vox.size, neighs, parals, alignToFourBytes));
 			}
 
 	return res;

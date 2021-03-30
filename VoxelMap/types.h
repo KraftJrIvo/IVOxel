@@ -4,6 +4,13 @@
 #include <string>
 #include <istream>
 
+struct VoxelNeighbours
+{
+	bool l, r, d, u, b, f;
+	bool ld, lu, lb, lf, rd, ru, rb, rf, db, df, ub, uf;
+	bool ldb, ldf, lub, luf, rdb, rdf, rub, ruf;
+};
+
 enum class VoxelFullnessFormat
 {
 	UINT8,							// 1 byte

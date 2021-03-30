@@ -86,7 +86,7 @@ VoxelChunk VoxelMapFormat::unformatChunk(VoxelTypeStorer& vts, const uint8_t* he
 	for (uint32_t x = 0; x < side; ++x)
 		for (uint32_t y = 0; y < side; ++y)
 			for (uint32_t z = 0; z < side; ++z)
-				voxels.push_back(voxelFormat.unformatVoxel(vts, data + off + voxSz * (z * sideSq + y * side + x)));
+				voxels.push_back(voxelFormat.unformatVoxel(data + off + voxSz * (z * sideSq + y * side + x)));
 
 	return VoxelChunk(voxels, chunkFormat, voxelFormat);
 }
