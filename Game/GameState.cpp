@@ -9,7 +9,7 @@
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
-void GameState::init(Window* window)
+void GameState::init(Window* window, float lightRadius)
 { 
 	_cam.window = window;
 	_cam.fov = 90.0f;
@@ -21,7 +21,7 @@ void GameState::init(Window* window)
 	
 	_startTime = std::chrono::high_resolution_clock::now();
 
-	_GameData = { std::make_shared<GameDataCamera>(), std::make_shared<GameDataLight>(), std::make_shared<GameDataMap>() };
+	_gameData = { std::make_shared<GameDataCamera>(), std::make_shared<GameDataLight>(lightRadius), std::make_shared<GameDataMap>() };
 }
 
 void GameState::setMap(VoxelMap* map)
@@ -77,6 +77,6 @@ Camera& GameState::getCam()
 void GameState::update(GameDataContainer* container, uint32_t frameID)
 {
 	int i = 0;
-	for (auto& sd : _GameData)
+	for (auto& sd : _gameData)
 		sd->update(container, frameID, i++, *this);
 }
