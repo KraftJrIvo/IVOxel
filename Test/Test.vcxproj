@@ -151,11 +151,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="VoxelTypes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cross.frag" />
     <None Include="ray.frag" />
     <None Include="square.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="VoxelTypes.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

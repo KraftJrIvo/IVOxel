@@ -21,7 +21,7 @@ struct VoxelShape
 
 struct VoxelMaterial
 {
-	VoxelMaterial(const std::string& name_ = "none", float opacity_ = 0, float reflectivity_ = 0, glm::vec3 tint_ = glm::vec3(1, 1, 1)) :
+	VoxelMaterial(const std::string& name_ = "none", float opacity_ = 1, float reflectivity_ = 0, glm::vec3 tint_ = glm::vec3(1, 1, 1)) :
 		name(name_),
 		opacity(opacity_),
 		reflectivity(reflectivity_),
