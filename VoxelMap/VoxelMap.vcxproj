@@ -20,7 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Light.h" />
-    <ClInclude Include="types.h" />
+    <ClInclude Include="types.hpp" />
     <ClInclude Include="VCGeneratorSin.h" />
     <ClInclude Include="Voxel.h" />
     <ClInclude Include="VoxelChunk.h" />

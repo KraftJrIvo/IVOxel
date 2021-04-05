@@ -5,7 +5,7 @@
 #include <memory>
 
 #include <glm/glm.hpp>
-#include "types.h"
+#include "types.hpp"
 
 struct VoxelShape
 {

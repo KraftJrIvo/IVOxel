@@ -166,6 +166,8 @@ VoxelChunkState VoxelMapFormat::getChunkState(const uint8_t* data, bool alignToF
 	}
 
 	vch.parals = unformatParals(chunkFormat.parals, data);
+	
+	return vch;
 }
 
 std::vector<glm::uvec3> VoxelMapFormat::unformatParals(ParalsInfoFormat format, const uint8_t* data) const

@@ -1,36 +1,46 @@
 //#include <GPURenderer.h>
 #include <CPURenderer.h>
 #include <VoxelMap.h>
-//#include <Window.h>
+
+#include <VCGeneratorSin.h>
+
+#include "VoxelTypes.h"
 
 int main()
 {
 	Window w(512, 512, L"test");
+
+	VoxelTypeStorer vts;
+	vts.addShape(1, std::make_shared<ShapeCube>());
+	vts.addShape(2, std::make_shared<ShapeSphere>());
+	vts.addMaterial(1, std::make_shared<MaterialDefault>());
+	TestVoxelTypeCoder vtc(vts);
+
+	VoxelChunkFormat chunkFormat = {
+		ChunkFullnessFormat::UINT8, ChunkOffsetFormat::UINT32,
+		ChunkSizeFormat::UINT8, ParalsInfoFormat::NON_CUBIC_FLOAT32
+	};
+	VoxelFormat voxFormat = {
+		VoxelFullnessFormat::UINT8, VoxelSizeFormat::UINT8, 
+		VoxelShapeFormat::UINT8, VoxelMaterialFormat::UINT8, 
+		VoxelOrientationFormat::NO_ORIENTATION, VoxelColorFormat::RGB256,
+		VoxelNeighbourInfoFormat::SIX_DIRS_ONE_BYTE, ParalsInfoFormat::NON_CUBIC_UINT8,
+		&vtc, &vts
+	};
+	VoxelMapFormat format(chunkFormat, voxFormat);
+
+	VCGeneratorSin generator;
+	generator.setGroundType({ vts.getShape(1), vts.getMaterial(1) });
+
+	VoxelMap map(format, generator, 1);
+	
 	GameState game;
 	game.init(&w, 1.0f);
-	CPURenderer renderer(game);
+	game.setMap(&map);
 
-	VoxelFormat voxFormat;
-	VoxelChunkFormat voxChunkFormat;
-	VoxelMapFormat format;
-	VoxelMap map(const VoxelMapFormat & format, VoxelChunkGenerator & generator, uint32_t loadRadius = 7);
-	//GPURenderer renderer;
-	////CPURenderer renderer;
-	//
-	//VoxelMapFormat mapFormat(VoxelTypeFormat::UINT8, VoxelColorFormat::RGB256, VoxelNeighbourInfoFormat::NO_NEIGHBOUR_INFO);
+	CPURenderer renderer(w, game);
 
-	//TextFileMap map(mapFormat);
-	//map.setFilePath("test_map.txt");
-	//map.load();
+	renderer.startRender();
 
-	//map.buildPyramid();
-	//
-	//Camera cam(90, {640, 480});
-	//cam.rotate({ 0.5f,0,0 });
-	//cam.move({ 0.6f, 1.6f, -1.2f });
-
-	//renderer.render(map, cam);
-	////renderer.renderVideo(map, cam);
-
-	//return 0;
+	return 0;
 }

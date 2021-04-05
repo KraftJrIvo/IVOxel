@@ -11,7 +11,8 @@
 class CPURenderer : public IVoxelRenderer
 {
 public:
-	CPURenderer(GameState& gs, uint32_t chunkLoadRadius = 1, float epsilon = 0.001, bool alignToFourBytes = true) : 
+	CPURenderer(Window& w, GameState& gs, uint32_t chunkLoadRadius = 1, float epsilon = 0.001, bool alignToFourBytes = true) :
+		_window(w),
 		_gs(gs),
 		_raytracer(*gs.getMap(), chunkLoadRadius, epsilon, alignToFourBytes),
 		_chunkLoadRadius(chunkLoadRadius),
@@ -22,7 +23,9 @@ public:
 	void stop() override;
 
 private:
+	Window& _window;
 	GameState& _gs;
+
 	VoxelMapRayTracer _raytracer;
 
 	uint32_t _chunkLoadRadius;

@@ -27,7 +27,7 @@
     <ClInclude Include="VoxelMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="types.h">
+    <ClInclude Include="types.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Light.h">

@@ -3,12 +3,13 @@
 std::shared_ptr<VoxelShape> TestVoxelTypeCoder::decodeShape(const uint8_t* data)
 {
 	auto id = ((uint32_t*)data)[0];
-	return nullptr;
+	return _vts.getShape(id);
 }
 
 std::shared_ptr<VoxelMaterial> TestVoxelTypeCoder::decodeMaterial(const uint8_t* data)
 {
-	return std::shared_ptr<VoxelMaterial>();
+	auto id = ((uint32_t*)data)[0];
+	return _vts.getMaterial(id);
 }
 
 uint32_t TestVoxelTypeCoder::encodeShape(std::shared_ptr<VoxelShape> shp)
@@ -32,15 +33,19 @@ bool ShapeCube::raytrace(glm::vec3 start, glm::vec3 dir, VoxelNeighbours neighs,
 {
 	return false;
 }
+bool ShapeSphere::raytrace(glm::vec3 start, glm::vec3 dir, VoxelNeighbours neighs, glm::vec3& hit, glm::vec3& normal)
+{
+	return false;
+}
+
+glm::vec3 MaterialDefault::shade(glm::vec3 curColor, glm::vec3 hitPoint, glm::vec3 normal, glm::vec3 lightDir, glm::vec4 lightColor)
+{
+	return glm::vec3();
+}
 
 std::string ShapeCube::getRaytraceShaderCode()
 {
 	return std::string();
-}
-
-bool ShapeSphere::raytrace(glm::vec3 start, glm::vec3 dir, VoxelNeighbours neighs, glm::vec3& hit, glm::vec3& normal)
-{
-	return false;
 }
 
 std::string ShapeSphere::getRaytraceShaderCode()

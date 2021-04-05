@@ -2,9 +2,6 @@
 
 #include <vector>
 
-#include <glm/glm.hpp>
-
-#include "types.h"
 #include "VoxelType.h"
 
 class Voxel

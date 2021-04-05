@@ -148,6 +148,8 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, uint32_t size_
 	utils::appendBytes(res, neighs);
 
 	utils::appendBytes(res, parals);
+
+	return res;
 }
 
 Voxel VoxelFormat::unformatVoxel(const uint8_t* data) const
@@ -266,6 +268,8 @@ Voxel VoxelFormat::unformatVoxel(const uint8_t* data) const
 		voxel.color = { data[0], data[1], data[2], data[3] };
 		break;
 	}
+
+	return voxel;
 }
 
 VoxelNeighbours VoxelFormat::unformatNeighs(const uint8_t* data) const

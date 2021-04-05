@@ -3,7 +3,6 @@
 #include <vector>
 #include <tuple>
 
-#include "types.h"
 #include "VoxelChunk.h"
 
 struct VoxelMapFormat

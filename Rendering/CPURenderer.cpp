@@ -9,11 +9,9 @@
 
 #include <omp.h>
 
-Window window(512, 512, L"test");
-
 void CPURenderer::_drawImage(cv::Mat img)
 {
-	HWND wnd = window.getHWND();
+	HWND wnd = _window.getHWND();
 
 	int width = img.cols;
 	int height = img.rows;
@@ -80,12 +78,12 @@ void CPURenderer::startRender()
 
 void CPURenderer::stop()
 {
-	window.Close();
+	_window.Close();
 }
 
 bool CPURenderer::_runOnce()
 {
-	return window.Update();
+	return _window.Update();
 }
 
 std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera& cam, glm::vec2 xy) const

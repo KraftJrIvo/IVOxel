@@ -7,16 +7,18 @@ bool VoxelTypeStorer::hasShape(uint32_t id) const
 
 bool VoxelTypeStorer::hasMaterial(uint32_t id) const 
 {
-	return  _materials.count(id);
+	return _materials.count(id);
 }
 
 std::shared_ptr<VoxelShape> VoxelTypeStorer::getShape(uint32_t id) const
 {
+	if (!_shapes.count(id)) return nullptr;
 	return _shapes.at(id);
 }
 
 std::shared_ptr<VoxelMaterial> VoxelTypeStorer::getMaterial(uint32_t id) const
 {
+	if (!_materials.count(id)) return nullptr;
 	return _materials.at(id);
 }
 
