@@ -13,7 +13,7 @@ class VoxelMap
 {
 public:
 	VoxelMap() = default;
-	VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator, uint32_t loadRadius = 7);
+	VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator, uint32_t chunkSide = 16, uint32_t loadRadius = 7);
 
 	VoxelMapFormat getFormat() const;
 	VoxelTypeStorer& getVoxelTypeStorer();
@@ -31,6 +31,7 @@ public:
 protected:
 	uint32_t _loadRadius;
 	uint32_t _loadDiameter;
+	uint32_t _chunkSide;
 	VoxelChunk _emptyChunk;
 
 	VoxelTypeStorer _voxTypeStorer;
@@ -47,6 +48,10 @@ protected:
 	std::vector<int32_t> _curAbsPos;
 
 	uint32_t _getIdx(const std::vector<int32_t>& pos) const;
+	std::vector<int32_t> _getAbsPos(const std::vector<int32_t>& pos) const;
+	void _loadChunks();
+	void _loadChunk(const std::vector<int32_t>& pos, uint32_t id);
+	
 	bool _checkParal(const std::vector<int16_t>& from, const std::vector<int16_t>& to);
 	bool _checkParalDist(const std::vector<int16_t>& from, const std::vector<int16_t>& to, const std::vector<int8_t>& dir);
 };

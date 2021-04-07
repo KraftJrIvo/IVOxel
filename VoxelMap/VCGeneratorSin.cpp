@@ -13,7 +13,7 @@ VoxelChunk VCGeneratorSin::generateChunk(const VoxelMapFormat& format, uint32_t 
                 float val = 0.5f + (sin(pos[0] + x) + sin(pos[2] + z)) / 4.0f;
                 bool ground = y < val;
                 Voxel v = Voxel(ground ? _groundType.first : nullptr, ground ? _groundType.second : nullptr, {{0,0,0}, false}, { 100, 100, 255, 255 });
-                voxels.push_back(v);
+                voxels[side * side * z + side * y + x] = v;
             }
 
     return VoxelChunk(voxels, format.chunkFormat, format.voxelFormat);

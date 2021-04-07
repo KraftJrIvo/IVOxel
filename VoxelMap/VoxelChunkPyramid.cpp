@@ -12,13 +12,13 @@ VoxelChunkPyramid::VoxelChunkPyramid() :
 	alignToFourBytes(false)
 { }
 
-VoxelChunkPyramid::VoxelChunkPyramid(const VoxelFormat& format_, uint32_t side, bool alignToFourBytes_) :
+VoxelChunkPyramid::VoxelChunkPyramid(const VoxelFormat& format_, uint32_t side_, bool alignToFourBytes_) :
+	side(side_),
 	format(format_),
 	alignToFourBytes(alignToFourBytes_)
 {
 	base = (side % 3 == 0) ? 3 : 2;
 	power = uint32_t(std::ceil(std::log2(side) / std::log2(base)));
-	side = std::pow(base, power);
 	nVoxBytes = format.getSizeInBytes(alignToFourBytes);
 }
 

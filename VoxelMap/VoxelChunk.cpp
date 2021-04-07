@@ -13,8 +13,7 @@ VoxelChunk::VoxelChunk(const std::vector<Voxel>& voxels, const VoxelChunkFormat&
 
 void VoxelChunk::_buildPyramid(const std::vector<Voxel>& voxels, bool alignToFourBytes)
 {
-	side = pow(pyramid.base, pyramid.power);
-	minOffset = 1.0f / float(side);
+	side = pow(voxels.size(), 1.0f / 3.0f);
 
 	pyramid = VoxelChunkPyramid(voxFormat, side, alignToFourBytes);
 	pyramid.build(voxels);

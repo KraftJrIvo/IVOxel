@@ -2,14 +2,16 @@
 
 #include <algorithm>
 
-VoxelMap::VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator, uint32_t loadRadius) :
+VoxelMap::VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator, uint32_t chunkSide, uint32_t loadRadius) :
 	_format(format),
 	_generator(generator),
+	_chunkSide(chunkSide),
 	_loadRadius(loadRadius),
 	_loadDiameter(loadRadius * 2 + 1),
 	_curAbsPos({0,0,0})
 { 
 	_chunks.resize(pow(_loadDiameter, 3));
+	_loadChunks();
 }
 
 VoxelChunk& VoxelMap::getChunk(const std::vector<int32_t>& pos)
@@ -40,20 +42,24 @@ bool VoxelMap::checkLoadNeeded(const std::vector<int32_t>& pos)
 	{
 		std::vector<int32_t> diff = { pos[0] - _curAbsPos[0], pos[1] - _curAbsPos[1], pos[2] - _curAbsPos[2] };
 
-		for (int16_t x = 0; x < _loadDiameter; x++)
-			for (int16_t y = 0; y < _loadDiameter; y++)
-				for (int16_t z = 0; z < _loadDiameter; z++)
+		std::vector<int32_t> xyz(3);
+		for (xyz[0] = 0; xyz[0] < _loadDiameter; xyz[0]++)
+			for (xyz[1] = 0; xyz[1] < _loadDiameter; xyz[1]++)
+				for (xyz[2] = 0; xyz[2] < _loadDiameter; xyz[2]++)
 				{
-					if (x + diff[0] < _loadDiameter && x + diff[0] > 0 &&
-						y + diff[1] < _loadDiameter && y + diff[1] > 0 &&
-						z + diff[2] < _loadDiameter && z + diff[2] > 0)
+					if (xyz[0] + diff[0] < _loadDiameter && xyz[0] + diff[0] >= 0 &&
+						xyz[1] + diff[1] < _loadDiameter && xyz[1] + diff[1] >= 0 &&
+						xyz[2] + diff[2] < _loadDiameter && xyz[2] + diff[2] >= 0)
 					{
-						std::vector<int32_t> cpos = {x, y, z};
-						auto idx1 = _getIdx(cpos);
-						auto idx2 = _getIdx({ x + diff[0], y + diff[1], z + diff[2] });
-						_chunks[idx2] = _chunks[idx1];
-						if (!_storer.loadChunk(cpos, &_chunks[idx1]))
-							_chunks[idx1] = _generator.generateChunk(_format, _loadDiameter, cpos);
+						auto idx1 = _getIdx(xyz);
+						auto idx2 = _getIdx({ xyz[0] + diff[0], xyz[1] + diff[1], xyz[2] + diff[2] });
+						_chunks[idx1] = _chunks[idx2];
+					}
+					else
+					{
+						std::vector<int32_t> cAbsPos = _getAbsPos(xyz);
+						auto id = _getIdx(xyz);
+						_loadChunk(cAbsPos, id);
 					}
 				}
 
@@ -64,9 +70,31 @@ bool VoxelMap::checkLoadNeeded(const std::vector<int32_t>& pos)
 	return false;
 }
 
+void VoxelMap::_loadChunks()
+{
+	std::vector<int32_t> xyz(3);
+	for (xyz[0] = 0; xyz[0] < _loadDiameter; xyz[0]++)
+		for (xyz[1] = 0; xyz[1] < _loadDiameter; xyz[1]++)
+			for (xyz[2] = 0; xyz[2] < _loadDiameter; xyz[2]++)
+			{
+				_loadChunk(_getAbsPos(xyz), _getIdx(xyz));
+			}
+}
+
+void VoxelMap::_loadChunk(const std::vector<int32_t>& pos, uint32_t id)
+{
+	if (!_storer.loadChunk(pos, &_chunks[id]))
+		_chunks[id] = _generator.generateChunk(_format, _chunkSide, pos);
+}
+
 uint32_t VoxelMap::_getIdx(const std::vector<int32_t>& pos) const
 {
 	return pos[2] * _loadDiameter * _loadDiameter + pos[1] * _loadDiameter + pos[0];;
+}
+
+std::vector<int32_t> VoxelMap::_getAbsPos(const std::vector<int32_t>& pos) const
+{
+	return { _curAbsPos[0] + pos[0] - (int)_loadRadius, _curAbsPos[0] + pos[1] - (int)_loadRadius, _curAbsPos[0] + pos[2] - (int)_loadRadius };
 }
 
 bool VoxelMap::_checkParal(const std::vector<int16_t>& from, const std::vector<int16_t>& to)
