@@ -54,8 +54,10 @@ void CPURenderer::startRender()
 
 		std::vector<int32_t> pos = { (int)cam.pos.x, (int)cam.pos.y, (int)cam.pos.z };
 		if (map->checkLoadNeeded(pos))
+		{
 			_raytracer.setMapData(map->getChunksDataAt(pos, _chunkLoadRadius, _alignToFourBytes));
-		_raytracer.setLightData({ 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.33f }, map->getLightDataAt(pos, _chunkLoadRadius));
+			_raytracer.setLightData({ 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.33f }, map->getLightDataAt(pos, _chunkLoadRadius));
+		}
 
 		#pragma omp parallel
 		{

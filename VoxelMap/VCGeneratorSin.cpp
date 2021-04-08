@@ -30,8 +30,8 @@ std::vector<Light> VCGeneratorSin::generateLights(const std::vector<int32_t>& po
     {
         for (int j = 0; j < diam; ++j)
         {
-            int xCoord = i + (int)floor(pos[0]);
-            int zCoord = j + (int)floor(pos[2]);
+            int xCoord = i + (int)floor(pos[0] - radius);
+            int zCoord = j + (int)floor(pos[2] - radius);
             if (xCoord % LIGHTS_PER_N_CHUNKS == 0 && zCoord % LIGHTS_PER_N_CHUNKS == 0)
                 lights.push_back(Light({ xCoord + 0.5f, 3.0f, zCoord + 0.5f }, {255, 255, 255, 255}));
         }

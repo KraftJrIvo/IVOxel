@@ -56,14 +56,12 @@ void VoxelChunk::changeVoxels(const std::vector<VoxelModifyData>& voxelsMod)
 
 bool VoxelChunk::isEmpty() const
 {
-	if (pyramid.power == 0)
-		return getVoxel({0.5, 0.5, 0.5}).isEmpty();
-	return false;
+	return getVoxel({0.5, 0.5, 0.5}).isEmpty();
 }
 
 Voxel VoxelChunk::getVoxel(const std::vector<float>& chunkPos) const
 {
-	std::vector<uint32_t> pos = { uint32_t(floor(chunkPos[0])), uint32_t(floor(chunkPos[1])), uint32_t(floor(chunkPos[2])) };
+	std::vector<uint32_t> pos = { uint32_t(floor(side * chunkPos[0])), uint32_t(floor(side * chunkPos[1])), uint32_t(floor(side * chunkPos[2])) };
 
 	uint32_t nLeavesBeforeCurrent = 0;
 	uint32_t curPwr = 0;
@@ -256,7 +254,7 @@ uint32_t VoxelChunkFormat::getSizeInBytes(bool alignToFourBytes) const
 	uint32_t sz = ::getSizeInBytes(fullness) + ::getSizeInBytes(offset) + ::getSizeInBytes(size) + ::getSizeInBytes(parals);
 	
 	if (alignToFourBytes)
-		return ceil(float(sz) / 4.0f);
+		return 4 * ceil(float(sz) / 4.0f);
 
 	return sz;
 }

@@ -10,7 +10,7 @@ uint32_t VoxelMapFormat::getSizeInBytes(uint32_t nVoxels, bool alignToFourBytes)
 	uint32_t res = chunkFormat.getSizeInBytes() + nVoxels * voxelFormat.getSizeInBytes();
 
 	if (alignToFourBytes)
-		return ceil(float(res) / 4.0f);
+		return 4 * ceil(float(res) / 4.0f);
 
 	return res;
 }

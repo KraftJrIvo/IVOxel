@@ -14,11 +14,12 @@ VoxelMap::VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator,
 	_loadChunks();
 }
 
-VoxelChunk& VoxelMap::getChunk(const std::vector<int32_t>& pos)
+VoxelChunk& VoxelMap::getChunk(const std::vector<int32_t>& relPos)
 {
-	std::vector<int32_t> absPos = { _curAbsPos[0] + pos[0], _curAbsPos[1] + pos[1], _curAbsPos[2] + pos[2] };
-	
-	uint32_t idx = _getIdx(absPos);
+	std::vector<int32_t> pos = { relPos[0] + (int32_t)_loadRadius,
+								 relPos[1] + (int32_t)_loadRadius,
+								 relPos[2] + (int32_t)_loadRadius };
+	uint32_t idx = _getIdx(pos);
 
 	if (idx < _chunks.size())
 		return _chunks[idx];
@@ -120,7 +121,7 @@ bool VoxelMap::_checkParalDist(const std::vector<int16_t>& from, const std::vect
 
 std::vector<uint8_t> VoxelMap::getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius, bool alignToFourBytes)
 {
-	uint32_t cubeSide = radius + 1;
+	uint32_t cubeSide = 2 * radius + 1;
 	uint32_t nChunks = cubeSide * cubeSide * cubeSide;
 
 	uint32_t nChunkBytes = _format.chunkFormat.getSizeInBytes(alignToFourBytes);
@@ -132,9 +133,9 @@ std::vector<uint8_t> VoxelMap::getChunksDataAt(const std::vector<int32_t>& absPo
 
 	std::vector<int32_t> pos = { absPos[0] - _curAbsPos[0], absPos[1] - _curAbsPos[1], absPos[2] - _curAbsPos[2] };
 
-	for (int32_t x = pos[0] - radius; ++x; x <= pos[0] + radius)
-		for (int32_t y = pos[0] - radius; ++y; y <= pos[0] + radius)
-			for (int32_t z = pos[0] - radius; ++z; z <= pos[0] + radius)
+	for (int32_t x = pos[0] - radius; x <= pos[0] + radius; ++x)
+		for (int32_t y = pos[0] - radius; y <= pos[0] + radius; ++y)
+			for (int32_t z = pos[0] - radius; z <= pos[0] + radius; ++z)
 			{
 				auto chunk = getChunk({ x, y, z });
 				auto header = _format.chunkFormat.formatChunkHeader(chunk, chunkData.size() + voxData.size(), getChunkParals({ x, y, z }), alignToFourBytes);
@@ -154,6 +155,10 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 	std::vector<uint8_t> res;
 	uint8_t oct = 0;
 
+	if (!getChunk(pos).isEmpty()) {
+		return std::vector<uint8_t>(getSizeInBytes(_format.chunkFormat.parals), 0);
+	}
+
 	for (int8_t zOff = -1; zOff <= 1; zOff += 2)
 		for (int8_t yOff = -1; yOff <= 1; yOff += 2)
 			for (int8_t xOff = -1; xOff <= 1; xOff += 2)
@@ -170,6 +175,7 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 							yGo = _checkParal({ 0, short(y + yOff), 0 }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z });
 
 							if (_format.chunkFormat.parals == ParalsInfoFormat::CUBIC_UINT8 || _format.chunkFormat.parals == ParalsInfoFormat::CUBIC_FLOAT32)
+							{
 								if (!xGo || !yGo || !zGo)
 								{
 									stop = true;
@@ -179,27 +185,27 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 									else
 										res.push_back(x);
 								}
-								else
-									if (!xGo && !yGo && !zGo)
-									{
-										float xDist = _checkParalDist({ short(x + xOff), 0, 0 }, { short(x + xOff), y, z }, { xOff, 0, 0 });
-										float zDist = _checkParalDist({ 0, 0, short(z + zOff) }, { xGo ? short(x + xOff) : x, y, short(z + zOff) }, { 0, 0, zOff });
-										float yDist = _checkParalDist({ 0, short(y + yOff), 0 }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z }, { 0, yOff, 0 });
+							}
+							else if (!xGo && !yGo && !zGo)
+							{
+								float xDist = _checkParalDist({ short(x + xOff), 0, 0 }, { short(x + xOff), y, z }, { xOff, 0, 0 });
+								float zDist = _checkParalDist({ 0, 0, short(z + zOff) }, { xGo ? short(x + xOff) : x, y, short(z + zOff) }, { 0, 0, zOff });
+								float yDist = _checkParalDist({ 0, short(y + yOff), 0 }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z }, { 0, yOff, 0 });
 
-										stop = true;
-										if (_format.chunkFormat.parals == ParalsInfoFormat::NON_CUBIC_FLOAT32)
-										{
-											utils::appendBytes(res, x + xDist);
-											utils::appendBytes(res, y + yDist);
-											utils::appendBytes(res, z + zDist);
-										}
-										else
-										{
-											res.push_back(x);
-											res.push_back(y);
-											res.push_back(z);
-										}
-									}
+								stop = true;
+								if (_format.chunkFormat.parals == ParalsInfoFormat::NON_CUBIC_FLOAT32)
+								{
+									utils::appendBytes(res, x + xDist);
+									utils::appendBytes(res, y + yDist);
+									utils::appendBytes(res, z + zDist);
+								}
+								else
+								{
+									res.push_back(x);
+									res.push_back(y);
+									res.push_back(z);
+								}
+							}
 						}
 				oct++;
 			}
@@ -224,7 +230,7 @@ std::vector<uint8_t> VoxelMap::getLightDataAt(const std::vector<int32_t>& absPos
 		vals.push_back((float)light.rgba[3] / 255.0f);
 	}
 
-	std::vector<uint8_t> res = std::vector<uint8_t>(vals.begin(), vals.begin() + 7 * sizeof(float));
+	std::vector<uint8_t> res = std::vector<uint8_t>(vals.begin(), vals.begin() + vals.size());
 
 	return res;
 }

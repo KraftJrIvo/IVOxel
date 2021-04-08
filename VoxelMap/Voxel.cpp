@@ -23,7 +23,7 @@ uint32_t VoxelFormat::getSizeInBytes(bool alignToFourBytes) const
 		::getSizeInBytes(orientation) + ::getSizeInBytes(color) + ::getSizeInBytes(neighbour) + ::getSizeInBytes(parals);
 	
 	if (alignToFourBytes)
-		return ceil(float(sz) / 4.0f);
+		return 4 * ceil(float(sz) / 4.0f);
 
 	return sz;
 }

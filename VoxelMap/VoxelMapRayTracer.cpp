@@ -22,7 +22,7 @@ void VoxelMapRayTracer::setLightData(glm::vec3 ambientLightDir, glm::vec4 ambien
     _ambientLightColor = ambientLightColor;
 
     _lightData = data;
-    _nLights = data.size() / (7 * sizeof(float));
+    _nLights = data.size() / 8;
 }
 
 vec3 VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, vec3& normal, vec3& color, bool light) const
