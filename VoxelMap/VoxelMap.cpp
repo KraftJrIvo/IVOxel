@@ -100,11 +100,22 @@ std::vector<int32_t> VoxelMap::_getAbsPos(const std::vector<int32_t>& pos) const
 
 bool VoxelMap::_checkParal(const std::vector<int16_t>& from, const std::vector<int16_t>& to)
 {
-	for (int8_t x = from[0]; x <= to[0]; x++)
-		for (int8_t y = from[1]; y <= to[1]; y++)
-			for (int8_t z = from[2]; z <= to[2]; z++)
-				if (!getChunk({ x,y,z }).isEmpty())
+	std::vector<int32_t> diff = { to[0] - from[0], to[1] - from[1], to[2] - from[2] };
+	for (int8_t x = from[0]; abs(x) <= abs(to[0]); x += (diff[0] != 0) ? ((diff[0]) / abs(diff[0])) : 0)
+	{
+		for (int8_t y = from[1]; abs(y) <= abs(to[1]); y += (diff[1] != 0) ? ((diff[1]) / abs(diff[1])) : 0)
+		{
+			for (int8_t z = from[2]; abs(z) <= abs(to[2]); z += (diff[2] != 0) ? ((diff[2]) / abs(diff[2])) : 0)
+				if (abs(x) > _loadRadius || abs(y) > _loadRadius || abs(z) > _loadRadius || !getChunk({ x,y,z }).isEmpty())
 					return false;
+				else if (z == to[2])
+					break;
+			if (y == to[1])
+				break;
+		}
+		if (x == to[0])
+			break;
+	}
 	return true;
 }
 
@@ -167,12 +178,14 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 				float xf, yf, zf;
 				bool xGo = true, yGo = true, zGo = true, stop = false;
 				for (x = 0; abs(x) < 256 && !stop; x += xOff * xGo)
+				{
 					for (y = 0; abs(y) < 256 && !stop; y += yOff * yGo)
+					{
 						for (z = 0; abs(z) < 256 && !stop; z += zOff * zGo)
 						{
-							xGo = _checkParal({ short(x + xOff), 0, 0 }, { short(x + xOff), y, z });
-							zGo = _checkParal({ 0, 0, short(z + zOff) }, { xGo ? short(x + xOff) : x, y, short(z + zOff) });
-							yGo = _checkParal({ 0, short(y + yOff), 0 }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z });
+							if (xGo) xGo = _checkParal({ short(x + xOff), 0, 0 }, { short(x + xOff), y, z });
+							if (zGo) zGo = _checkParal({ 0, 0, short(z + zOff) }, { xGo ? short(x + xOff) : x, y, short(z + zOff) });
+							if (yGo) yGo = _checkParal({ 0, short(y + yOff), 0 }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z });
 
 							if (_format.chunkFormat.parals == ParalsInfoFormat::CUBIC_UINT8 || _format.chunkFormat.parals == ParalsInfoFormat::CUBIC_FLOAT32)
 							{
@@ -206,9 +219,17 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 									res.push_back(z);
 								}
 							}
+
+							if (!zGo) break;
 						}
+						if (!yGo) break;
+					}
+					if (!xGo) break;
+				}
 				oct++;
 			}
+
+	std::vector<float>* ptr = (std::vector<float>*)&res;
 
 	return res;
 }
