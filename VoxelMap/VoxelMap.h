@@ -52,6 +52,6 @@ protected:
 	void _loadChunks();
 	void _loadChunk(const std::vector<int32_t>& pos, uint32_t id);
 	
-	bool _checkParal(const std::vector<int16_t>& from, const std::vector<int16_t>& to);
-	bool _checkParalDist(const std::vector<int16_t>& from, const std::vector<int16_t>& to, const std::vector<int8_t>& dir);
+	bool _checkParal(std::vector<int16_t> from, std::vector<int16_t> to);
+	bool _checkParalDist(std::vector<int16_t> from, std::vector<int16_t> to, const std::vector<int8_t>& dir);
 };

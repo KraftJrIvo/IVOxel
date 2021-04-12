@@ -1,6 +1,6 @@
 #include "Voxel.h"
 
-Voxel::Voxel(std::shared_ptr<VoxelShape> shape_, std::shared_ptr<VoxelMaterial> material_, VoxelOrientation orientation_, const glm::vec4& rgba) :
+Voxel::Voxel(uint8_t size, std::shared_ptr<VoxelShape> shape_, std::shared_ptr<VoxelMaterial> material_, VoxelOrientation orientation_, const glm::vec4& rgba) :
 	shape(shape_),
 	material(material_),
 	orientation(orientation_),
@@ -145,9 +145,11 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, uint32_t size_
 		break;
 	}
 
-	utils::appendBytes(res, neighs);
+	utils::appendBytes(res, neighs.size() ? neighs : std::vector<uint8_t>(0, ::getSizeInBytes(neighbour)));
 
-	utils::appendBytes(res, parals);
+	utils::appendBytes(res, parals.size() ? parals : std::vector<uint8_t>(0, ::getSizeInBytes(this->parals)));
+
+	res.resize(getSizeInBytes(alignToFourBytes), 0);
 
 	return res;
 }

@@ -38,6 +38,7 @@ public:
 	bool modified = false;
 	uint32_t side;
 	float minOffset;
+	bool empty;
 
 	VoxelChunkFormat format;
 	VoxelFormat voxFormat, voxFormatForPyr;
@@ -53,5 +54,5 @@ public:
 private:
 
 	void _buildPyramid(const std::vector<Voxel>& voxels, bool alignToFourBytes = true);
-	bool _checkParal(const std::vector<int16_t>& from, const std::vector<int16_t>& to, float offset) const;
+	bool _checkParal(const std::vector<float>& from, const std::vector<float>& to, float offset) const;
 };

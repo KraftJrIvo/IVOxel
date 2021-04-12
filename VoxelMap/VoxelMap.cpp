@@ -1,6 +1,7 @@
 #include "VoxelMap.h"
 
 #include <algorithm>
+#include <iostream>
 
 VoxelMap::VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator, uint32_t chunkSide, uint32_t loadRadius) :
 	_format(format),
@@ -98,9 +99,20 @@ std::vector<int32_t> VoxelMap::_getAbsPos(const std::vector<int32_t>& pos) const
 	return { _curAbsPos[0] + pos[0] - (int)_loadRadius, _curAbsPos[0] + pos[1] - (int)_loadRadius, _curAbsPos[0] + pos[2] - (int)_loadRadius };
 }
 
-bool VoxelMap::_checkParal(const std::vector<int16_t>& from, const std::vector<int16_t>& to)
+bool VoxelMap::_checkParal(std::vector<int16_t> from, std::vector<int16_t> to)
 {
+	for (int i = 0; i < 3; ++i)
+	{
+		auto fromC = std::clamp(from[i], (int16_t)(-((int16_t)_loadRadius)), (int16_t)_loadRadius);
+		auto toC = std::clamp(to[i], (int16_t)(-((int16_t)_loadRadius)), (int16_t)_loadRadius);
+
+		if (fromC != from[i] || toC != to[i])
+			return false;
+	}
+
 	std::vector<int32_t> diff = { to[0] - from[0], to[1] - from[1], to[2] - from[2] };
+	if (!diff[0] && !diff[1] && !diff[2]) return true;
+	
 	for (int8_t x = from[0]; abs(x) <= abs(to[0]); x += (diff[0] != 0) ? ((diff[0]) / abs(diff[0])) : 0)
 	{
 		for (int8_t y = from[1]; abs(y) <= abs(to[1]); y += (diff[1] != 0) ? ((diff[1]) / abs(diff[1])) : 0)
@@ -108,25 +120,46 @@ bool VoxelMap::_checkParal(const std::vector<int16_t>& from, const std::vector<i
 			for (int8_t z = from[2]; abs(z) <= abs(to[2]); z += (diff[2] != 0) ? ((diff[2]) / abs(diff[2])) : 0)
 				if (abs(x) > _loadRadius || abs(y) > _loadRadius || abs(z) > _loadRadius || !getChunk({ x,y,z }).isEmpty())
 					return false;
-				else if (z == to[2])
+				else if (z == to[2] || diff[2] == 0)
 					break;
+			if (y == to[1] || diff[1] == 0)
+				break;
+		}
+		if (x == to[0] || diff[0] == 0)
+			break;
+	}
+	return true;
+}
+
+bool VoxelMap::_checkParalDist(std::vector<int16_t> from, std::vector<int16_t> to, const std::vector<int8_t>& dir)
+{
+	float dist = 999999999.0f;
+
+	for (int i = 0; i < 3; ++i)
+	{
+		from[i] = std::clamp(from[i], (int16_t)(-((int16_t)_loadRadius)), (int16_t)_loadRadius);
+		to[i] = std::clamp(to[i], (int16_t)(-((int16_t)_loadRadius)), (int16_t)_loadRadius);
+	}
+
+	std::vector<int32_t> diff = { to[0] - from[0], to[1] - from[1], to[2] - from[2] };
+	if (!diff[0] && !diff[1] && !diff[2]) return 0;
+
+	for (int8_t x = from[0]; abs(x) <= abs(to[0]); x += (diff[0] != 0) ? ((diff[0]) / abs(diff[0])) : 0)
+	{
+		for (int8_t y = from[1]; abs(y) <= abs(to[1]); y += (diff[1] != 0) ? ((diff[1]) / abs(diff[1])) : 0)
+		{
+			for (int8_t z = from[2]; abs(z) <= abs(to[2]); z += (diff[2] != 0) ? ((diff[2]) / abs(diff[2])) : 0)
+			{
+				dist = fmin(getChunk({ x,y,z }).getClosestSidePointDistance(dir), dist);
+				if (z == to[2])
+					break;
+			}
 			if (y == to[1])
 				break;
 		}
 		if (x == to[0])
 			break;
 	}
-	return true;
-}
-
-bool VoxelMap::_checkParalDist(const std::vector<int16_t>& from, const std::vector<int16_t>& to, const std::vector<int8_t>& dir)
-{
-	float dist = 999999999.0f;
-
-	for (int8_t x = from[0]; x <= to[0]; x++)
-		for (int8_t y = from[1]; y <= to[1]; y++)
-			for (int8_t z = from[2]; z <= to[2]; z++)
-				dist = fmin(getChunk({ x,y,z }).getClosestSidePointDistance(dir), dist);
 	return dist;
 }
 
@@ -170,22 +203,23 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 		return std::vector<uint8_t>(getSizeInBytes(_format.chunkFormat.parals), 0);
 	}
 
+	std::vector<float> dir;
+
 	for (int8_t zOff = -1; zOff <= 1; zOff += 2)
 		for (int8_t yOff = -1; yOff <= 1; yOff += 2)
 			for (int8_t xOff = -1; xOff <= 1; xOff += 2)
 			{
-				int16_t x, y, z;
-				float xf, yf, zf;
+				int16_t x = pos[0], y = pos[1], z = pos[2];
 				bool xGo = true, yGo = true, zGo = true, stop = false;
-				for (x = 0; abs(x) < 256 && !stop; x += xOff * xGo)
+				while (abs(x) <= _loadRadius && !stop)
 				{
-					for (y = 0; abs(y) < 256 && !stop; y += yOff * yGo)
+					while (abs(y) <= _loadRadius && !stop)
 					{
-						for (z = 0; abs(z) < 256 && !stop; z += zOff * zGo)
+						while (abs(z) <= _loadRadius && !stop)
 						{
-							if (xGo) xGo = _checkParal({ short(x + xOff), 0, 0 }, { short(x + xOff), y, z });
-							if (zGo) zGo = _checkParal({ 0, 0, short(z + zOff) }, { xGo ? short(x + xOff) : x, y, short(z + zOff) });
-							if (yGo) yGo = _checkParal({ 0, short(y + yOff), 0 }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z });
+							if (xGo) xGo = _checkParal({ short(x + xOff), (short)pos[1], (short)pos[2] }, { short(x + xOff), y, z });
+							if (zGo) zGo = _checkParal({ (short)pos[0], (short)pos[1], short(z + zOff) }, { xGo ? short(x + xOff) : x, y, short(z + zOff) });
+							if (yGo) yGo = _checkParal({ (short)pos[0], short(y + yOff), (short)pos[2] }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z });
 
 							if (_format.chunkFormat.parals == ParalsInfoFormat::CUBIC_UINT8 || _format.chunkFormat.parals == ParalsInfoFormat::CUBIC_FLOAT32)
 							{
@@ -201,24 +235,31 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 							}
 							else if (!xGo && !yGo && !zGo)
 							{
-								float xDist = _checkParalDist({ short(x + xOff), 0, 0 }, { short(x + xOff), y, z }, { xOff, 0, 0 });
-								float zDist = _checkParalDist({ 0, 0, short(z + zOff) }, { xGo ? short(x + xOff) : x, y, short(z + zOff) }, { 0, 0, zOff });
-								float yDist = _checkParalDist({ 0, short(y + yOff), 0 }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z }, { 0, yOff, 0 });
+								float xDist = (abs(x + xOff) < _loadRadius) ? _checkParalDist({ short(x + xOff), (short)pos[1], (short)pos[2] }, { short(x + xOff), y, z }, { xOff, 0, 0 }) : 0;
+								float zDist = (abs(y + yOff) < _loadRadius) ? _checkParalDist({ (short)pos[0], (short)pos[1], short(z + zOff) }, { xGo ? short(x + xOff) : x, y, short(z + zOff) }, { 0, 0, zOff }) : 0;
+								float yDist = (abs(z + zOff) < _loadRadius) ? _checkParalDist({ (short)pos[0], short(y + yOff), (short)pos[2] }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z }, { 0, yOff, 0 }) : 0;
 
 								stop = true;
 								if (_format.chunkFormat.parals == ParalsInfoFormat::NON_CUBIC_FLOAT32)
 								{
-									utils::appendBytes(res, x + xDist);
-									utils::appendBytes(res, y + yDist);
-									utils::appendBytes(res, z + zDist);
+									utils::appendBytes(res, x + xDist - pos[0]);
+									utils::appendBytes(res, y + yDist - pos[1]);
+									utils::appendBytes(res, z + zDist - pos[2]);
+									dir.push_back(xOff);
+									dir.push_back(yOff);
+									dir.push_back(zOff);
 								}
 								else
 								{
-									res.push_back(x);
-									res.push_back(y);
-									res.push_back(z);
+									res.push_back(x + xDist - pos[0]);
+									res.push_back(y + yDist - pos[1]);
+									res.push_back(z + zDist - pos[2]);
 								}
 							}
+
+							x += xOff * xGo;
+							y += yOff * yGo;
+							z += zOff * zGo;
 
 							if (!zGo) break;
 						}

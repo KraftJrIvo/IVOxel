@@ -3,6 +3,7 @@
 #include <map>
 #include <algorithm>
 #include <functional>
+#include <iostream>
 
 VoxelChunkPyramid::VoxelChunkPyramid() :
 	base(0),
@@ -178,8 +179,12 @@ void VoxelChunkPyramid::build(const std::vector<Voxel>& voxels)
 			pushOffset(bytesForLayers[i], offsets[i][j], offsetBytes);
 	}
 	std::memcpy(data.data(), &nOffsetBytes, sizeof(uint32_t));
-	for (int i = 0; i < nLayers; ++i)
+	for (int i = 0; i < nLayers; ++i) {
+		auto sszs = data.size();
+		std::cout << data.size() << std::endl;
 		data = utils::joinVectors(data, tempData[i]);
+		auto voxxx = format.unformatVoxel(data.data() + sszs);
+	}
 }
 
 uint8_t VoxelChunkPyramid::getPyramLayerBytesCount(uint8_t base, uint8_t power)

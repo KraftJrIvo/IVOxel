@@ -7,7 +7,7 @@
 class Voxel
 {
 public:
-	Voxel(std::shared_ptr<VoxelShape> shape = nullptr, std::shared_ptr<VoxelMaterial> material = nullptr, VoxelOrientation orientation = { {0,0,0}, false }, const glm::vec4& rgba = { 0,0,0,0 });
+	Voxel(uint8_t size = 0, std::shared_ptr<VoxelShape> shape = nullptr, std::shared_ptr<VoxelMaterial> material = nullptr, VoxelOrientation orientation = { {0,0,0}, false }, const glm::vec4& rgba = { 0,0,0,0 });
 	bool isEmpty() const;
 	bool isTransparent() const;
 

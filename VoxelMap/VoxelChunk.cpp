@@ -1,12 +1,24 @@
 #include "VoxelChunk.h"
+#include <iostream>
+#include <algorithm>
 
 VoxelChunk::VoxelChunk(const std::vector<Voxel>& voxels, const VoxelChunkFormat& format_, const VoxelFormat& voxFormat_, bool alignToFourBytes) :
 	format(format_),
 	voxFormat(voxFormat_),
-	voxFormatForPyr(voxFormat_)
+	voxFormatForPyr(voxFormat_),
+	empty(true)
 { 
 	voxFormatForPyr.parals = ParalsInfoFormat::NO_PARALS;
 	voxFormatForPyr.neighbour = VoxelNeighbourInfoFormat::NO_NEIGHBOUR_INFO;
+
+	for (auto& v : voxels)
+	{
+		if (v.shape)
+		{
+			empty = false;
+			break;
+		}
+	}
 
 	_buildPyramid(voxels, alignToFourBytes);
 }
@@ -14,21 +26,44 @@ VoxelChunk::VoxelChunk(const std::vector<Voxel>& voxels, const VoxelChunkFormat&
 void VoxelChunk::_buildPyramid(const std::vector<Voxel>& voxels, bool alignToFourBytes)
 {
 	side = pow(voxels.size(), 1.0f / 3.0f);
+	minOffset = 1.0f / side;
 
 	pyramid = VoxelChunkPyramid(voxFormat, side, alignToFourBytes);
 	pyramid.build(voxels);
 }
 
-bool VoxelChunk::_checkParal(const std::vector<int16_t>& from, const std::vector<int16_t>& to, float offset) const
+bool VoxelChunk::_checkParal(const std::vector<float>& from, const std::vector<float>& to, float offset) const
 {
-	for (int8_t x = from[0]; x <= to[0]; x++)
-		for (int8_t y = from[1]; y <= to[1]; y++)
-			for (int8_t z = from[2]; z <= to[2]; z++)
+	for (int i = 0; i < 3; ++i)
+	{
+		auto fromC = std::clamp(from[i], 0.0f, 1.0f);
+		auto toC = std::clamp(to[i], 0.0f, 1.0f);
+
+		if (fromC != from[i] || toC != to[i])
+			return false;
+	}
+
+	std::vector<float> diff = { to[0] - from[0], to[1] - from[1], to[2] - from[2] };
+	if (!diff[0] && !diff[1] && !diff[2]) return true;
+
+	for (int8_t x = from[0]; abs(x) <= abs(to[0]); x += (diff[0] != 0) ? ((diff[0]) / abs(diff[0])) : 0)
+	{
+		for (int8_t y = from[1]; abs(y) <= abs(to[1]); y += (diff[1] != 0) ? ((diff[1]) / abs(diff[1])) : 0)
+		{
+			for (int8_t z = from[2]; abs(z) <= abs(to[2]); z += (diff[2] != 0) ? ((diff[2]) / abs(diff[2])) : 0)
 			{
 				std::vector<float> pos = { x * offset + offset / 2.0f, y * offset + offset / 2.0f, z * offset + offset / 2.0f };
 				if (getVoxel(pos).shape)
 					return false;
+				if (z == to[2] || diff[2] == 0)
+					break;
 			}
+			if (y == to[1] || diff[1] == 0)
+				break;
+		}
+		if (x == to[0] || diff[0] == 0)
+			break;
+	}
 	return true;
 }
 
@@ -56,7 +91,7 @@ void VoxelChunk::changeVoxels(const std::vector<VoxelModifyData>& voxelsMod)
 
 bool VoxelChunk::isEmpty() const
 {
-	return getVoxel({0.5, 0.5, 0.5}).isEmpty();
+	return empty;//getVoxel({0.5, 0.5, 0.5}).isEmpty();
 }
 
 Voxel VoxelChunk::getVoxel(const std::vector<float>& chunkPos) const
@@ -172,7 +207,7 @@ std::vector<uint8_t> VoxelChunk::getNeighbours(const Voxel& vox, const std::vect
 	return { utils::packByte(0, 0, 0, 0, 0, 0, l, ld), utils::packByte(lu, lb, lf, ldb, ldf, lub, luf, r), utils::packByte(r, rd, ru, rb, rf, rdb, rdf, rub), utils::packByte(d, db, df, u, ub, uf, b, f) };
 }
 
-std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vector<float>& voxInChunkPos, const ParalsInfoFormat& format) const
+std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vector<float>& pos, const ParalsInfoFormat& format) const
 {
 	std::vector<uint8_t> res;
 	uint8_t oct = 0;
@@ -180,48 +215,66 @@ std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vecto
 	uint32_t voxSide = pow(pyramid.base, vox.size);
 	float offset = 1.0f / float(voxSide);
 
-	for (int16_t zOff = -1; zOff <= 1; zOff += 2)
-		for (int16_t yOff = -1; yOff <= 1; yOff += 2)
-			for (int16_t xOff = -1; xOff <= 1; xOff += 2)
+	std::vector<float> dir;
+
+	for (float zOff = -minOffset; zOff <= minOffset; zOff += 2 * minOffset)
+		for (float yOff = -minOffset; yOff <= minOffset; yOff += 2 * minOffset)
+			for (float xOff = -minOffset; xOff <= minOffset; xOff += 2 * minOffset)
 			{
-				int16_t x, y, z;
+				float x = pos[0], y = pos[1], z = pos[2];
 				bool xGo = true, yGo = true, zGo = true, stop = false;
-				for (x = 0; abs(x) < 256 && !stop; x += xOff * xGo)
-					for (y = 0; abs(y) < 256 && !stop; y += yOff * yGo)
-						for (z = 0; abs(z) < 256 && !stop; z += zOff * zGo)
+				while (abs(x) <= 1.0f && abs(x) >= 0.0f && !stop)
+				{
+					while (abs(y) <= 1.0f && abs(y) >= 0.0f && !stop)
+					{
+						while (abs(z) <= 1.0f && abs(z) >= 0.0f && !stop)
 						{
-							xGo = _checkParal({ short(x + xOff), 0, 0 }, { short(x + xOff), y, z }, offset);
-							zGo = _checkParal({ 0, 0, short(z + zOff) }, { xGo ? short(x + xOff) : x, y, short(z + zOff) }, offset);
-							yGo = _checkParal({ 0, short(y + yOff), 0 }, { xGo ? short(x + xOff) : x, short(y + yOff), zGo ? short(z + zOff) : z }, offset);
+							if (xGo) xGo = _checkParal({ x + xOff, pos[1], pos[2] }, { x + xOff, y, z }, offset);
+							if (zGo) zGo = _checkParal({ pos[0], pos[1], z + zOff }, { xGo ? (x + xOff) : x, y, z + zOff }, offset);
+							if (yGo) yGo = _checkParal({ pos[0], y + yOff, pos[2] }, { xGo ? (x + xOff) : x, y + yOff, zGo ? (z + zOff) : z }, offset);
 
 							if (format == ParalsInfoFormat::CUBIC_UINT8 || format == ParalsInfoFormat::CUBIC_FLOAT32)
+							{
 								if (!xGo || !yGo || !zGo)
 								{
 									stop = true;
-									
+
 									if (format == ParalsInfoFormat::CUBIC_FLOAT32)
-										utils::appendBytes(res, x * offset);
+										utils::appendBytes(res, x);
 									else
 										res.push_back(x);
 								}
-							else
-								if (!xGo && !yGo && !zGo)
+							}
+							else if (!xGo && !yGo && !zGo)
+							{
+								stop = true;
+								if (format == ParalsInfoFormat::NON_CUBIC_FLOAT32)
 								{
-									stop = true;
-									if (format == ParalsInfoFormat::NON_CUBIC_FLOAT32)
-									{
-										utils::appendBytes(res, x * offset);
-										utils::appendBytes(res, y * offset);
-										utils::appendBytes(res, z * offset);
-									}
-									else
-									{
-										res.push_back(x);
-										res.push_back(y);
-										res.push_back(z);
-									}
+									utils::appendBytes(res, side * (x - pos[0]));
+									utils::appendBytes(res, side * (y - pos[1]));
+									utils::appendBytes(res, side * (z - pos[2]));
 								}
+								else
+								{
+									res.push_back(side * (x - pos[0]));
+									res.push_back(side * (y - pos[1]));
+									res.push_back(side * (z - pos[2]));
+									dir.push_back(xOff);
+									dir.push_back(yOff);
+									dir.push_back(zOff);
+								}
+							}
+
+							x += xOff * xGo;
+							y += yOff * yGo;
+							z += zOff * zGo;
+
+							if (!zGo) break;
 						}
+						if (!yGo) break;
+					}
+					if (!xGo) break;
+				}
 				oct++;
 			}
 
@@ -236,10 +289,10 @@ float VoxelChunk::getClosestSidePointDistance(const std::vector<int8_t>& dir)
 	float start = dir[axis] < 0 ? 1.0f : 0.0f;
 	float finish = start + dir[axis];
 	float offset = minOffset * dir[axis];
-	for (float a = start; a < finish; a += offset)
+	for (float a = start; abs(a) != abs(finish); a += offset)
 	{
-		bool layerOk = _checkParal({ short(axis == 0 ? a : 0), short(axis == 1 ? a : 0), short(axis == 2 ? a : 0) }, 
-			                       { short(axis == 0 ? a : side - 1), short(axis == 1 ? a : side - 1), short(axis == 2 ? a : side - 1) }, minOffset);
+		bool layerOk = _checkParal({ (axis == 0 ? a : 0), (axis == 1 ? a : 0), (axis == 2 ? a : 0) }, 
+			                       { (axis == 0 ? a : side - 1), (axis == 1 ? a : side - 1), (axis == 2 ? a : side - 1) }, minOffset);
 		if (layerOk)
 			dist += minOffset;
 		else
@@ -324,6 +377,8 @@ std::vector<uint8_t> VoxelChunkFormat::formatChunkHeader(const VoxelChunk& chunk
 
 	utils::appendBytes(res, parals);
 
+	res.resize(getSizeInBytes(alignToFourBytes), 0);
+
 	return res;
 }
 
@@ -343,6 +398,8 @@ std::vector<uint8_t> VoxelChunkFormat::formatChunk(const VoxelChunk& chunk, bool
 				auto parals = chunk.getVoxParals(vox, voxPos, chunk.voxFormat.parals);
 				utils::appendBytes(res, chunk.voxFormat.formatVoxel(vox, vox.size, neighs, parals, alignToFourBytes));
 			}
+
+	res.resize(size, 0);
 
 	return res;
 }
