@@ -118,7 +118,7 @@ bool VoxelMap::_checkParal(std::vector<int16_t> from, std::vector<int16_t> to)
 		for (int8_t y = from[1]; abs(y) <= abs(to[1]); y += (diff[1] != 0) ? ((diff[1]) / abs(diff[1])) : 0)
 		{
 			for (int8_t z = from[2]; abs(z) <= abs(to[2]); z += (diff[2] != 0) ? ((diff[2]) / abs(diff[2])) : 0)
-				if (abs(x) > _loadRadius || abs(y) > _loadRadius || abs(z) > _loadRadius || !getChunk({ x,y,z }).isEmpty())
+				if (!getChunk({ x,y,z }).isEmpty())
 					return false;
 				else if (z == to[2] || diff[2] == 0)
 					break;

@@ -44,15 +44,14 @@ bool VoxelChunk::_checkParal(const std::vector<float>& from, const std::vector<f
 	}
 
 	std::vector<float> diff = { to[0] - from[0], to[1] - from[1], to[2] - from[2] };
-	if (!diff[0] && !diff[1] && !diff[2]) return true;
 
-	for (int8_t x = from[0]; abs(x) <= abs(to[0]); x += (diff[0] != 0) ? ((diff[0]) / abs(diff[0])) : 0)
+	for (float x = from[0]; abs(x) <= abs(to[0]); x += (diff[0] != 0) ? ((diff[0]) / abs(diff[0])) : 0)
 	{
-		for (int8_t y = from[1]; abs(y) <= abs(to[1]); y += (diff[1] != 0) ? ((diff[1]) / abs(diff[1])) : 0)
+		for (float y = from[1]; abs(y) <= abs(to[1]); y += (diff[1] != 0) ? ((diff[1]) / abs(diff[1])) : 0)
 		{
-			for (int8_t z = from[2]; abs(z) <= abs(to[2]); z += (diff[2] != 0) ? ((diff[2]) / abs(diff[2])) : 0)
+			for (float z = from[2]; abs(z) <= abs(to[2]); z += (diff[2] != 0) ? ((diff[2]) / abs(diff[2])) : 0)
 			{
-				std::vector<float> pos = { x * offset + offset / 2.0f, y * offset + offset / 2.0f, z * offset + offset / 2.0f };
+				std::vector<float> pos = { x, y, z };
 				if (getVoxel(pos).shape)
 					return false;
 				if (z == to[2] || diff[2] == 0)
@@ -212,6 +211,10 @@ std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vecto
 	std::vector<uint8_t> res;
 	uint8_t oct = 0;
 
+	if (!vox.isEmpty()) {
+		return std::vector<uint8_t>(getSizeInBytes(format), 0);
+	}
+
 	uint32_t voxSide = pow(pyramid.base, vox.size);
 	float offset = 1.0f / float(voxSide);
 
@@ -221,47 +224,52 @@ std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vecto
 		for (float yOff = -minOffset; yOff <= minOffset; yOff += 2 * minOffset)
 			for (float xOff = -minOffset; xOff <= minOffset; xOff += 2 * minOffset)
 			{
-				float x = pos[0], y = pos[1], z = pos[2];
+				float x = pos[0] + minOffset / 2.0f, y = pos[1] + minOffset / 2.0f, z = pos[2] + minOffset / 2.0f;
 				bool xGo = true, yGo = true, zGo = true, stop = false;
-				while (abs(x) <= 1.0f && abs(x) >= 0.0f && !stop)
+				while (abs(x) < 1.0f && abs(x) > 0.0f && !stop)
 				{
-					while (abs(y) <= 1.0f && abs(y) >= 0.0f && !stop)
+					while (abs(y) < 1.0f && abs(y) > 0.0f && !stop)
 					{
-						while (abs(z) <= 1.0f && abs(z) >= 0.0f && !stop)
+   						while (abs(z) < 1.0f && abs(z) > 0.0f && !stop)
 						{
-							if (xGo) xGo = _checkParal({ x + xOff, pos[1], pos[2] }, { x + xOff, y, z }, offset);
-							if (zGo) zGo = _checkParal({ pos[0], pos[1], z + zOff }, { xGo ? (x + xOff) : x, y, z + zOff }, offset);
-							if (yGo) yGo = _checkParal({ pos[0], y + yOff, pos[2] }, { xGo ? (x + xOff) : x, y + yOff, zGo ? (z + zOff) : z }, offset);
+							if (xGo) xGo = _checkParal({ x + xOff, pos[1], pos[2] }, { x + xOff, y, z }, minOffset);
+							if (zGo) zGo = _checkParal({ pos[0], pos[1], z + zOff }, { xGo ? (x + xOff) : x, y, z + zOff }, minOffset);
+							if (yGo) yGo = _checkParal({ pos[0], y + yOff, pos[2] }, { xGo ? (x + xOff) : x, y + yOff, zGo ? (z + zOff) : z }, minOffset);
 
-							if (format == ParalsInfoFormat::CUBIC_UINT8 || format == ParalsInfoFormat::CUBIC_FLOAT32)
-							{
-								if (!xGo || !yGo || !zGo)
+
+							if (!xGo && !yGo && !zGo) {
+
+								std::vector<float> off = { (pos[0] == x - minOffset / 2.0f) ? (-pos[0] - minOffset / 2.0f) : (-pos[0] + minOffset / 2.0f),
+														   (pos[1] == y - minOffset / 2.0f) ? (-pos[1] - minOffset / 2.0f) : (-pos[1] + minOffset / 2.0f),
+														   (pos[2] == z - minOffset / 2.0f) ? (-pos[2] - minOffset / 2.0f) : (-pos[2] + minOffset / 2.0f) };
+
+								if (format == ParalsInfoFormat::CUBIC_UINT8 || format == ParalsInfoFormat::CUBIC_FLOAT32)
 								{
 									stop = true;
 
 									if (format == ParalsInfoFormat::CUBIC_FLOAT32)
-										utils::appendBytes(res, x);
+										utils::appendBytes(res, side * (x + off[0]));
 									else
-										res.push_back(x);
-								}
-							}
-							else if (!xGo && !yGo && !zGo)
-							{
-								stop = true;
-								if (format == ParalsInfoFormat::NON_CUBIC_FLOAT32)
-								{
-									utils::appendBytes(res, side * (x - pos[0]));
-									utils::appendBytes(res, side * (y - pos[1]));
-									utils::appendBytes(res, side * (z - pos[2]));
+										res.push_back(side * (x + off[0]));
 								}
 								else
 								{
-									res.push_back(side * (x - pos[0]));
-									res.push_back(side * (y - pos[1]));
-									res.push_back(side * (z - pos[2]));
-									dir.push_back(xOff);
-									dir.push_back(yOff);
-									dir.push_back(zOff);
+									stop = true;
+									if (format == ParalsInfoFormat::NON_CUBIC_FLOAT32)
+									{
+										utils::appendBytes(res, side * (x + off[0]));
+										utils::appendBytes(res, side * (y + off[1]));
+										utils::appendBytes(res, side * (z + off[2]));
+									}
+									else
+									{
+										res.push_back(side * (x + off[0]));
+										res.push_back(side * (y + off[1]));
+										res.push_back(side * (z + off[2]));
+										dir.push_back(xOff);
+										dir.push_back(yOff);
+										dir.push_back(zOff);
+									}
 								}
 							}
 
