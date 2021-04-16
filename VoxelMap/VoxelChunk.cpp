@@ -45,11 +45,11 @@ bool VoxelChunk::_checkParal(const std::vector<float>& from, const std::vector<f
 
 	std::vector<float> diff = { to[0] - from[0], to[1] - from[1], to[2] - from[2] };
 
-	for (float x = from[0]; abs(x) <= abs(to[0]); x += (diff[0] != 0) ? ((diff[0]) / abs(diff[0])) : 0)
+	for (float x = from[0]; true; x += ((diff[0] != 0) ? ((diff[0]) / abs(diff[0])) : 0) * offset)
 	{
-		for (float y = from[1]; abs(y) <= abs(to[1]); y += (diff[1] != 0) ? ((diff[1]) / abs(diff[1])) : 0)
+		for (float y = from[1]; true; y += ((diff[1] != 0) ? ((diff[1]) / abs(diff[1])) : 0) * offset)
 		{
-			for (float z = from[2]; abs(z) <= abs(to[2]); z += (diff[2] != 0) ? ((diff[2]) / abs(diff[2])) : 0)
+			for (float z = from[2]; true; z += ((diff[2] != 0) ? ((diff[2]) / abs(diff[2])) : 0) * offset)
 			{
 				std::vector<float> pos = { x, y, z };
 				if (getVoxel(pos).shape)
@@ -206,7 +206,7 @@ std::vector<uint8_t> VoxelChunk::getNeighbours(const Voxel& vox, const std::vect
 	return { utils::packByte(0, 0, 0, 0, 0, 0, l, ld), utils::packByte(lu, lb, lf, ldb, ldf, lub, luf, r), utils::packByte(r, rd, ru, rb, rf, rdb, rdf, rub), utils::packByte(d, db, df, u, ub, uf, b, f) };
 }
 
-std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vector<float>& pos, const ParalsInfoFormat& format) const
+std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vector<float>& pose, const ParalsInfoFormat& format) const
 {
 	std::vector<uint8_t> res;
 	uint8_t oct = 0;
@@ -219,12 +219,13 @@ std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vecto
 	float offset = 1.0f / float(voxSide);
 
 	std::vector<float> dir;
+	std::vector<float> pos = { pose[0] + minOffset / 2.0f, pose[1] + minOffset / 2.0f, pose[2] + minOffset / 2.0f };
 
 	for (float zOff = -minOffset; zOff <= minOffset; zOff += 2 * minOffset)
 		for (float yOff = -minOffset; yOff <= minOffset; yOff += 2 * minOffset)
 			for (float xOff = -minOffset; xOff <= minOffset; xOff += 2 * minOffset)
 			{
-				float x = pos[0] + minOffset / 2.0f, y = pos[1] + minOffset / 2.0f, z = pos[2] + minOffset / 2.0f;
+				float x = pos[0], y = pos[1], z = pos[2];
 				bool xGo = true, yGo = true, zGo = true, stop = false;
 				while (abs(x) < 1.0f && abs(x) > 0.0f && !stop)
 				{
@@ -239,33 +240,29 @@ std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vecto
 
 							if (!xGo && !yGo && !zGo) {
 
-								std::vector<float> off = { (pos[0] == x - minOffset / 2.0f) ? (-pos[0] - minOffset / 2.0f) : (-pos[0] + minOffset / 2.0f),
-														   (pos[1] == y - minOffset / 2.0f) ? (-pos[1] - minOffset / 2.0f) : (-pos[1] + minOffset / 2.0f),
-														   (pos[2] == z - minOffset / 2.0f) ? (-pos[2] - minOffset / 2.0f) : (-pos[2] + minOffset / 2.0f) };
-
 								if (format == ParalsInfoFormat::CUBIC_UINT8 || format == ParalsInfoFormat::CUBIC_FLOAT32)
 								{
 									stop = true;
 
 									if (format == ParalsInfoFormat::CUBIC_FLOAT32)
-										utils::appendBytes(res, side * (x + off[0]));
+										utils::appendBytes(res, side * (x - pos[0]));
 									else
-										res.push_back(side * (x + off[0]));
+										res.push_back(side * (x - pos[0]));
 								}
 								else
 								{
 									stop = true;
 									if (format == ParalsInfoFormat::NON_CUBIC_FLOAT32)
 									{
-										utils::appendBytes(res, side * (x + off[0]));
-										utils::appendBytes(res, side * (y + off[1]));
-										utils::appendBytes(res, side * (z + off[2]));
+										utils::appendBytes(res, side * abs(x - pos[0]));
+										utils::appendBytes(res, side * abs(y - pos[1]));
+										utils::appendBytes(res, side * abs(z - pos[2]));
 									}
 									else
 									{
-										res.push_back(side * (x + off[0]));
-										res.push_back(side * (y + off[1]));
-										res.push_back(side * (z + off[2]));
+										res.push_back(side * abs(x - pos[0]));
+										res.push_back(side * abs(y - pos[1]));
+										res.push_back(side * abs(z - pos[2]));
 										dir.push_back(xOff);
 										dir.push_back(yOff);
 										dir.push_back(zOff);

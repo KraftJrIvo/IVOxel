@@ -111,13 +111,12 @@ bool VoxelMap::_checkParal(std::vector<int16_t> from, std::vector<int16_t> to)
 	}
 
 	std::vector<int32_t> diff = { to[0] - from[0], to[1] - from[1], to[2] - from[2] };
-	if (!diff[0] && !diff[1] && !diff[2]) return true;
 	
-	for (int8_t x = from[0]; abs(x) <= abs(to[0]); x += (diff[0] != 0) ? ((diff[0]) / abs(diff[0])) : 0)
+	for (int8_t x = from[0]; true; x += (diff[0] != 0) ? ((diff[0]) / abs(diff[0])) : 0)
 	{
-		for (int8_t y = from[1]; abs(y) <= abs(to[1]); y += (diff[1] != 0) ? ((diff[1]) / abs(diff[1])) : 0)
+		for (int8_t y = from[1]; true; y += (diff[1] != 0) ? ((diff[1]) / abs(diff[1])) : 0)
 		{
-			for (int8_t z = from[2]; abs(z) <= abs(to[2]); z += (diff[2] != 0) ? ((diff[2]) / abs(diff[2])) : 0)
+			for (int8_t z = from[2]; true; z += (diff[2] != 0) ? ((diff[2]) / abs(diff[2])) : 0)
 				if (!getChunk({ x,y,z }).isEmpty())
 					return false;
 				else if (z == to[2] || diff[2] == 0)
@@ -151,13 +150,13 @@ bool VoxelMap::_checkParalDist(std::vector<int16_t> from, std::vector<int16_t> t
 			for (int8_t z = from[2]; abs(z) <= abs(to[2]); z += (diff[2] != 0) ? ((diff[2]) / abs(diff[2])) : 0)
 			{
 				dist = fmin(getChunk({ x,y,z }).getClosestSidePointDistance(dir), dist);
-				if (z == to[2])
+				if (z == to[2] || diff[1] == 0)
 					break;
 			}
-			if (y == to[1])
+			if (y == to[1] || diff[1] == 0)
 				break;
 		}
-		if (x == to[0])
+		if (x == to[0] || diff[1] == 0)
 			break;
 	}
 	return dist;
@@ -228,9 +227,9 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 									stop = true;
 
 									if (_format.chunkFormat.parals == ParalsInfoFormat::CUBIC_FLOAT32)
-										utils::appendBytes(res, x);
+										utils::appendBytes(res, fabs(x - pos[0]));
 									else
-										res.push_back(x);
+										res.push_back(abs(x - pos[0]));
 								}
 							}
 							else if (!xGo && !yGo && !zGo)
@@ -242,18 +241,18 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 								stop = true;
 								if (_format.chunkFormat.parals == ParalsInfoFormat::NON_CUBIC_FLOAT32)
 								{
-									utils::appendBytes(res, x + xDist - pos[0]);
-									utils::appendBytes(res, y + yDist - pos[1]);
-									utils::appendBytes(res, z + zDist - pos[2]);
+									utils::appendBytes(res, abs(x - pos[0]) + xDist);
+									utils::appendBytes(res, abs(y - pos[1]) + yDist);
+									utils::appendBytes(res, abs(z - pos[2]) + zDist);
 									dir.push_back(xOff);
 									dir.push_back(yOff);
 									dir.push_back(zOff);
 								}
 								else
 								{
-									res.push_back(x + xDist - pos[0]);
-									res.push_back(y + yDist - pos[1]);
-									res.push_back(z + zDist - pos[2]);
+									res.push_back(abs(x - pos[0]) + xDist);
+									res.push_back(abs(y - pos[1]) + yDist);
+									res.push_back(abs(z - pos[2]) + zDist);
 								}
 							}
 
