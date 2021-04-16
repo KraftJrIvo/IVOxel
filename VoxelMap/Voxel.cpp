@@ -36,16 +36,16 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, uint32_t size_
 	switch (fullness)
 	{
 	case VoxelFullnessFormat::UINT8:
-		utils::appendBytes(res, uint8_t(voxel.isEmpty()));
+		utils::appendBytes(res, uint8_t(!voxel.isEmpty()));
 		break;
 	case VoxelFullnessFormat::UINT16:
-		utils::appendBytes(res, uint16_t(voxel.isEmpty()), 2);
+		utils::appendBytes(res, uint16_t(!voxel.isEmpty()), 2);
 		break;
 	case VoxelFullnessFormat::UINT24:
-		utils::appendBytes(res, uint32_t(voxel.isEmpty()), 3);
+		utils::appendBytes(res, uint32_t(!voxel.isEmpty()), 3);
 		break;
 	case VoxelFullnessFormat::UINT32:
-		utils::appendBytes(res, uint32_t(voxel.isEmpty()), 4);
+		utils::appendBytes(res, uint32_t(!voxel.isEmpty()), 4);
 		break;
 	default:
 		break;

@@ -187,7 +187,7 @@ std::vector<uint8_t> VoxelMap::getChunksDataAt(const std::vector<int32_t>& absPo
 				memcpy(chunkDataPtr, header.data(), nChunkBytes);
 				chunkDataPtr += nChunkBytes;
 
-				utils::joinVectors(voxData, voxels);
+				voxData = utils::joinVectors(voxData, voxels);
 			}
 
 	return utils::joinVectors(chunkData, voxData);

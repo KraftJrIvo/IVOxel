@@ -166,8 +166,8 @@ Voxel VoxelChunk::getVoxel(const std::vector<float>& chunkPos) const
 
 std::vector<uint8_t> VoxelChunk::getNeighbours(const Voxel& vox, const std::vector<float>& chunkPos, const VoxelNeighbourInfoFormat& format) const
 {
-	uint32_t voxSide = pow(pyramid.base, vox.size);
-	float offset = 1.0f / float(voxSide);
+	float offset = minOffset;
+
 	std::vector<float> pos = { floor(chunkPos[0] / offset) + offset / 2.0f, floor(chunkPos[1] / offset) + offset / 2.0f, floor(chunkPos[2] / offset) + offset / 2.0f };
 
 	bool l = getVoxel({ pos[0] - offset, pos[1], pos[2] }).shape == vox.shape;
@@ -203,7 +203,8 @@ std::vector<uint8_t> VoxelChunk::getNeighbours(const Voxel& vox, const std::vect
 	bool uf = getVoxel({ pos[0], pos[1] + offset, pos[2] + offset }).shape == vox.shape;
 
 	//0 0 0 0 0 0 l ld lu lb lf ldb ldf lub luf r rd ru rb rf rdb rdf rub ruf d db df u ub uf b f
-	return { utils::packByte(0, 0, 0, 0, 0, 0, l, ld), utils::packByte(lu, lb, lf, ldb, ldf, lub, luf, r), utils::packByte(r, rd, ru, rb, rf, rdb, rdf, rub), utils::packByte(d, db, df, u, ub, uf, b, f) };
+	return { utils::packByte(0, 0, 0, 0, 0, 0, l, ld), utils::packByte(lu, lb, lf, ldb, ldf, lub, luf, r), 
+		utils::packByte(r, rd, ru, rb, rf, rdb, rdf, rub), utils::packByte(d, db, df, u, ub, uf, b, f) };
 }
 
 std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vector<float>& pose, const ParalsInfoFormat& format) const
@@ -214,9 +215,6 @@ std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vecto
 	if (!vox.isEmpty()) {
 		return std::vector<uint8_t>(getSizeInBytes(format), 0);
 	}
-
-	uint32_t voxSide = pow(pyramid.base, vox.size);
-	float offset = 1.0f / float(voxSide);
 
 	std::vector<float> dir;
 	std::vector<float> pos = { pose[0] + minOffset / 2.0f, pose[1] + minOffset / 2.0f, pose[2] + minOffset / 2.0f };
@@ -325,16 +323,16 @@ std::vector<uint8_t> VoxelChunkFormat::formatChunkHeader(const VoxelChunk& chunk
 	switch (fullness)
 	{
 	case ChunkFullnessFormat::UINT8:
-		utils::appendBytes(res, chunk.isEmpty());
+		utils::appendBytes(res, !chunk.isEmpty());
 		break;
 	case ChunkFullnessFormat::UINT16:
-		utils::appendBytes(res, uint16_t(chunk.isEmpty()));
+		utils::appendBytes(res, uint16_t(!chunk.isEmpty()));
 		break;
 	case ChunkFullnessFormat::UINT24:
-		utils::appendBytes(res, uint32_t(chunk.isEmpty()), 3);
+		utils::appendBytes(res, uint32_t(!chunk.isEmpty()), 3);
 		break;
 	case ChunkFullnessFormat::UINT32:
-		utils::appendBytes(res, uint32_t(chunk.isEmpty()));
+		utils::appendBytes(res, uint32_t(!chunk.isEmpty()));
 		break;
 	default:
 		break;

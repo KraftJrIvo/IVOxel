@@ -59,7 +59,7 @@ void CPURenderer::startRender()
 			_raytracer.setLightData({ 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.33f }, map->getLightDataAt(pos, _chunkLoadRadius));
 		}
 
-		#pragma omp parallel
+		//#pragma omp parallel
 		{
 			uint8_t nThreads = omp_get_num_threads();
 			uint8_t threadId = omp_get_thread_num();
@@ -71,7 +71,7 @@ void CPURenderer::startRender()
 					result.at<cv::Vec3b>(j, i) = { pixel[2], pixel[1], pixel[0] };
 				}
 			
-			#pragma omp barrier
+			//#pragma omp barrier
 		}
 
 		_drawImage(result);

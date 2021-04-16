@@ -70,7 +70,7 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
 
     while (keepTracing)
     {
-        glm::uint voxOff = chunkH.voxOffset + curVoxPos[2] * chunkH.side * chunkH.side + curVoxPos[1] * chunkH.side + curVoxPos[0];
+        glm::uint voxOff = chunkH.voxOffset + (curVoxPos[2] * chunkH.side * chunkH.side + curVoxPos[1] * chunkH.side + curVoxPos[0]) * _format.voxelFormat.getSizeInBytes(_alignToFourBytes);
         auto voxelState = _format.getVoxelState(_mapData.data() + voxOff);
         stepsToTake = uint(sideSteps / voxelState.size);
         float voxRatio = float(stepsToTake) / float(sideSteps);
