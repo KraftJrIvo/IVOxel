@@ -72,7 +72,7 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
     {
         glm::uint voxOff = chunkH.voxOffset + (curVoxPos[2] * chunkH.side * chunkH.side + curVoxPos[1] * chunkH.side + curVoxPos[0]) * _format.voxelFormat.getSizeInBytes(_alignToFourBytes);
         auto voxelState = _format.getVoxelState(_mapData.data() + voxOff);
-        stepsToTake = uint(sideSteps / voxelState.size);
+        stepsToTake = uint(sideSteps / pow(2, voxelState.size)); //!!!
         float voxRatio = float(stepsToTake) / float(sideSteps);
 
         if (voxelState.full)
@@ -107,7 +107,7 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
 
     if (hit)
     {
-        if (light)
+        if (!light)
         {
             vec3 colorCoeffs = { 0,0,0 };
             color = voxel.color;
@@ -172,7 +172,7 @@ vec3 VoxelMapRayTracer::_marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, 
     vec3 vecStart = _getCurEntryPoint(absPos, side, lastRes);
 
     int paralN = (vec3(4.0, 2.0, 1.0) * isNeg).length();
-    uvec3 paral = parals[paralN];
+    uvec3 paral = parals[paralN] + uvec3(1, 1, 1);
 
     vec3 path;
     for (int i = 0; i < 3; ++i)

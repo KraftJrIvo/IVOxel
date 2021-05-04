@@ -33,7 +33,7 @@ struct VoxelMaterial
 	float reflectivity;
 	glm::vec3 tint;
 
-	virtual glm::vec3 shade(glm::vec3 curColor, glm::vec3 hitPoint, glm::vec3 normal, glm::vec3 lightDir, glm::vec4 lightColor) = 0;
+	virtual glm::vec3 shade(glm::vec3 curColor, glm::vec3 hitPoint, glm::vec3 normal, glm::vec3 lightDir, glm::vec3 lightColor) = 0;
 
 	virtual std::string getShadeShaderCode() = 0;
 };
