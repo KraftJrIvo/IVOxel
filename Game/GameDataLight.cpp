@@ -7,5 +7,5 @@ void GameDataLight::update(GameDataContainer* container, uint32_t frameID, uint3
 	std::memset(&data, 0, sizeof(data));
 	auto mapLightData = game.getMap()->getLightDataAt({ (int32_t)game.getTrans().x, (int32_t)game.getTrans().y, (int32_t)game.getTrans().z }, r);
 	std::memcpy(&data, mapLightData.data(), mapLightData.size());
-	container->setData(frameID, dataID, &data);
+	if (container) container->setData(frameID, dataID, &data);
 }

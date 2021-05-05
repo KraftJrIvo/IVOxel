@@ -22,7 +22,7 @@ VoxelChunk VCGeneratorSin::generateChunk(const VoxelMapFormat& format, uint32_t 
 std::vector<Light> VCGeneratorSin::generateLights(const std::vector<int32_t>& pos, float radius, float time) const
 {
     int LIGHTS_PER_N_CHUNKS = 3;
-    float diam = radius * 2.0f;
+    float diam = radius * 2.0f + 1.0f;
 
     std::vector<Light> lights;
 
@@ -30,10 +30,10 @@ std::vector<Light> VCGeneratorSin::generateLights(const std::vector<int32_t>& po
     {
         for (int j = 0; j < diam; ++j)
         {
-            int xCoord = i + (int)floor(pos[0] - radius);
-            int zCoord = j + (int)floor(pos[2] - radius);
+            int xCoord = i + (int)floor(pos[0] - diam/2.0f);
+            int zCoord = j + (int)floor(pos[2] - diam/2.0f);
             if (xCoord % LIGHTS_PER_N_CHUNKS == 0 && zCoord % LIGHTS_PER_N_CHUNKS == 0)
-                lights.push_back(Light({ xCoord + 0.5f, 3.0f, zCoord + 0.5f }, {255, 255, 255, 255}));
+                lights.push_back(Light({ xCoord + 0.5f, 1.8f, zCoord + 0.5f }, {255, 255, 255, 255}));
         }
     }
     return lights;

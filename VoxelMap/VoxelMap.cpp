@@ -278,22 +278,20 @@ std::vector<uint8_t> VoxelMap::getLightDataAt(const std::vector<int32_t>& absPos
 {
 	auto lights = _generator.generateLights(absPos, radius);
 
-	std::vector<float> vals;
+	std::vector<uint8_t> vals;
 	for (auto& light : lights)
 	{
-		vals.push_back(1.0f); // to fit 2 x vec4 and mark that light exists at this offset
-		vals.push_back(light.position[0]);
-		vals.push_back(light.position[1]);
-		vals.push_back(light.position[2]);
-		vals.push_back((float)light.rgba[0] / 255.0f);
-		vals.push_back((float)light.rgba[1] / 255.0f);
-		vals.push_back((float)light.rgba[2] / 255.0f);
-		vals.push_back((float)light.rgba[3] / 255.0f);
+		utils::appendBytes(vals, 1.0f);
+		utils::appendBytes(vals, light.position[0]);
+		utils::appendBytes(vals, light.position[1]);
+		utils::appendBytes(vals, light.position[2]);
+		utils::appendBytes(vals, (float)light.rgba[0] / 255.0f);
+		utils::appendBytes(vals, (float)light.rgba[1] / 255.0f);
+		utils::appendBytes(vals, (float)light.rgba[2] / 255.0f);
+		utils::appendBytes(vals, (float)light.rgba[3] / 255.0f);
 	}
 
-	std::vector<uint8_t> res = std::vector<uint8_t>(vals.begin(), vals.begin() + vals.size());
-
-	return res;
+	return vals;
 }
 
 uint32_t VoxelMap::addLight(const Light& l)

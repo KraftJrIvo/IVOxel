@@ -11,5 +11,5 @@ void GameDataCamera::update(GameDataContainer* container, uint32_t frameID, uint
 	game.updateTrans();
 
 	auto& cam = game.getCam();
-	container->setData(frameID, dataID, &cam);
+	if (container) container->setData(frameID, dataID, &cam);
 }

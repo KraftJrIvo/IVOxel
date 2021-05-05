@@ -28,6 +28,7 @@ private:
 	bool _raytraceChunk(const VoxelChunkState& chunkH, glm::vec3 rayStart, glm::vec3 rayDir, glm::ivec3 curChunkPos, glm::vec3& hitPoint, glm::vec3& normal, glm::vec3& color, bool light = false) const;
 	bool _raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& neighs, glm::vec3 rayStart, glm::vec3 rayDir, glm::vec3 absPos, float voxRatio, glm::vec3& hitPoint, glm::vec3& normal, glm::vec3& color, bool light = false) const;
 
+	bool _checkBounds(glm::vec3 absPos) const;
 	glm::vec3 _getCurEntryPoint(glm::vec3 absPos, float side, glm::vec3 lastRes) const;
 	glm::vec3 _marchAndGetNextDir(glm::vec3 dir, float side, glm::ivec2 minmax, glm::uvec3* parals, bool& finish, glm::vec3& absPos, glm::vec3& lastRes, glm::vec3& absCoord) const;
 };

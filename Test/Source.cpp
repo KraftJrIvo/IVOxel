@@ -30,7 +30,7 @@ int main()
 	VoxelMapFormat format(chunkFormat, voxFormat);
 
 	VCGeneratorSin generator;
-	generator.setGroundType({ vts.getShape(1), vts.getMaterial(1) });
+	generator.setGroundType({ vts.getShape(2), vts.getMaterial(1) });
 
 	VoxelMap map(format, generator, 4, 1);
 	

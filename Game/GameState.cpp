@@ -21,7 +21,7 @@ void GameState::init(Window* window, float lightRadius)
 	
 	_startTime = std::chrono::high_resolution_clock::now();
 
-	_gameData = { std::make_shared<GameDataCamera>(), std::make_shared<GameDataLight>(lightRadius), std::make_shared<GameDataMap>() };
+	_gameData = { std::make_shared<GameDataCamera>(), std::make_shared<GameDataLight>(lightRadius)/*, std::make_shared<GameDataMap>()*/ };
 }
 
 void GameState::setMap(VoxelMap* map)
@@ -51,8 +51,8 @@ void GameState::updateRot()
 {
 	auto area = getRenderArea();
 	auto delta = 500.0f * getRotDelta() / (float)area.z;
-	_cam.rotate(delta);
 	_curRot += delta;
+	_cam.rotate(_curRot);
 }
 
 void GameState::updateTrans()

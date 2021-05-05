@@ -32,6 +32,20 @@ uint32_t TestVoxelTypeCoder::encodeMaterial(std::shared_ptr<VoxelMaterial> mat)
 bool ShapeCube::raytrace(glm::vec3 start, glm::vec3 dir, VoxelNeighbours neighs, glm::vec3& hit, glm::vec3& normal)
 {
 	glm::vec3 g = start - glm::vec3(0.5f, 0.5f, 0.5f);
+	if (g.x == g.y == g.z == 0) {
+		float maxD = std::max(dir[0], std::max(dir[1], dir[2]));
+		for (uint8_t i = 0; i < 3; ++i)
+			if (dir[i] == maxD)
+			{
+				normal[i] = -1.0f * dir[i]/abs(dir[i]);
+				normal[(i + 1) % 3] = 0;
+				normal[(i + 2) % 3] = 0;
+				hit[i] = 0;
+				hit[(i + 1) % 3] = 0;
+				hit[(i + 2) % 3] = 0;
+				return true;
+			}
+	}
 	glm::vec3 gabs = glm::vec3(abs(g[0]), abs(g[1]), abs(g[2]));
 	float maxG = std::max(gabs[0], std::max(gabs[1], gabs[2]));
 	for (uint8_t i = 0; i < 3; ++i)
@@ -122,7 +136,7 @@ glm::vec3 MaterialDefault::shade(glm::vec3 curColor, glm::vec3 hitPoint, glm::ve
 	float dotVal = dot(normalize(lightDir), normal);
 	float lightStr = (dotVal < 0) ? 0 : dotVal;
 
-	return curColor + lightColor * lightStr;
+	return curColor * lightColor * lightStr;
 }
 
 std::string ShapeCube::getRaytraceShaderCode()

@@ -181,7 +181,6 @@ void VoxelChunkPyramid::build(const std::vector<Voxel>& voxels)
 	std::memcpy(data.data(), &nOffsetBytes, sizeof(uint32_t));
 	for (int i = 0; i < nLayers; ++i) {
 		auto sszs = data.size();
-		std::cout << data.size() << std::endl;
 		data = utils::joinVectors(data, tempData[i]);
 		auto voxxx = format.unformatVoxel(data.data() + sszs);
 	}
