@@ -52,11 +52,13 @@ void CPURenderer::startRender()
 	{
 		cv::Mat result(cam.res[1], cam.res[0], CV_8UC3, cv::Scalar(0, 0, 0));
 
-		std::vector<int32_t> pos = { (int)cam.pos.x, (int)cam.pos.y, (int)cam.pos.z };
-		if (map->checkLoadNeeded(pos))
+		std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
+		if (map->checkLoadNeeded(pos) || _firstRender)
 		{
 			_raytracer.setMapData(map->getChunksDataAt(pos, _chunkLoadRadius, _alignToFourBytes));
 			_raytracer.setLightData({ 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.33f }, map->getLightDataAt(pos, _chunkLoadRadius));
+			map->setAbsPos(pos);
+			_firstRender = false;
 		}
 
 		#pragma omp parallel
@@ -96,9 +98,9 @@ std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera
 
 	vec2 coeffs = (xy - cam.res / 2.0f) / cam.res.y;
 
-	vec3 coords = vec3(coeffs.y, -coeffs.x, -1.0);
+	vec3 coords = vec3(coeffs.y, coeffs.x, -1.0);
 
-	vec3 start = cam.pos;
+	vec3 start = { fract(cam.pos.x), fract(cam.pos.y), fract(cam.pos.z) };
 	vec3 dir = mat3(cam.mvp) * coords;
 
 	int bounces = 1;

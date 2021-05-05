@@ -15,9 +15,9 @@ void GameState::init(Window* window, float lightRadius)
 	_cam.fov = 90.0f;
 	auto ra = getRenderArea();
 	_cam.res = { ra[2], ra[3] };
-	_curRot = glm::vec3(0.0f, -90.0f, 0.0f);
+	_curRot = glm::vec3(0.0f, 180.0f, 0.0f);
 	_cam.rotate(_curRot);
-	_cam.translate(glm::vec3(1.5f, 0.5f, 0.5f));
+	_cam.translate(glm::vec3(0.5f, 0.5f, 0.5f));
 	
 	_startTime = std::chrono::high_resolution_clock::now();
 

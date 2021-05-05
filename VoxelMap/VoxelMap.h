@@ -21,12 +21,16 @@ public:
 	std::vector<uint8_t> getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius, bool alignToFourBytes = true);
 	std::vector<uint8_t> getChunkParals(const std::vector<int32_t>& pos);
 	std::vector<uint8_t> getLightDataAt(const std::vector<int32_t>& absPos, uint8_t radius) const;
+
+	uint32_t getLoadRadius();
 	
 	uint32_t addLight(const Light& l);
 	void moveLight(uint32_t lightID, const std::vector<float>& absPos);
 	void removeLight(uint32_t lightID);
 
 	bool checkLoadNeeded(const std::vector<int32_t>& pos);
+
+	void setAbsPos(const std::vector<int32_t>& absPos);
 
 protected:
 	uint32_t _loadRadius;
@@ -40,7 +44,7 @@ protected:
 	VoxelChunkGenerator& _generator;
 	VoxelChunkStorer _storer;
 
-	std::vector<VoxelChunk> _chunks;
+	std::vector<std::shared_ptr<VoxelChunk>> _chunks;
 
 	uint32_t _lastLightId = 0;
 	std::map<uint32_t, Light> _lights;

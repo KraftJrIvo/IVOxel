@@ -23,7 +23,7 @@ VoxelChunk& VoxelMap::getChunk(const std::vector<int32_t>& relPos)
 	uint32_t idx = _getIdx(pos);
 
 	if (idx < _chunks.size())
-		return _chunks[idx];
+		return *_chunks[idx];
 
 	return _emptyChunk;
 }
@@ -38,11 +38,20 @@ VoxelTypeStorer& VoxelMap::getVoxelTypeStorer()
 	return _voxTypeStorer;
 }
 
+uint32_t VoxelMap::getLoadRadius()
+{
+	return _loadRadius;
+}
+
 bool VoxelMap::checkLoadNeeded(const std::vector<int32_t>& pos)
 {
 	if (_curAbsPos[0] != pos[0] || _curAbsPos[1] != pos[1] || _curAbsPos[2] != pos[2])
 	{
 		std::vector<int32_t> diff = { pos[0] - _curAbsPos[0], pos[1] - _curAbsPos[1], pos[2] - _curAbsPos[2] };
+
+		_curAbsPos = pos;
+
+		auto temp = _chunks;
 
 		std::vector<int32_t> xyz(3);
 		for (xyz[0] = 0; xyz[0] < _loadDiameter; xyz[0]++)
@@ -55,7 +64,7 @@ bool VoxelMap::checkLoadNeeded(const std::vector<int32_t>& pos)
 					{
 						auto idx1 = _getIdx(xyz);
 						auto idx2 = _getIdx({ xyz[0] + diff[0], xyz[1] + diff[1], xyz[2] + diff[2] });
-						_chunks[idx1] = _chunks[idx2];
+						_chunks[idx1] = temp[idx2];
 					}
 					else
 					{
@@ -65,11 +74,43 @@ bool VoxelMap::checkLoadNeeded(const std::vector<int32_t>& pos)
 					}
 				}
 
-		_curAbsPos = pos;
-
 		return true;
 	}
 	return false;
+}
+
+std::vector<uint8_t> VoxelMap::getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius, bool alignToFourBytes)
+{
+	uint32_t cubeSide = 2 * radius + 1;
+	uint32_t nChunks = cubeSide * cubeSide * cubeSide;
+
+	uint32_t nChunkBytes = _format.chunkFormat.getSizeInBytes(alignToFourBytes);
+	uint32_t nTotalChunkBytes = nChunks * nChunkBytes;
+	std::vector<uint8_t> chunkData(nTotalChunkBytes, 0);
+	auto chunkDataPtr = chunkData.data();
+
+	std::vector<uint8_t> voxData;
+
+	for (int32_t x = -radius; x <= radius; ++x)
+		for (int32_t y = -radius; y <= radius; ++y)
+			for (int32_t z = - radius; z <= radius; ++z)
+			{
+				auto chunk = getChunk({ x, y, z });
+				auto header = _format.chunkFormat.formatChunkHeader(chunk, chunkData.size() + voxData.size(), getChunkParals({ x, y, z }), alignToFourBytes);
+				auto voxels = _format.chunkFormat.formatChunk(chunk, alignToFourBytes);
+
+				memcpy(chunkDataPtr, header.data(), nChunkBytes);
+				chunkDataPtr += nChunkBytes;
+
+				voxData = utils::joinVectors(voxData, voxels);
+			}
+
+	return utils::joinVectors(chunkData, voxData);
+}
+
+void VoxelMap::setAbsPos(const std::vector<int32_t>& absPos)
+{
+	_curAbsPos = absPos;
 }
 
 void VoxelMap::_loadChunks()
@@ -85,7 +126,7 @@ void VoxelMap::_loadChunks()
 
 void VoxelMap::_loadChunk(const std::vector<int32_t>& pos, uint32_t id)
 {
-	if (!_storer.loadChunk(pos, &_chunks[id]))
+	if (!_storer.loadChunk(pos, _chunks[id].get()))
 		_chunks[id] = _generator.generateChunk(_format, _chunkSide, pos);
 }
 
@@ -96,7 +137,7 @@ uint32_t VoxelMap::_getIdx(const std::vector<int32_t>& pos) const
 
 std::vector<int32_t> VoxelMap::_getAbsPos(const std::vector<int32_t>& pos) const
 {
-	return { _curAbsPos[0] + pos[0] - (int)_loadRadius, _curAbsPos[0] + pos[1] - (int)_loadRadius, _curAbsPos[0] + pos[2] - (int)_loadRadius };
+	return { _curAbsPos[0] + pos[0] - (int)_loadRadius, _curAbsPos[1] + pos[1] - (int)_loadRadius, _curAbsPos[2] + pos[2] - (int)_loadRadius };
 }
 
 bool VoxelMap::_checkParal(std::vector<int16_t> from, std::vector<int16_t> to)
@@ -160,37 +201,6 @@ bool VoxelMap::_checkParalDist(std::vector<int16_t> from, std::vector<int16_t> t
 			break;
 	}
 	return dist;
-}
-
-std::vector<uint8_t> VoxelMap::getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius, bool alignToFourBytes)
-{
-	uint32_t cubeSide = 2 * radius + 1;
-	uint32_t nChunks = cubeSide * cubeSide * cubeSide;
-
-	uint32_t nChunkBytes = _format.chunkFormat.getSizeInBytes(alignToFourBytes);
-	uint32_t nTotalChunkBytes = nChunks * nChunkBytes;
-	std::vector<uint8_t> chunkData(nTotalChunkBytes, 0);
-	auto chunkDataPtr = chunkData.data();
-
-	std::vector<uint8_t> voxData;
-
-	std::vector<int32_t> pos = { absPos[0] - _curAbsPos[0], absPos[1] - _curAbsPos[1], absPos[2] - _curAbsPos[2] };
-
-	for (int32_t x = pos[0] - radius; x <= pos[0] + radius; ++x)
-		for (int32_t y = pos[0] - radius; y <= pos[0] + radius; ++y)
-			for (int32_t z = pos[0] - radius; z <= pos[0] + radius; ++z)
-			{
-				auto chunk = getChunk({ x, y, z });
-				auto header = _format.chunkFormat.formatChunkHeader(chunk, chunkData.size() + voxData.size(), getChunkParals({ x, y, z }), alignToFourBytes);
-				auto voxels = _format.chunkFormat.formatChunk(chunk, alignToFourBytes);
-
-				memcpy(chunkDataPtr, header.data(), nChunkBytes);
-				chunkDataPtr += nChunkBytes;
-
-				voxData = utils::joinVectors(voxData, voxels);
-			}
-
-	return utils::joinVectors(chunkData, voxData);
 }
 
 std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)

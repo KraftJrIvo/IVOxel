@@ -293,7 +293,7 @@ void Window::handleMouseMove(int32_t x, int32_t y)
 
 	if (lmbDown) {
 		_deltaRot[0] = dy * 1.25f;
-		_deltaRot[1] = dx * 1.25f;
+		_deltaRot[1] = -dx * 1.25f;
 	}
 	mousePos = { x, y };
 }
@@ -309,8 +309,8 @@ std::vector<float> Window::getCurDeltaTrans()
 {
 	std::vector<float> delta = { 0,0,0 };
 
-	delta[0] += leftPressed ? -1.0f : 0.0f;
-	delta[0] += rightPressed ? 1.0f : 0.0f;
+	delta[0] += rightPressed ? -1.0f : 0.0f;
+	delta[0] += leftPressed ? 1.0f : 0.0f;
 	delta[1] += downPressed ? -1.0f : 0.0f;
 	delta[1] += upPressed ? 1.0f : 0.0f;
 	delta[2] += backwardPressed ? -1.0f : 0.0f;

@@ -8,7 +8,7 @@
 
 int main()
 {
-	Window w(512, 512, L"test");
+	Window w(200, 200, L"test");
 
 	VoxelTypeStorer vts;
 	vts.addShape(1, std::make_shared<ShapeCube>());
@@ -32,13 +32,13 @@ int main()
 	VCGeneratorSin generator;
 	generator.setGroundType({ vts.getShape(2), vts.getMaterial(1) });
 
-	VoxelMap map(format, generator, 4, 1);
+	VoxelMap map(format, generator, 4, 2);
 	
 	GameState game;
 	game.init(&w, 1.0f);
 	game.setMap(&map);
 
-	CPURenderer renderer(w, game);
+	CPURenderer renderer(w, game, map.getLoadRadius());
 
 	renderer.startRender();
 

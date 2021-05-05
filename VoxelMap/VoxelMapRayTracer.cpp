@@ -39,12 +39,12 @@ vec3 VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, vec3& normal, ve
 
     while (notFinish && !marchFinish)
     {
-        if (_checkBounds({ curChunkPos[0], curChunkPos[1], curChunkPos[2] })) {
-            //color = { 255, 0, 0 };
+        if (_checkMapBounds({ curChunkPos[0], curChunkPos[1], curChunkPos[2] })) {
+            color = { 255, 0, 0 };
             break;
         }
 
-        uint32_t idx = (curChunkPos[2] + _chunkLoadRadius) * _chunkLoadDiameter * _chunkLoadDiameter + (curChunkPos[1] + _chunkLoadRadius) * _chunkLoadDiameter + curChunkPos[0] + _chunkLoadRadius;
+        uint32_t idx = (curChunkPos[0] + _chunkLoadRadius) * _chunkLoadDiameter * _chunkLoadDiameter + (curChunkPos[1] + _chunkLoadRadius) * _chunkLoadDiameter + curChunkPos[2] + _chunkLoadRadius;
         uint32_t off = _format.chunkFormat.getSizeInBytes() * idx;
         auto chunkH = _format.getChunkState(_mapData.data() + off, _alignToFourBytes);
 
@@ -60,8 +60,8 @@ vec3 VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, vec3& normal, ve
         }
     }
 
-    //if (marchFinish)
-    //    color = { 255, 0, 0 };
+    if (marchFinish)
+        color = { 255, 0, 0 };
 
     return hitPoint;
 }
@@ -79,13 +79,13 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
 
     while (keepTracing)
     {
-        glm::uint voxOff = chunkH.voxOffset + (curVoxPos[2] * chunkH.side * chunkH.side + curVoxPos[1] * chunkH.side + curVoxPos[0]) * _format.voxelFormat.getSizeInBytes(_alignToFourBytes);
+        if (_checkChunkBounds(curVoxPos, sideSteps))
+            break;
+
+        glm::uint voxOff = chunkH.voxOffset + (curVoxPos[0] * chunkH.side * chunkH.side + curVoxPos[1] * chunkH.side + curVoxPos[2]) * _format.voxelFormat.getSizeInBytes(_alignToFourBytes);
         auto voxelState = _format.getVoxelState(_mapData.data() + voxOff);
         stepsToTake = uint(sideSteps / pow(2, voxelState.size)); //!!!
         vec3 absPos = vec3(curChunkPos) + (vec3(curVoxPos - curVoxPos % stepsToTake) / float(sideSteps));
-        
-        if (_checkBounds(absPos))
-            break;
 
         float voxRatio = float(stepsToTake) / float(sideSteps);
 
@@ -164,7 +164,15 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
     return false;
 }
 
-bool VoxelMapRayTracer::_checkBounds(glm::vec3 absPos) const
+bool VoxelMapRayTracer::_checkChunkBounds(glm::vec3 pos, uint32_t steps) const
+{
+    for (int i = 0; i < 3; ++i)
+        if (pos[i] < 0 || pos[i] >= steps)
+            return true;
+    return false;
+}
+
+bool VoxelMapRayTracer::_checkMapBounds(glm::vec3 absPos) const
 {
     for (int i = 0; i < 3; ++i)
         if (absPos[i] < -(int32_t)_chunkLoadRadius || absPos[i] >= _chunkLoadRadius + 1.0f)

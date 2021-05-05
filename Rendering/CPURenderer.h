@@ -16,7 +16,8 @@ public:
 		_gs(gs),
 		_raytracer(*gs.getMap(), chunkLoadRadius, epsilon, alignToFourBytes),
 		_chunkLoadRadius(chunkLoadRadius),
-		_alignToFourBytes(alignToFourBytes)
+		_alignToFourBytes(alignToFourBytes),
+		_firstRender(true)
 	{ }
 
 	void startRender() override;
@@ -30,6 +31,7 @@ private:
 
 	uint32_t _chunkLoadRadius;
 	bool _alignToFourBytes;
+	bool _firstRender;
 
 	void _drawImage(cv::Mat img);
 	bool _runOnce();
