@@ -29,7 +29,6 @@ void VoxelMapRayTracer::setLightData(glm::vec3 ambientLightDir, glm::vec4 ambien
 vec3 VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, vec3& normal, vec3& color, bool light) const
 {
     vec3 resultColor = vec3(0, 0, 0);
-    vec3 hitPoint = vec3(0, 0, 0);
     vec3 lastRes = vec3(0, 0, 0);
     
     ivec3 curChunkPos = ivec3(floor(rayStart));
@@ -48,22 +47,22 @@ vec3 VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, vec3& normal, ve
         uint32_t off = _format.chunkFormat.getSizeInBytes() * idx;
         auto chunkH = _format.getChunkState(_mapData.data() + off, _alignToFourBytes);
 
-        vec3 prevHitPoint = hitPoint;
-        notFinish = !chunkH.fullness || !_raytraceChunk(chunkH, _getCurEntryPoint(marchAbsPos, 1.0, lastRes), rayDir, curChunkPos, hitPoint, normal, color, light);
+        vec3 prevHitPoint = marchAbsPos;
+        notFinish = !chunkH.fullness || !_raytraceChunk(chunkH, _getCurEntryPoint(marchAbsPos, 1.0, lastRes), rayDir, curChunkPos, marchAbsPos, normal, color, light);
 
         if (notFinish)
         {
-            hitPoint = prevHitPoint;
-
+            marchAbsPos = prevHitPoint;
+            vec3 coord;
             chunkH.parals.data();
-            curChunkPos += ivec3(_marchAndGetNextDir(rayDir, 1, ivec2(-(int32_t)_chunkLoadRadius, _chunkLoadRadius + 1), chunkH.parals.data(), marchFinish, marchAbsPos, lastRes, hitPoint));
+            curChunkPos += ivec3(_marchAndGetNextDir(rayDir, 1, ivec2(-(int32_t)_chunkLoadRadius, _chunkLoadRadius + 1), chunkH.parals.data(), marchFinish, marchAbsPos, lastRes, coord));
         }
     }
 
     if (marchFinish)
         color = { 255, 0, 0 };
 
-    return hitPoint;
+    return marchAbsPos;
 }
 
 bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 rayStart, vec3 rayDir, ivec3 curChunkPos, vec3& absCoord, vec3& normal, vec3& color, bool light) const
@@ -123,26 +122,32 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
 
     if (hit)
     {
+        vec3 absRayStart = absPos + hitCoord;
+        
         if (!light)
         {
-            vec3 colorCoeffs = { 0,0,0 };
-            color = voxel.color / 255.0f;
-            vec3 absRayStart = absPos + hitCoord;
+            vec3 voxColor = voxel.color / 255.0f;
+            color = { 0,0,0 };
 
             for (uint i = 0; i <= _nLights; ++i)
             {
-                float* light = ((float*)_lightData.data());
+                float* light = ((float*)_lightData.data() + i * 8 * sizeof(float));
 
                 vec3 lCoord;
                 vec4 lColor;
                 if (i == _nLights)
                 {
-                    lCoord = absRayStart + _ambientLightDir;
+                    //vec3 v = absPos + voxRatio * 0.45f + float(_chunkLoadRadius);
+                    //lCoord = v + _ambientLightDir * (_chunkLoadRadius - _epsilon) - float(_chunkLoadRadius);
+                    //for (int j = 0; j < 3; ++j)
+                    //    lCoord[j] = std::clamp(lCoord[j], -float(_chunkLoadRadius) + _epsilon, _chunkLoadRadius + 1.0f - _epsilon);
+                    lCoord = absRayStart;
+                    lCoord.y = _chunkLoadRadius + 1.0f - _epsilon;
                     lColor = _ambientLightColor;
                 }
                 else
                 {
-                    lCoord = { light[0], light[1], light[2] };
+                    lCoord = { light[3], light[2], light[1] };
                     lColor = { light[4], light[5], light[6], light[7] };
                 }
 
@@ -150,14 +155,16 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
                 float lightDist = length(dirToLight);
                 dirToLight = normalize(dirToLight);
 
-                vec3 lightHitPoint, c;
-                raytraceMap(lCoord, -dirToLight, lightHitPoint, c, true);
+                vec3 lightHitPoint, n, c;
+                lightHitPoint = raytraceMap(lCoord, -dirToLight, n, c, true);
 
-                color = voxel.material->shade(color, absRayStart, normal, dirToLight, lColor);
+                float diff = length(lightHitPoint - absRayStart);
+                if (diff < _epsilon * 10)
+                    color = voxel.material->shade(color, voxColor, absRayStart, normal, dirToLight, lColor);
             }
         }
         
-        absCoord += hitCoord;
+        absCoord = absRayStart;
         
         return true;
     }

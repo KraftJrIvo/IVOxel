@@ -28,7 +28,7 @@ struct MaterialDefault : public VoxelMaterial
 		VoxelMaterial("default")
 	{ }
 
-	virtual glm::vec3 shade(glm::vec3 curColor, glm::vec3 hitPoint, glm::vec3 normal, glm::vec3 lightDir, glm::vec3 lightColor) override;
+	virtual glm::vec3 shade(glm::vec3 curColor, glm::vec3 voxColor, glm::vec3 hitPoint, glm::vec3 normal, glm::vec3 lightDir, glm::vec3 lightColor) override;
 
 	virtual std::string getShadeShaderCode() override;
 };

@@ -12,7 +12,7 @@ std::shared_ptr<VoxelChunk> VCGeneratorSin::generateChunk(const VoxelMapFormat& 
             {
                 float val = 0.5f + (sin(pos[0] + x * offset) + sin(pos[2] + z * offset)) / 4.0f;
                 bool ground = (y * offset + pos[1]) < 0.25;// val;
-                Voxel v = Voxel(log(side)/log(2), ground ? _groundType.first : nullptr, ground ? _groundType.second : nullptr, {{0,0,0}, false}, { 125 + pos[0] * 80, 125 + pos[1] * 80, 125 + pos[2] * 80, 255 });
+                Voxel v = Voxel(log(side)/log(2), ground ? _groundType.first : nullptr, ground ? _groundType.second : nullptr, {{0,0,0}, false}, { 85 + pos[0] * 30, 85 + pos[1] * 30, 85 + pos[2] * 30, 255 });
                 voxels[side * side * z + side * y + x] = v;
             }
 
@@ -30,8 +30,8 @@ std::vector<Light> VCGeneratorSin::generateLights(const std::vector<int32_t>& po
     {
         for (int j = 0; j < diam; ++j)
         {
-            int xCoord = i + (int)floor(pos[0] - diam/2.0f);
-            int zCoord = j + (int)floor(pos[2] - diam/2.0f);
+            int xCoord = i + (int)floor(pos[0]);
+            int zCoord = j + (int)floor(pos[2]);
             if (xCoord % LIGHTS_PER_N_CHUNKS == 0 && zCoord % LIGHTS_PER_N_CHUNKS == 0)
                 lights.push_back(Light({ xCoord + 0.5f, 1.8f, zCoord + 0.5f }, {255, 255, 255, 255}));
         }

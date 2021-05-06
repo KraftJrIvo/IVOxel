@@ -21,9 +21,9 @@ int main()
 		ChunkSizeFormat::UINT8, ParalsInfoFormat::NON_CUBIC_FLOAT32
 	};
 	VoxelFormat voxFormat = {
-		VoxelFullnessFormat::UINT8, VoxelSizeFormat::UINT8, 
-		VoxelShapeFormat::UINT8, VoxelMaterialFormat::UINT8, 
-		VoxelOrientationFormat::NO_ORIENTATION, VoxelColorFormat::RGB256,
+		VoxelFullnessFormat::UINT8, VoxelSizeFormat::UINT8,
+		VoxelShapeFormat::UINT8, VoxelMaterialFormat::UINT8,
+		VoxelOrientationFormat::NO_ORIENTATION, VoxelColorFormat::RGB_THREE_BYTES,
 		VoxelNeighbourInfoFormat::SIX_DIRS_ONE_BYTE, ParalsInfoFormat::NON_CUBIC_UINT8,
 		&vtc, &vts
 	};

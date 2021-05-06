@@ -1,4 +1,5 @@
 #include "VoxelTypes.h"
+#include <algorithm>
 
 std::shared_ptr<VoxelShape> TestVoxelTypeCoder::decodeShape(const uint8_t* data)
 {
@@ -131,12 +132,18 @@ bool ShapeSphere::raytrace(glm::vec3 start, glm::vec3 dir, VoxelNeighbours neigh
 	return true;
 }
 
-glm::vec3 MaterialDefault::shade(glm::vec3 curColor, glm::vec3 hitPoint, glm::vec3 normal, glm::vec3 lightDir, glm::vec3 lightColor)
+glm::vec3 MaterialDefault::shade(glm::vec3 curColor, glm::vec3 voxColor, glm::vec3 hitPoint, glm::vec3 normal, glm::vec3 lightDir, glm::vec3 lightColor)
 {
 	float dotVal = dot(normalize(lightDir), normal);
 	float lightStr = (dotVal < 0) ? 0 : dotVal;
 
-	return curColor * lightColor * lightStr;
+	for (int i = 0; i < 3; ++i)
+	{
+		float res = voxColor[i] * lightColor[i] * lightStr;
+		curColor[i] = std::clamp(curColor[i] + res, 0.0f, 1.0f);
+	}
+
+	return curColor;
 }
 
 std::string ShapeCube::getRaytraceShaderCode()

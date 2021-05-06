@@ -133,15 +133,15 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, uint32_t size_
 		utils::appendBytes(res, voxel.color[3]);
 		break;
 	case VoxelColorFormat::RGB_THREE_BYTES:
-		utils::appendBytes(res, voxel.color[0]);
-		utils::appendBytes(res, voxel.color[1]);
-		utils::appendBytes(res, voxel.color[2]);
+		utils::appendBytes(res, (uint8_t)voxel.color[0]);
+		utils::appendBytes(res, (uint8_t)voxel.color[1]);
+		utils::appendBytes(res, (uint8_t)voxel.color[2]);
 		break;
 	case VoxelColorFormat::RGBA_FOUR_BYTES:
-		utils::appendBytes(res, voxel.color[0]);
-		utils::appendBytes(res, voxel.color[1]);
-		utils::appendBytes(res, voxel.color[2]);
-		utils::appendBytes(res, voxel.color[3]);
+		utils::appendBytes(res, (uint8_t)voxel.color[0]);
+		utils::appendBytes(res, (uint8_t)voxel.color[1]);
+		utils::appendBytes(res, (uint8_t)voxel.color[2]);
+		utils::appendBytes(res, (uint8_t)voxel.color[3]);
 		break;
 	}
 
