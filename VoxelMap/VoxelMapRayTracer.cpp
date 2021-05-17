@@ -3,6 +3,8 @@
 
 using namespace glm;
 
+#define deb false
+
 VoxelMapRayTracer::VoxelMapRayTracer(VoxelMap& map, uint32_t chunkLoadRadius, float epsilon, bool alignToFourBytes) :
     _vts(map.getVoxelTypeStorer()),
     _format(map.getFormat()),
@@ -36,8 +38,11 @@ vec3 VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, vec3& normal, ve
     bool marchFinish = false;
     vec3 marchAbsPos = rayStart;
 
+    if (deb) std::cout << "start\n";
+
     while (notFinish && !marchFinish)
     {
+        if (deb) std::cout << "chunk " << curChunkPos[0] << " " << curChunkPos[1] << " " << curChunkPos[2] << "\n";
         if (_checkMapBounds({ curChunkPos[0], curChunkPos[1], curChunkPos[2] })) {
             color = { 255, 0, 0 };
             break;
@@ -55,11 +60,12 @@ vec3 VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, vec3& normal, ve
             marchAbsPos = prevHitPoint;
             vec3 coord;
             chunkH.parals.data();
-            curChunkPos += ivec3(_marchAndGetNextDir(rayDir, 1, ivec2(-(int32_t)_chunkLoadRadius, _chunkLoadRadius + 1), chunkH.parals.data(), marchFinish, marchAbsPos, lastRes, coord));
+            _marchAndGetNextDir(rayDir, 1, ivec2(-(int32_t)_chunkLoadRadius, _chunkLoadRadius + 1), chunkH.parals.data(), marchFinish, marchAbsPos, lastRes, coord);
+            curChunkPos = ivec3(floor(marchAbsPos));
         }
     }
 
-    if (marchFinish)
+        if (marchFinish)
         color = { 255, 0, 0 };
 
     return marchAbsPos;
@@ -78,6 +84,7 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
 
     while (keepTracing)
     {
+        if (deb) std::cout << "vox " << curVoxPos[0] << " " << curVoxPos[1] << " " << curVoxPos[2] << "\n";
         if (_checkChunkBounds(curVoxPos, sideSteps))
             break;
 
@@ -94,7 +101,6 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
             if (_raytraceVoxel(voxOff, voxelState.neighs, entry, rayDir, absPos, voxRatio, absCoord, normal, color, light))
                 return true;
         }
-
         vec3 absCoordVox = {0,0,0};
         _marchAndGetNextDir(rayDir, stepsToTake, ivec2(0, sideSteps), voxelState.parals.data(), marchFinish, marchPos, lastRes, absCoordVox);
         absCoord += absCoordVox * voxRatio;
@@ -129,7 +135,7 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
             vec3 voxColor = voxel.color / 255.0f;
             color = { 0,0,0 };
 
-            for (uint i = 0; i <= _nLights; ++i)
+            for (uint i = _nLights; i <= _nLights; ++i)
             {
                 float* light = ((float*)_lightData.data() + i * 8 * sizeof(float));
 
@@ -161,6 +167,26 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
                 float diff = length(lightHitPoint - absRayStart);
                 if (diff < _epsilon * 10)
                     color = voxel.material->shade(color, voxColor, absRayStart, normal, dirToLight, lColor);
+
+                ///
+                //vec3 isNeg = { 0.0f, 0.0f, 0.0f };
+                //auto vec = vec3(1.0, 2.0, 4.0) * (vec3(1, 1, 1) - isNeg);
+                //int paralN = vec.x + vec.y + vec.z;
+
+                ////auto voxelState = _format.getVoxelState(_mapData.data() + voxOff + (1 * 4) * _format.voxelFormat.getSizeInBytes(_alignToFourBytes));
+                ////uvec3 paral = voxelState.parals[paralN];
+
+                //ivec3 curChunkPos = ivec3(floor(absRayStart));
+                //uint32_t idx = (curChunkPos[0] + _chunkLoadRadius) * _chunkLoadDiameter * _chunkLoadDiameter + ((curChunkPos[1] + 1) + _chunkLoadRadius) * _chunkLoadDiameter + curChunkPos[2] + _chunkLoadRadius;
+                //uint32_t off = _format.chunkFormat.getSizeInBytes() * idx;
+                //auto chunkH = _format.getChunkState(_mapData.data() + off, _alignToFourBytes);
+                //uvec3 paral = chunkH.parals[paralN];
+                //
+                //color = { paral.x / 4.0f, paral.y / 4.0f, paral.z / 4.0f };
+                ///
+
+                //color.y -= nn/4.0f * 0.25f;
+                //color.z -= nn/4.0f * 0.25f;
             }
         }
         
@@ -210,13 +236,15 @@ vec3 VoxelMapRayTracer::_marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, 
 
     vec3 vecStart = _getCurEntryPoint(absPos, side, lastRes);
 
-    int paralN = (vec3(1.0, 2.0, 4.0) * isNeg).length();
-    uvec3 paral = parals[paralN] + uvec3(1, 1, 1);
+    auto vec = vec3(1.0, 2.0, 4.0) * (vec3(1,1,1) - isNeg);
+    int paralN = vec.x + vec.y + vec.z;
+    vec3 paral = vec3(parals[paralN]);
 
     vec3 path;
     for (int i = 0; i < 3; ++i)
     {
-        path[i] = (isNeg[i] != 0) ? -vecStart[i] : (/*paral[i]*/1.0f - vecStart[i]); //!!!
+        if (side > 1 && paral[i] > 0) paral[i] -= side - 1.0f;
+        path[i] = (isNeg[i] != 0) ? (-side * vecStart[i] - (float)paral[i]) : (paral[i] + side * (1.0f - vecStart[i])); //!!!
         path[i] = (path[i] == 0) ? _epsilon : path[i];
     }
 
@@ -227,24 +255,29 @@ vec3 VoxelMapRayTracer::_marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, 
     for (int i = 0; i < 3; ++i)
         result[i] = (1.0 - 2.0 * isNeg[i]) * (abs(maxDiff - diffs[i]) < _epsilon ? 1.0 : 0.0);
 
+    if (deb) std::cout << side << ": (";
+    if (deb) std::cout << vecStart[0] << " " << vecStart[1] << " " << vecStart[2] << ") + (";
+
     vec3 intersection;
     for (int i = 0; i < 3; ++i)
     {
         int otherCoord1 = (i == 0) ? 1 : 0;
         int otherCoord2 = (i == 2) ? 1 : 2;
-        intersection[i] = (result[i] != 0) ?
-            ((isNeg[i] == 0 ? 1.0 : 0) - vecStart[i]) :
-            ((result[otherCoord1] != 0) ?
+        intersection[i] = (abs(result[i]) != 0) ? 
+            ((isNeg[i] == 0 ? (side + paral[i]) : -(float)paral[i]) - side * vecStart[i]) :
+            ((abs(result[otherCoord1]) != 0) ?
                 (path[otherCoord1] * dir[i] / dir[otherCoord1]) :
                 (path[otherCoord2] * dir[i] / dir[otherCoord2]));
-        absPos[i] += intersection[i] * side;
+        absPos[i] += intersection[i];
         if (isNeg[i] != 0)
             absPos[i] -= _epsilon;
 
         finish = finish || ((absPos[i] - _epsilon <= minmax[0] && dir[i] < 0) || (absPos[i] >= minmax[1] && dir[i] > 0));
     }
+    if (deb) std::cout << intersection[0] << " " << intersection[1] << " " << intersection[2] << ") = ";
+    if (deb) std::cout << absPos[0] << " " << absPos[1] << " " << absPos[2] << "" << std::endl;
 
-    absCoord += intersection;
+    absCoord += intersection / side;
 
     lastRes = result;
     return result;
