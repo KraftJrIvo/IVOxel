@@ -17,7 +17,8 @@ public:
 		_raytracer(*gs.getMap(), chunkLoadRadius, epsilon, alignToFourBytes),
 		_chunkLoadRadius(chunkLoadRadius),
 		_alignToFourBytes(alignToFourBytes),
-		_firstRender(true)
+		_firstRender(true),
+		_time(0)
 	{ }
 
 	void startRender() override;
@@ -28,6 +29,8 @@ private:
 	GameState& _gs;
 
 	VoxelMapRayTracer _raytracer;
+
+	long _time;
 
 	uint32_t _chunkLoadRadius;
 	bool _alignToFourBytes;

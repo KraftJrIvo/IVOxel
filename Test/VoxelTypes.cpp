@@ -140,7 +140,7 @@ glm::vec3 MaterialDefault::shade(glm::vec3 curColor, glm::vec3 voxColor, glm::ve
 	for (int i = 0; i < 3; ++i)
 	{
 		float res = voxColor[i] * lightColor[i] * lightStr;
-		curColor[i] = std::clamp(curColor[i] + res, 0.0f, 1.0f);
+		curColor[i] = std::clamp(curColor[i] + res, 0.0f, voxColor[i]);
 	}
 
 	return curColor;

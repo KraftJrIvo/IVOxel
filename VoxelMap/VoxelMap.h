@@ -20,7 +20,7 @@ public:
 	VoxelChunk& getChunk(const std::vector<int32_t>& relPos);
 	std::vector<uint8_t> getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius, bool alignToFourBytes = true);
 	std::vector<uint8_t> getChunkParals(const std::vector<int32_t>& pos);
-	std::vector<uint8_t> getLightDataAt(const std::vector<int32_t>& absPos, uint8_t radius) const;
+	std::vector<uint8_t> getLightDataAt(const std::vector<int32_t>& absPos, uint8_t radius, float time = 0.0f) const;
 
 	uint32_t getLoadRadius();
 	

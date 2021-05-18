@@ -53,10 +53,12 @@ void CPURenderer::startRender()
 		cv::Mat result(cam.res[1], cam.res[0], CV_8UC3, cv::Scalar(0, 0, 0));
 
 		std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
+
+		_raytracer.setLightData(map->getLightDataAt(pos, _chunkLoadRadius, _time));
+
 		if (map->checkLoadNeeded(pos) || _firstRender)
 		{
 			_raytracer.setMapData(map->getChunksDataAt(pos, _chunkLoadRadius, _alignToFourBytes));
-			_raytracer.setLightData({ 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f, 1.0f, 0.33f }, map->getLightDataAt(pos, _chunkLoadRadius));
 			map->setAbsPos(pos);
 			_firstRender = false;
 		}
@@ -79,6 +81,7 @@ void CPURenderer::startRender()
 		_gs.update(nullptr, 0);
 
 		_drawImage(result);
+		_time++;
 	}
 }
 

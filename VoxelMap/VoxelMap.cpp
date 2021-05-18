@@ -284,14 +284,14 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 	return res;
 }
 
-std::vector<uint8_t> VoxelMap::getLightDataAt(const std::vector<int32_t>& absPos, uint8_t radius) const
+std::vector<uint8_t> VoxelMap::getLightDataAt(const std::vector<int32_t>& absPos, uint8_t radius, float time) const
 {
-	auto lights = _generator.generateLights(absPos, radius);
+	auto lights = _generator.generateLights(absPos, radius, time);
 
 	std::vector<uint8_t> vals;
 	for (auto& light : lights)
 	{
-		utils::appendBytes(vals, 1.0f);
+		utils::appendBytes(vals, (float)light.type);
 		utils::appendBytes(vals, light.position[0]);
 		utils::appendBytes(vals, light.position[1]);
 		utils::appendBytes(vals, light.position[2]);

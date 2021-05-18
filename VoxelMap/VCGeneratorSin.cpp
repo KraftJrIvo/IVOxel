@@ -1,5 +1,7 @@
 #include "VCGeneratorSin.h"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 std::shared_ptr<VoxelChunk> VCGeneratorSin::generateChunk(const VoxelMapFormat& format, uint32_t side, const std::vector<int32_t>& pos) const
 {
     std::vector<Voxel> voxels(pow(side, 3));
@@ -22,20 +24,31 @@ std::shared_ptr<VoxelChunk> VCGeneratorSin::generateChunk(const VoxelMapFormat& 
 std::vector<Light> VCGeneratorSin::generateLights(const std::vector<int32_t>& pos, float radius, float time) const
 {
     int LIGHTS_PER_N_CHUNKS = 3;
-    float diam = radius * 2.0f + 1.0f;
+    int diam = radius * 2 + 1;
 
     std::vector<Light> lights;
 
-    for (int i = 0; i < diam; ++i)
+    glm::vec3 dir = { 0.0f, 1.0f, 0.0f };
+    glm::mat4 rotmat(1.0);
+    rotmat = glm::rotate(rotmat, glm::radians(time), glm::vec3(1.5f, 0.0f, 0.0f));
+    auto sun = glm::mat3(rotmat) * dir;
+
+    lights.push_back(Light(LightType::AMBIENT, { 25, 25, 25, 255 }));
+    lights.push_back(Light(LightType::GLOBAL, { 180, 180, 180, 255 }, { sun.x, sun.y, sun.z }));
+    
+    for (int i = 1; i < diam - 1; ++i)
     {
-        for (int j = 0; j < diam; ++j)
+        for (int j = 1; j < diam - 1; ++j)
         {
-            int xCoord = i + (int)floor(pos[0]);
-            int zCoord = j + (int)floor(pos[2]);
-            if (xCoord % LIGHTS_PER_N_CHUNKS == 0 && zCoord % LIGHTS_PER_N_CHUNKS == 0)
-                lights.push_back(Light({ xCoord + 0.5f, 1.8f, zCoord + 0.5f }, {255, 255, 255, 255}));
+            if (int(pos[0] + i - radius) % 2 == 0 && int(pos[2] + j - radius) % 2 == 0)
+            {
+                float xCoord = 0.5 + i - radius;
+                float zCoord = 0.5 + j - radius;
+                lights.push_back(Light(LightType::LOCAL, { 50, 50, 50, 255 }, { xCoord, 0.9f - pos[1], zCoord }));
+            }
         }
     }
+
     return lights;
 }
 

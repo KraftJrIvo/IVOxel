@@ -19,11 +19,8 @@ void VoxelMapRayTracer::setMapData(const std::vector<uint8_t>& data)
     _mapData = data;
 }
 
-void VoxelMapRayTracer::setLightData(glm::vec3 ambientLightDir, glm::vec4 ambientLightColor, const std::vector<uint8_t>& data)
+void VoxelMapRayTracer::setLightData(const std::vector<uint8_t>& data)
 {
-    _ambientLightDir = ambientLightDir;
-    _ambientLightColor = ambientLightColor;
-
     _lightData = data;
     _nLights = data.size() / (8 * sizeof(float));
 }
@@ -135,58 +132,42 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
             vec3 voxColor = voxel.color / 255.0f;
             color = { 0,0,0 };
 
-            for (uint i = _nLights; i <= _nLights; ++i)
+            for (uint i = 0; i < _nLights; ++i)
             {
-                float* light = ((float*)_lightData.data() + i * 8 * sizeof(float));
+                float* light = ((float*)_lightData.data() + i * 8);
+                float type = light[0];
+                vec3 lCoord = { light[1], light[2], light[3] };
+                vec4 lColor = { light[4], light[5], light[6], light[7] };
 
-                vec3 lCoord;
-                vec4 lColor;
-                if (i == _nLights)
+                if (type == 1) // ambient
                 {
-                    //vec3 v = absPos + voxRatio * 0.45f + float(_chunkLoadRadius);
-                    //lCoord = v + _ambientLightDir * (_chunkLoadRadius - _epsilon) - float(_chunkLoadRadius);
-                    //for (int j = 0; j < 3; ++j)
-                    //    lCoord[j] = std::clamp(lCoord[j], -float(_chunkLoadRadius) + _epsilon, _chunkLoadRadius + 1.0f - _epsilon);
-                    lCoord = absRayStart;
-                    lCoord.y = _chunkLoadRadius + 1.0f - _epsilon;
-                    lColor = _ambientLightColor;
+                    for (int i = 0; i < 3; ++i)
+                    {
+                        float res = voxColor[i] * lColor[i];
+                        color[i] = std::clamp(color[i] + res, 0.0f, voxColor[i]);
+                    }
                 }
-                else
+                else if (type == 2) // global
                 {
-                    lCoord = { light[3], light[2], light[1] };
-                    lColor = { light[4], light[5], light[6], light[7] };
+                    vec3 lightHitPoint, n, c;
+                    lightHitPoint = raytraceMap(absRayStart + lCoord * _epsilon * 8.0f , lCoord, n, c, true);
+                    if (max(lightHitPoint.x, max(lightHitPoint.y, lightHitPoint.z)) > (float)_chunkLoadRadius + 0.95f ||
+                        min(lightHitPoint.x, max(lightHitPoint.y, lightHitPoint.z)) < -(float)_chunkLoadRadius + 0.05f)
+                        color = voxel.material->shade(color, voxColor, absRayStart, normal, lCoord, lColor);
                 }
+                else if (type == 3) // local
+                {
+                    vec3 dirToLight = lCoord - absRayStart;
+                    float lightDist = length(dirToLight);
+                    dirToLight = normalize(dirToLight);
 
-                vec3 dirToLight = lCoord - absRayStart;
-                float lightDist = length(dirToLight);
-                dirToLight = normalize(dirToLight);
+                    vec3 lightHitPoint, n, c;
+                    lightHitPoint = raytraceMap(lCoord, -dirToLight, n, c, true);
 
-                vec3 lightHitPoint, n, c;
-                lightHitPoint = raytraceMap(lCoord, -dirToLight, n, c, true);
-
-                float diff = length(lightHitPoint - absRayStart);
-                if (diff < _epsilon * 10)
-                    color = voxel.material->shade(color, voxColor, absRayStart, normal, dirToLight, lColor);
-
-                ///
-                //vec3 isNeg = { 0.0f, 0.0f, 0.0f };
-                //auto vec = vec3(1.0, 2.0, 4.0) * (vec3(1, 1, 1) - isNeg);
-                //int paralN = vec.x + vec.y + vec.z;
-
-                ////auto voxelState = _format.getVoxelState(_mapData.data() + voxOff + (1 * 4) * _format.voxelFormat.getSizeInBytes(_alignToFourBytes));
-                ////uvec3 paral = voxelState.parals[paralN];
-
-                //ivec3 curChunkPos = ivec3(floor(absRayStart));
-                //uint32_t idx = (curChunkPos[0] + _chunkLoadRadius) * _chunkLoadDiameter * _chunkLoadDiameter + ((curChunkPos[1] + 1) + _chunkLoadRadius) * _chunkLoadDiameter + curChunkPos[2] + _chunkLoadRadius;
-                //uint32_t off = _format.chunkFormat.getSizeInBytes() * idx;
-                //auto chunkH = _format.getChunkState(_mapData.data() + off, _alignToFourBytes);
-                //uvec3 paral = chunkH.parals[paralN];
-                //
-                //color = { paral.x / 4.0f, paral.y / 4.0f, paral.z / 4.0f };
-                ///
-
-                //color.y -= nn/4.0f * 0.25f;
-                //color.z -= nn/4.0f * 0.25f;
+                    float diff = length(lightHitPoint - absRayStart);
+                    if (diff < _epsilon * 50.0f)
+                        color = voxel.material->shade(color, voxColor, absRayStart, normal, dirToLight, lColor);
+                }
             }
         }
         
