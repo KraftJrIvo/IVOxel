@@ -28,23 +28,23 @@ std::vector<Light> VCGeneratorSin::generateLights(const std::vector<int32_t>& po
 
     std::vector<Light> lights;
 
-    glm::vec3 dir = { 0.0f, 1.0f, 0.0f };
+    glm::vec3 dir = { 1.0f, 0.2f, 0.0f };
     glm::mat4 rotmat(1.0);
-    rotmat = glm::rotate(rotmat, glm::radians(time), glm::vec3(1.5f, 0.0f, 0.0f));
+    rotmat = glm::rotate(rotmat, glm::radians(time * 3), glm::vec3(0.0f, 1.0f, 0.0f));
     auto sun = glm::mat3(rotmat) * dir;
 
     lights.push_back(Light(LightType::AMBIENT, { 25, 25, 25, 255 }));
     lights.push_back(Light(LightType::GLOBAL, { 180, 180, 180, 255 }, { sun.x, sun.y, sun.z }));
     
-    for (int i = 1; i < diam - 1; ++i)
+    for (int i = 1; i < diam; ++i)
     {
-        for (int j = 1; j < diam - 1; ++j)
+        for (int j = 1; j < diam; ++j)
         {
             if (int(pos[0] + i - radius) % 2 == 0 && int(pos[2] + j - radius) % 2 == 0)
             {
                 float xCoord = 0.5 + i - radius;
                 float zCoord = 0.5 + j - radius;
-                lights.push_back(Light(LightType::LOCAL, { 50, 50, 50, 255 }, { xCoord, 0.9f - pos[1], zCoord }));
+                lights.push_back(Light(LightType::LOCAL, { 50, 50, 50, 255 }, { xCoord, 0.9f - pos[1] + sin(time + i + j) / 10.0f, zCoord }));
             }
         }
     }

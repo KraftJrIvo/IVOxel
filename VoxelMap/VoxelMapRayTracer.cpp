@@ -35,7 +35,7 @@ vec3 VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, vec3& normal, ve
     bool marchFinish = false;
     vec3 marchAbsPos = rayStart;
 
-    if (deb) std::cout << "start\n";
+    if (deb) std::cout << "START " << light << "\n";
 
     while (notFinish && !marchFinish)
     {
@@ -62,9 +62,17 @@ vec3 VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, vec3& normal, ve
         }
     }
 
-        if (marchFinish)
+    if (marchFinish) {
         color = { 255, 0, 0 };
+        marchAbsPos = clamp(rayDir * 1000000.0f, vec3(-(float)_chunkLoadRadius), vec3(_chunkLoadRadius + 1.0f));
+    }
 
+    if (!light) 
+    {
+        _drawLights(rayStart, rayDir, marchAbsPos, color);
+    }
+
+    if (deb) std::cout << "END" << marchAbsPos.x << " " << marchAbsPos.y << " " << marchAbsPos.z << " : " << color.x << " " << color.y << " " << color.z << " " << "\n";
     return marchAbsPos;
 }
 
@@ -83,7 +91,10 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
     {
         if (deb) std::cout << "vox " << curVoxPos[0] << " " << curVoxPos[1] << " " << curVoxPos[2] << "\n";
         if (_checkChunkBounds(curVoxPos, sideSteps))
+        {
+            if (deb) std::cout << "bounds" << "\n";
             break;
+        }
 
         glm::uint voxOff = chunkH.voxOffset + (curVoxPos[0] * chunkH.side * chunkH.side + curVoxPos[1] * chunkH.side + curVoxPos[2]) * _format.voxelFormat.getSizeInBytes(_alignToFourBytes);
         auto voxelState = _format.getVoxelState(_mapData.data() + voxOff);
@@ -94,9 +105,14 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
 
         if (voxelState.full)
         {
+            if (deb) std::cout << "bef bef" << curChunkPos.x << " " << curChunkPos.y << " " << curChunkPos.z << " -> " << curVoxPos.x << " " << curVoxPos.y << " " << curVoxPos.z << "\n";
+            if (deb) std::cout << "bef " << absPos.x << " " << absPos.y << " " << absPos.z << " -> " << absCoord.x << " " << absCoord.y << " " << absCoord.z << "\n";
             vec3 entry = _getCurEntryPoint(marchPos, stepsToTake, lastRes);
             if (_raytraceVoxel(voxOff, voxelState.neighs, entry, rayDir, absPos, voxRatio, absCoord, normal, color, light))
+            {
+                if (deb) std::cout << "impact " << entry.x << " " << entry.y << " " << entry.z << " -> " << absCoord.x << " " << absCoord.y << " " << absCoord.z << "\n";
                 return true;
+            }
         }
         vec3 absCoordVox = {0,0,0};
         _marchAndGetNextDir(rayDir, stepsToTake, ivec2(0, sideSteps), voxelState.parals.data(), marchFinish, marchPos, lastRes, absCoordVox);
@@ -165,7 +181,7 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
                     lightHitPoint = raytraceMap(lCoord, -dirToLight, n, c, true);
 
                     float diff = length(lightHitPoint - absRayStart);
-                    if (diff < _epsilon * 50.0f)
+                    if (diff < _epsilon * 50.0f) 
                         color = voxel.material->shade(color, voxColor, absRayStart, normal, dirToLight, lColor);
                 }
             }
@@ -250,9 +266,7 @@ vec3 VoxelMapRayTracer::_marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, 
                 (path[otherCoord1] * dir[i] / dir[otherCoord1]) :
                 (path[otherCoord2] * dir[i] / dir[otherCoord2]));
         absPos[i] += intersection[i];
-        if (isNeg[i] != 0)
-            absPos[i] -= _epsilon;
-
+        absPos[i] += _epsilon * (1.0 - 2.0 * isNeg[i]);
         finish = finish || ((absPos[i] - _epsilon <= minmax[0] && dir[i] < 0) || (absPos[i] >= minmax[1] && dir[i] > 0));
     }
     if (deb) std::cout << intersection[0] << " " << intersection[1] << " " << intersection[2] << ") = ";
@@ -262,4 +276,44 @@ vec3 VoxelMapRayTracer::_marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, 
 
     lastRes = result;
     return result;
+}
+
+void VoxelMapRayTracer::_drawLights(glm::vec3 rayStart, glm::vec3 rayDir, glm::vec3& absPos, glm::vec3& color) const
+{
+    auto getNearestLinePt = [](vec3 linePnt, vec3 lineDir, vec3 pt)
+    {
+        vec3 dir = normalize(lineDir);
+        vec3 v = pt - linePnt;
+        float d = dot(v, dir);
+        return linePnt + dir * d;
+    };
+
+    auto getPtLineDist = [&](vec3 linePt, vec3 lineDir, vec3 pt)
+    {
+        vec3 closestPt = getNearestLinePt(linePt, lineDir, pt);
+        return length(pt - closestPt);
+    };
+
+    for (uint i = 0; i < _nLights; ++i)
+    {
+        float* light = ((float*)_lightData.data() + i * 8);
+        float type = light[0];
+        if (type == 3 || type == 2) //local
+        {
+            vec3 lCoord = { light[1], light[2], light[3] };
+            if (type == 2) lCoord *= 4.0f;
+            vec4 lColor = { light[4], light[5], light[6], light[7] };
+            vec3 toLight = lCoord - rayStart;
+            vec3 toHit = absPos - rayStart;
+            float lightLen = length(toLight);
+            if (dot(toLight, toHit) > 0 && lightLen < length(toHit))
+            {
+                float lightDist = getPtLineDist(rayStart, rayDir, lCoord);
+                float g = (0.1 - lightDist) * 10.0;
+                float coeff = g < 0 ? 0 : g;
+                vec3 c = coeff * lColor;
+                color += c;
+            }
+        }
+    }
 }
