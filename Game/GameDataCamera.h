@@ -7,10 +7,7 @@
 
 struct GameDataCamera : public GameData
 {
-    GameDataCamera()
-    {
-        size = sizeof(Camera);
-    }
+    GameDataCamera();
 
-    void update(GameDataContainer* container, uint32_t frameID, uint32_t dataID, GameState& game, bool alignToFourBytes = true) override;
+    void update(GameState& game, uint32_t dataID, GameDataContainer* container = nullptr, uint32_t frameID = 0, bool alignToFourBytes = true) override;
 };

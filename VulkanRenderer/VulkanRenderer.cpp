@@ -83,7 +83,8 @@ void VulkanRenderer::startRender()
 	auto cbBeginInfo = vkTypes::getCBBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
-	VkRect2D renderArea = window.getRenderArea();
+	auto ra = window.getRenderArea();
+	VkRect2D renderArea = { ra.x, ra.y, ra.z, ra.w };
 	std::vector<VkClearValue> clearVals(2);
 	clearVals[0].depthStencil.depth = 1.0f;
 	clearVals[0].depthStencil.stencil = 0;
@@ -108,7 +109,8 @@ void VulkanRenderer::startRender()
 		{
 			do
 			{
-				renderArea = window.getRenderArea();
+				ra = window.getRenderArea();
+				renderArea = { ra.x, ra.y, ra.z, ra.w };
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 				window.Update();
 			} 
@@ -240,7 +242,7 @@ void VulkanRenderer::_initEnv()
 		_game.init(&window);
 		_geomBuffs.init(_mainDevice);
 		_initShaders();
-		_descrPool.initLayouts(_mainDevice, _game.getShaderData());
+		_descrPool.initLayouts(_mainDevice, _game.getGameData());
 	}
 
 	_surface.initFormat(_mainDevice);
@@ -251,7 +253,8 @@ void VulkanRenderer::_initEnv()
 	auto shaderInfos = _shaderManager.getShaderStageCreateInfos({{ShaderType::VERTEX, "square"}, {ShaderType::FRAGMENT, "ray"}});
 	
 	_renderPass.init(_mainDevice, _dsImg.getFormat(), _surface.getFormat().format);
-	_pipeline.init(_mainDevice, _renderPass, window.getRenderAreaScaled(), _descrPool.getLayouts(), shaderInfos);
+	auto ra = window.getRenderAreaScaled();
+	_pipeline.init(_mainDevice, _renderPass, {ra.x, ra.y, ra.z, ra.w}, _descrPool.getLayouts(), shaderInfos);
 	_frameBuffs.init(_mainDevice, _renderPass, window.getSizeScaled(), _dsImg.getImgView(), _images.getImgViews());
 	_commandBuffs.init(_mainDevice, _swapchain.getImgCount());
 

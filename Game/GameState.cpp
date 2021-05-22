@@ -5,11 +5,13 @@
 #include "GameDataCamera.h"
 #include "GameDataLight.h"
 #include "GameDataMap.h"
+#include "GameDataConst.h"
 
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
-void GameState::init(Window* window, float lightRadius)
+GameState::GameState(Window* window, VoxelMap& map) : 
+	_map(map)
 { 
 	_cam.window = window;
 	_cam.fov = 90.0f;
@@ -21,12 +23,12 @@ void GameState::init(Window* window, float lightRadius)
 	
 	_startTime = std::chrono::high_resolution_clock::now();
 
-	_gameData = { std::make_shared<GameDataCamera>(), std::make_shared<GameDataLight>(lightRadius)/*, std::make_shared<GameDataMap>()*/ };
-}
-
-void GameState::setMap(VoxelMap* map)
-{
-	_map = map;
+	_gameData = { 
+		{CAMERA, std::make_shared<GameDataCamera>()},
+		{LIGHTING, std::make_shared<GameDataLight>(10)},
+		{LOCAL_MAP, std::make_shared<GameDataMap>(map.getMapDataSize(true))},
+		{CONSTANTS, std::make_shared<GameDataConst>(map.getLoadRadius(), map.getMaxLights(), 0.00001)}
+	};
 }
 
 glm::vec4 GameState::getRenderArea() const
@@ -63,6 +65,15 @@ void GameState::updateTrans()
 	_cam.translate(glm::mat3(rotmat) * getTransDelta() / 100.0f);
 }
 
+const std::shared_ptr<GameData> GameState::getGameData(uint8_t key) const
+{
+	if (_gameData.count(key)) 
+	{
+		return _gameData.at(key);
+	}
+	return nullptr;
+}
+
 float GameState::getTime()
 {
 	auto currentTime = std::chrono::high_resolution_clock::now();
@@ -74,9 +85,11 @@ Camera& GameState::getCam()
 	return _cam;
 }
 
-void GameState::update(GameDataContainer* container, uint32_t frameID)
+void GameState::update(uint8_t group, GameDataContainer* container, uint32_t frameID)
 {
-	int i = 0;
-	for (auto& sd : _gameData)
-		sd->update(container, frameID, i++, *this);
+	for (auto& gd : _gameData)
+		if (gd.second->updateGroup <= group)
+		{
+			gd.second->update(*this, gd.first, container, frameID);
+		}
 }

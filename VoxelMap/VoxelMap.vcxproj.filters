@@ -51,9 +51,6 @@
     <ClInclude Include="VCGeneratorSin.h">
       <Filter>Header Files\generators</Filter>
     </ClInclude>
-    <ClInclude Include="VoxelMapRayTracer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="VoxelType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -88,9 +85,6 @@
     </ClCompile>
     <ClCompile Include="VCGeneratorSin.cpp">
       <Filter>Source Files\generators</Filter>
-    </ClCompile>
-    <ClCompile Include="VoxelMapRayTracer.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="VoxelType.cpp">
       <Filter>Source Files</Filter>

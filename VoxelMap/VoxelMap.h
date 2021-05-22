@@ -2,8 +2,6 @@
 
 #include <map>
 
-#include <Eigen/Core>
-
 #include "VoxelChunkGenerator.h"
 #include "VoxelChunkStorer.h"
 #include "VoxelChunk.h"
@@ -13,7 +11,7 @@ class VoxelMap
 {
 public:
 	VoxelMap() = default;
-	VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator, uint32_t chunkSide = 16, uint32_t loadRadius = 7);
+	VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator, uint8_t chunkSide = 16, uint8_t loadRadius = 7, uint8_t maxLights = 10);
 
 	VoxelMapFormat getFormat() const;
 	VoxelTypeStorer& getVoxelTypeStorer();
@@ -22,20 +20,24 @@ public:
 	std::vector<uint8_t> getChunkParals(const std::vector<int32_t>& pos);
 	std::vector<uint8_t> getLightDataAt(const std::vector<int32_t>& absPos, uint8_t radius, float time = 0.0f) const;
 
-	uint32_t getLoadRadius();
+	uint8_t getLoadRadius();
+	uint8_t getChunkSide();
+	uint8_t getMaxLights();
+	uint32_t getMapDataSize(bool alignToFourBytes = true);
 	
 	uint32_t addLight(const Light& l);
 	void moveLight(uint32_t lightID, const std::vector<float>& absPos);
 	void removeLight(uint32_t lightID);
 
-	bool checkLoadNeeded(const std::vector<int32_t>& pos);
+	bool checkAndLoad(const std::vector<int32_t>& pos);
 
 	void setAbsPos(const std::vector<int32_t>& absPos);
 
 protected:
-	uint32_t _loadRadius;
+	uint8_t _loadRadius;
 	uint32_t _loadDiameter;
-	uint32_t _chunkSide;
+	uint8_t _chunkSide;
+	uint8_t _maxLights;
 	VoxelChunk _emptyChunk;
 
 	VoxelTypeStorer _voxTypeStorer;

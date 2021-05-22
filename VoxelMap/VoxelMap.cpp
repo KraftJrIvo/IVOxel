@@ -3,11 +3,12 @@
 #include <algorithm>
 #include <iostream>
 
-VoxelMap::VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator, uint32_t chunkSide, uint32_t loadRadius) :
+VoxelMap::VoxelMap(const VoxelMapFormat& format, VoxelChunkGenerator& generator, uint8_t chunkSide, uint8_t loadRadius, uint8_t maxLights) :
 	_format(format),
 	_generator(generator),
 	_chunkSide(chunkSide),
 	_loadRadius(loadRadius),
+	_maxLights(maxLights),
 	_loadDiameter(loadRadius * 2 + 1),
 	_curAbsPos({0,0,0})
 { 
@@ -38,12 +39,27 @@ VoxelTypeStorer& VoxelMap::getVoxelTypeStorer()
 	return _voxTypeStorer;
 }
 
-uint32_t VoxelMap::getLoadRadius()
+uint8_t VoxelMap::getLoadRadius()
 {
 	return _loadRadius;
 }
 
-bool VoxelMap::checkLoadNeeded(const std::vector<int32_t>& pos)
+uint8_t VoxelMap::getChunkSide()
+{
+	return _chunkSide;
+}
+
+uint8_t VoxelMap::getMaxLights()
+{
+	return _maxLights;
+}
+
+uint32_t VoxelMap::getMapDataSize(bool alignToFourBytes)
+{
+	return pow(_loadDiameter, 3) * _format.getSizeInBytes(pow(_chunkSide, 3), alignToFourBytes);
+}
+
+bool VoxelMap::checkAndLoad(const std::vector<int32_t>& pos)
 {
 	if (_curAbsPos[0] != pos[0] || _curAbsPos[1] != pos[1] || _curAbsPos[2] != pos[2])
 	{
@@ -93,7 +109,7 @@ std::vector<uint8_t> VoxelMap::getChunksDataAt(const std::vector<int32_t>& absPo
 
 	for (int32_t x = -radius; x <= radius; ++x)
 		for (int32_t y = -radius; y <= radius; ++y)
-			for (int32_t z = - radius; z <= radius; ++z)
+			for (int32_t z = -radius; z <= radius; ++z)
 			{
 				auto chunk = getChunk({ x, y, z });
 				auto header = _format.chunkFormat.formatChunkHeader(chunk, chunkData.size() + voxData.size(), getChunkParals({ x, y, z }), alignToFourBytes);
@@ -288,17 +304,30 @@ std::vector<uint8_t> VoxelMap::getLightDataAt(const std::vector<int32_t>& absPos
 {
 	auto lights = _generator.generateLights(absPos, radius, time);
 
-	std::vector<uint8_t> vals;
-	for (auto& light : lights)
+	auto lightSz = 8;
+	std::vector<uint8_t> vals(_maxLights * lightSz * sizeof(float));
+	auto it = lights.begin();
+
+	for (uint8_t i = 0; i < _maxLights; ++i)
 	{
-		utils::appendBytes(vals, (float)light.type);
-		utils::appendBytes(vals, light.position[0]);
-		utils::appendBytes(vals, light.position[1]);
-		utils::appendBytes(vals, light.position[2]);
-		utils::appendBytes(vals, (float)light.rgba[0] / 255.0f);
-		utils::appendBytes(vals, (float)light.rgba[1] / 255.0f);
-		utils::appendBytes(vals, (float)light.rgba[2] / 255.0f);
-		utils::appendBytes(vals, (float)light.rgba[3] / 255.0f);
+		auto fvals = ((float*)vals.data()) + lightSz * i;
+		if (it != lights.end())
+		{
+			auto& light = *it;
+			fvals[0] = light.type;
+			fvals[1] = light.position[0];
+			fvals[2] = light.position[1];
+			fvals[3] = light.position[2];
+			fvals[4] = light.rgba[0] / 255.0f;
+			fvals[5] = light.rgba[1] / 255.0f;
+			fvals[6] = light.rgba[2] / 255.0f;
+			fvals[7] = light.rgba[3] / 255.0f;
+			it = std::next(it);
+		} 
+		else
+		{
+			fvals[0] = 255.0f;
+		}
 	}
 
 	return vals;

@@ -2,11 +2,6 @@
 
 #include <algorithm>
 
-#include <opencv2/videoio.hpp>
-
-#include "Cube.h"
-#include "Sphere.h"
-
 #include <omp.h>
 
 void CPURenderer::_drawImage(cv::Mat img)
@@ -46,20 +41,20 @@ void CPURenderer::_drawImage(cv::Mat img)
 void CPURenderer::startRender()
 {
 	auto& cam = _gs.getCam();
-	auto map = _gs.getMap();
+	auto& map = _gs.getMap();
+
+	_gs.update(EVERY_INIT, &_raytracer);
 
 	while (_runOnce())
 	{
 		cv::Mat result(cam.res[1], cam.res[0], CV_8UC3, cv::Scalar(0, 0, 0));
 
 		std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
-
-		_raytracer.setLightData(map->getLightDataAt(pos, _chunkLoadRadius, _time));
-
-		if (map->checkLoadNeeded(pos) || _firstRender)
+		
+		if (map.checkAndLoad(pos) || _firstRender)
 		{
-			_raytracer.setMapData(map->getChunksDataAt(pos, _chunkLoadRadius, _alignToFourBytes));
-			map->setAbsPos(pos);
+			_gs.update(EVERY_LOAD, &_raytracer);
+			map.setAbsPos(pos);
 			_firstRender = false;
 		}
 
@@ -71,17 +66,16 @@ void CPURenderer::startRender()
 			for (uint32_t i = threadId; i < cam.res[0]; i += nThreads)
 				for (uint32_t j = 0; j < cam.res[1]; ++j)
 				{
-					auto pixel = _renderPixel(*map, cam, { i, j });
+					auto pixel = _renderPixel({ i, j });
 					result.at<cv::Vec3b>(j, i) = { pixel[2], pixel[1], pixel[0] };
 				}
 			
 			#pragma omp barrier
 		}
 
-		_gs.update(nullptr, 0);
+		_gs.update(EVERY_FRAME, &_raytracer);
 
 		_drawImage(result);
-		_time++;
 	}
 }
 
@@ -95,24 +89,10 @@ bool CPURenderer::_runOnce()
 	return _window.Update();
 }
 
-std::vector<uint8_t> CPURenderer::_renderPixel(const VoxelMap& map, const Camera& cam, glm::vec2 xy) const
+std::vector<uint8_t> CPURenderer::_renderPixel(glm::vec2 xy) const
 {
-	using namespace glm;
+	glm::vec3 normal, color;
+	auto hit = _raytracer.raytracePixel(xy, normal, color);
 
-	vec2 coeffs = (xy - cam.res / 2.0f) / cam.res.y;
-
-	vec3 coords = vec3(coeffs.y, coeffs.x, -1.0);
-
-	vec3 start = { fract(cam.pos.x), fract(cam.pos.y), fract(cam.pos.z) };
-	vec3 dir = mat3(cam.mvp) * coords;
-
-	int bounces = 1;
-	float len = 0;
-
-	vec3 normal, color;
-	auto hit = _raytracer.raytraceMap(start, dir, normal, color);
-
-	std::vector<uint8_t> result = { uint8_t(255 * color.r), uint8_t(255 * color.g), uint8_t(255 * color.b) };
-
-	return result;
+	return { uint8_t(255 * color.r), uint8_t(255 * color.g), uint8_t(255 * color.b) };
 }

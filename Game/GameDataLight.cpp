@@ -2,10 +2,21 @@
 
 #include "GameState.h"
 
-void GameDataLight::update(GameDataContainer* container, uint32_t frameID, uint32_t dataID, GameState& game, bool alignToFourBytes)
+GameDataLight::GameDataLight(uint8_t maxLights)
 {
-	std::memset(&data, 0, sizeof(data));
-	auto mapLightData = game.getMap()->getLightDataAt({ (int32_t)game.getTrans().x, (int32_t)game.getTrans().y, (int32_t)game.getTrans().z }, r);
-	std::memcpy(&data, mapLightData.data(), mapLightData.size());
-	if (container) container->setData(frameID, dataID, &data);
+	updateGroup = EVERY_FRAME;
+	size = maxLights * 8 * sizeof(float);
+}
+
+void GameDataLight::update(GameState& game, uint32_t dataID, GameDataContainer* container, uint32_t frameID, bool alignToFourBytes)
+{
+	auto& cam = game.getCam();
+	std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
+	auto lightData = game.getMap().getLightDataAt(pos, game.getMap().getLoadRadius(), game.getTime());
+
+	checkAndAllocate();
+
+	std::memcpy(data.data(), lightData.data(), min(lightData.size(), size));
+
+	if (container) container->setData(dataID, data.data(), frameID);
 }

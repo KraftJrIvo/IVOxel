@@ -2,26 +2,32 @@
 
 #include <vector>
 
-#include "VoxelMap.h"
+#include "GameDataContainer.h"
 
-class VoxelMapRayTracer
+#include <VoxelMap.h>
+
+class VoxelMapRayTracer : public GameDataContainer
 {
 public:
-	VoxelMapRayTracer(VoxelMap& map, uint32_t chunkLoadRadius, float epsilon, bool alignToFourBytes = true);
-	void setMapData(const std::vector<uint8_t>& data);
-	void setLightData(const std::vector<uint8_t>& lights);
+	VoxelMapRayTracer(VoxelMap& map, bool alignToFourBytes = true);
+	void setData(uint32_t dataID, void* ptr, uint32_t frameID = 0) override;
+	glm::vec3 raytracePixel(glm::vec2 xy, glm::vec3& normal, glm::vec3& color) const;
 	glm::vec3 raytraceMap(glm::vec3 rayStart, glm::vec3 rayDir, glm::vec3& normal, glm::vec3& color, bool light = false) const;
 
 private:
-	uint32_t _chunkLoadRadius;
-	uint32_t _chunkLoadDiameter;
-	float _epsilon;
 	VoxelMapFormat _format;
 	bool _alignToFourBytes;
-	uint32_t _nLights;
 	VoxelTypeStorer& _vts;
-	std::vector<uint8_t> _mapData;
-	std::vector<uint8_t> _lightData;
+	
+	const uint8_t* _camData;
+	const uint8_t* _mapData;
+	const uint8_t* _lightData;
+	const uint8_t* _constData;
+
+	void _setCamData(const uint8_t* data);
+	void _setMapData(const uint8_t* data);
+	void _setLightData(const uint8_t* data);
+	void _setConstData(const uint8_t* data);
 
 	bool _raytraceChunk(const VoxelChunkState& chunkH, glm::vec3 rayStart, glm::vec3 rayDir, glm::ivec3 curChunkPos, glm::vec3& hitPoint, glm::vec3& normal, glm::vec3& color, bool light = false) const;
 	bool _raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& neighs, glm::vec3 rayStart, glm::vec3 rayDir, glm::vec3 absPos, float voxRatio, glm::vec3& hitPoint, glm::vec3& normal, glm::vec3& color, bool light = false) const;

@@ -1,11 +1,23 @@
 #include "GameDataMap.h"
 
 #include "GameState.h"
+#include <iostream>
 
-void GameDataMap::update(GameDataContainer* container, uint32_t frameID, uint32_t dataID, GameState& game, bool alignToFourBytes)
+GameDataMap::GameDataMap(uint32_t size_)
 {
-	std::memset(&data, 0, sizeof(data));
-	auto mapData = game.getMap()->getChunksDataAt({ (int32_t)game.getTrans().x, (int32_t)game.getTrans().y, (int32_t)game.getTrans().z }, r, alignToFourBytes);
-	std::memcpy(&data, mapData.data(), mapData.size());
-	if (container) container->setData(frameID, dataID, &data);
+	size = size_;
+	updateGroup = EVERY_LOAD;
+}
+
+void GameDataMap::update(GameState& game, uint32_t dataID, GameDataContainer* container, uint32_t frameID, bool alignToFourBytes)
+{
+	auto& cam = game.getCam();
+	std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
+	auto mapData = game.getMap().getChunksDataAt(pos, game.getMap().getLoadRadius(), alignToFourBytes);
+
+	checkAndAllocate();
+
+	std::memcpy(data.data(), mapData.data(), min(mapData.size(), size));
+
+	if (container) container->setData(dataID, data.data(), frameID);
 }

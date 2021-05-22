@@ -6,13 +6,7 @@
 
 struct GameDataMap : public GameData
 {
-    glm::vec4 data[1000];
-    uint8_t r;
+    GameDataMap(uint32_t size);
 
-    GameDataMap()
-    {
-        size = sizeof(data);
-    }
-
-    void update(GameDataContainer* container, uint32_t frameID, uint32_t dataID, GameState& game, bool alignToFourBytes = true) override;
+    void update(GameState& game, uint32_t dataID, GameDataContainer* container = nullptr, uint32_t frameID = 0, bool alignToFourBytes = true) override;
 };

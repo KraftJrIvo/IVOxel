@@ -10,12 +10,18 @@
 
 class Window;
 
+enum GameDataType : unsigned int
+{
+	CAMERA = 0,
+	LIGHTING = 1,
+	LOCAL_MAP = 2,
+	CONSTANTS = 3
+};
+
 class GameState
 {
 public:
-	void init(Window* window, float lightRadius);
-	
-	void setMap(VoxelMap* map);
+	GameState(Window* window, VoxelMap& map);
 	
 	glm::vec4 getRenderArea() const;
 	glm::vec3 getRotDelta() const;
@@ -24,19 +30,19 @@ public:
 	void updateRot();
 	void updateTrans();
 
-	const std::list<std::shared_ptr<GameData>>& getGameData() { return _gameData; }
+	const std::shared_ptr<GameData> getGameData(uint8_t key) const;
 	const glm::vec2& getRot() { return _curRot; }
 	const glm::vec3& getTrans() { return _cam.pos; }
-	VoxelMap* getMap() { return _map; }
+	VoxelMap& getMap() { return _map; }
 	float getTime();
 	Camera& getCam();
 	
-	void update(GameDataContainer* container, uint32_t frameID);
+	void update(uint8_t group, GameDataContainer* container = nullptr, uint32_t frameID = 0);
 
 private:
-	VoxelMap* _map = nullptr;
+	VoxelMap& _map;
 
-	std::list<std::shared_ptr<GameData>> _gameData;
+	std::map<uint8_t, std::shared_ptr<GameData>> _gameData;
 
 	Camera _cam;
 	glm::vec3 _curRot;

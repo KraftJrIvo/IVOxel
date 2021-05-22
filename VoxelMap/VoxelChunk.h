@@ -34,7 +34,7 @@ public:
 	{ }
 	
 	VoxelChunk(const std::vector<Voxel>& voxels, const VoxelChunkFormat& format, const VoxelFormat& voxFormat, bool alignToFourBytes = true);
-
+	
 	bool modified = false;
 	uint32_t side;
 	float minOffset;

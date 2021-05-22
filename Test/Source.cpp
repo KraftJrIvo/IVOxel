@@ -34,11 +34,9 @@ int main()
 
 	VoxelMap map(format, generator, 4, 2);
 	
-	GameState game;
-	game.init(&w, 1.0f);
-	game.setMap(&map);
+	GameState game(&w, map);
 
-	CPURenderer renderer(w, game, map.getLoadRadius());
+	CPURenderer renderer(w, game);
 
 	renderer.startRender();
 

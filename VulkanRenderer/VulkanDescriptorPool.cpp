@@ -1,10 +1,8 @@
 #include "VulkanDescriptorPool.h"
 
-#include "ShaderData.h"
-
-void VulkanDescriptorPool::initLayouts(const VulkanDevice& device, const std::list<std::shared_ptr<ShaderData>>& shaderData)
+void VulkanDescriptorPool::initLayouts(const VulkanDevice& device, const std::list<std::shared_ptr<GameData>>& gameData)
 {
-	for (auto& data : shaderData)
+	for (auto& data : gameData)
 		_setSizes.push_back(data->size);
 	_setLayouts.resize(_setSizes.size());
 
@@ -95,7 +93,7 @@ const std::vector<VkDescriptorSet>& VulkanDescriptorPool::getSets(uint32_t frame
 	return _setsByFrame[frameID];
 }
 
-void VulkanDescriptorPool::setData(uint32_t frameID, uint32_t dataID, void* ptr)
+void VulkanDescriptorPool::setData(uint32_t dataID, void* ptr, uint32_t frameID)
 {
 	_uniformBuffs[frameID].setData(ptr, _offsets[dataID], _setSizes[dataID]);
 }

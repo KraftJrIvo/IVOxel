@@ -1,32 +1,57 @@
 #include "VoxelMapRayTracer.h"
+
+#include "Camera.h"
+#include "GameState.h"
+
 #include <iostream>
+#include <algorithm>
 
 using namespace glm;
 
 #define deb false
 
-VoxelMapRayTracer::VoxelMapRayTracer(VoxelMap& map, uint32_t chunkLoadRadius, float epsilon, bool alignToFourBytes) :
+VoxelMapRayTracer::VoxelMapRayTracer(VoxelMap& map, bool alignToFourBytes) :
     _vts(map.getVoxelTypeStorer()),
     _format(map.getFormat()),
-    _chunkLoadRadius(chunkLoadRadius),
-    _chunkLoadDiameter(chunkLoadRadius * 2 + 1),
-    _epsilon(epsilon),
     _alignToFourBytes(alignToFourBytes)
 { }
 
-void VoxelMapRayTracer::setMapData(const std::vector<uint8_t>& data)
+void VoxelMapRayTracer::setData(uint32_t dataID, void* ptr, uint32_t frameID)
 {
-    _mapData = data;
+    if (dataID == CAMERA)
+        _camData = (uint8_t*)ptr;
+    else if (dataID == LIGHTING)
+        _lightData = (uint8_t*)ptr;
+    else if (dataID == LOCAL_MAP)
+        _mapData = (uint8_t*)ptr;
+    else if (dataID == CONSTANTS)
+        _constData = (uint8_t*)ptr;
 }
 
-void VoxelMapRayTracer::setLightData(const std::vector<uint8_t>& data)
+glm::vec3 VoxelMapRayTracer::raytracePixel(glm::vec2 xy, glm::vec3& normal, glm::vec3& color) const
 {
-    _lightData = data;
-    _nLights = data.size() / (8 * sizeof(float));
+    using namespace glm;
+
+    Camera* cam = (Camera*)_camData;
+
+    vec2 coeffs = (xy - cam->res / 2.0f) / cam->res.y;
+
+    vec3 coords = vec3(coeffs.y, coeffs.x, -1.0);
+
+    vec3 start = { fract(cam->pos.x), fract(cam->pos.y), fract(cam->pos.z) };
+    vec3 dir = mat3(cam->mvp) * coords;
+
+    int bounces = 1;
+    float len = 0;
+
+    return raytraceMap(start, dir, normal, color);
 }
 
 vec3 VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, vec3& normal, vec3& color, bool light) const
 {
+    const float& _chunkLoadRadius = ((float*)_constData)[0];
+    const float& _chunkLoadDiameter = _chunkLoadRadius * 2 + 1;
+
     vec3 resultColor = vec3(0, 0, 0);
     vec3 lastRes = vec3(0, 0, 0);
     
@@ -47,7 +72,7 @@ vec3 VoxelMapRayTracer::raytraceMap(vec3 rayStart, vec3 rayDir, vec3& normal, ve
 
         uint32_t idx = (curChunkPos[0] + _chunkLoadRadius) * _chunkLoadDiameter * _chunkLoadDiameter + (curChunkPos[1] + _chunkLoadRadius) * _chunkLoadDiameter + curChunkPos[2] + _chunkLoadRadius;
         uint32_t off = _format.chunkFormat.getSizeInBytes() * idx;
-        auto chunkH = _format.getChunkState(_mapData.data() + off, _alignToFourBytes);
+        auto chunkH = _format.getChunkState(_mapData + off, _alignToFourBytes);
 
         vec3 prevHitPoint = marchAbsPos;
         notFinish = !chunkH.fullness || !_raytraceChunk(chunkH, _getCurEntryPoint(marchAbsPos, 1.0, lastRes), rayDir, curChunkPos, marchAbsPos, normal, color, light);
@@ -97,7 +122,7 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
         }
 
         glm::uint voxOff = chunkH.voxOffset + (curVoxPos[0] * chunkH.side * chunkH.side + curVoxPos[1] * chunkH.side + curVoxPos[2]) * _format.voxelFormat.getSizeInBytes(_alignToFourBytes);
-        auto voxelState = _format.getVoxelState(_mapData.data() + voxOff);
+        auto voxelState = _format.getVoxelState(_mapData + voxOff);
         stepsToTake = uint(sideSteps / pow(2, voxelState.size)); //!!!
         vec3 absPos = vec3(curChunkPos) + (vec3(curVoxPos - curVoxPos % stepsToTake) / float(sideSteps));
 
@@ -126,7 +151,11 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
 
 bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& neighs, vec3 rayStart, vec3 rayDir, vec3 absPos, float voxRatio, vec3& absCoord, vec3& normal, vec3& color, bool light) const
 {
-    Voxel voxel = _format.voxelFormat.unformatVoxel(_mapData.data() + voxOff);
+    const float& _chunkLoadRadius = ((float*)_constData)[0];
+    const float& _maxLights = ((float*)_constData)[1];
+    const float& _epsilon = ((float*)_constData)[2];
+    
+    Voxel voxel = _format.voxelFormat.unformatVoxel(_mapData + voxOff);
 
     if (voxel.isEmpty())
         return false;
@@ -148,9 +177,9 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
             vec3 voxColor = voxel.color / 255.0f;
             color = { 0,0,0 };
 
-            for (uint i = 0; i < _nLights; ++i)
+            for (uint i = 0; i < _maxLights; ++i)
             {
-                float* light = ((float*)_lightData.data() + i * 8);
+                float* light = ((float*)_lightData + i * 8);
                 float type = light[0];
                 vec3 lCoord = { light[1], light[2], light[3] };
                 vec4 lColor = { light[4], light[5], light[6], light[7] };
@@ -166,7 +195,7 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
                 else if (type == 2) // global
                 {
                     vec3 lightHitPoint, n, c;
-                    lightHitPoint = raytraceMap(absRayStart + lCoord * _epsilon * 8.0f , lCoord, n, c, true);
+                    lightHitPoint = raytraceMap(absRayStart + lCoord * _epsilon * 8.0f, lCoord, n, c, true);
                     if (max(lightHitPoint.x, max(lightHitPoint.y, lightHitPoint.z)) > (float)_chunkLoadRadius + 0.95f ||
                         min(lightHitPoint.x, max(lightHitPoint.y, lightHitPoint.z)) < -(float)_chunkLoadRadius + 0.05f)
                         color = voxel.material->shade(color, voxColor, absRayStart, normal, lCoord, lColor);
@@ -181,9 +210,11 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
                     lightHitPoint = raytraceMap(lCoord, -dirToLight, n, c, true);
 
                     float diff = length(lightHitPoint - absRayStart);
-                    if (diff < _epsilon * 50.0f) 
+                    if (diff < _epsilon * 50.0f)
                         color = voxel.material->shade(color, voxColor, absRayStart, normal, dirToLight, lColor);
                 }
+                else
+                    break;
             }
         }
         
@@ -204,6 +235,7 @@ bool VoxelMapRayTracer::_checkChunkBounds(glm::vec3 pos, uint32_t steps) const
 
 bool VoxelMapRayTracer::_checkMapBounds(glm::vec3 absPos) const
 {
+    const float& _chunkLoadRadius = ((float*)_constData)[0];
     for (int i = 0; i < 3; ++i)
         if (absPos[i] < -(int32_t)_chunkLoadRadius || absPos[i] >= _chunkLoadRadius + 1.0f)
             return true;
@@ -212,6 +244,8 @@ bool VoxelMapRayTracer::_checkMapBounds(glm::vec3 absPos) const
 
 vec3 VoxelMapRayTracer::_getCurEntryPoint(vec3 absPos, float side, vec3 lastRes) const
 {
+    const float& _epsilon = ((float*)_constData)[2];
+
     vec3 result = vec3(0, 0, 0);
 
     vec3 curPos = absPos / side;
@@ -227,6 +261,8 @@ vec3 VoxelMapRayTracer::_getCurEntryPoint(vec3 absPos, float side, vec3 lastRes)
 
 vec3 VoxelMapRayTracer::_marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, glm::uvec3* parals, bool& finish, vec3& absPos, vec3& lastRes, glm::vec3& absCoord) const
 {
+    const float& _epsilon = ((float*)_constData)[2];
+
     vec3 isNeg;
     for (int i = 0; i < 3; ++i)
         isNeg[i] = dir[i] < 0 ? 1.0 : 0.0;
@@ -280,6 +316,8 @@ vec3 VoxelMapRayTracer::_marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, 
 
 void VoxelMapRayTracer::_drawLights(glm::vec3 rayStart, glm::vec3 rayDir, glm::vec3& absPos, glm::vec3& color) const
 {
+    const float& _maxLights = ((float*)_constData)[1];
+
     auto getNearestLinePt = [](vec3 linePnt, vec3 lineDir, vec3 pt)
     {
         vec3 dir = normalize(lineDir);
@@ -294,9 +332,9 @@ void VoxelMapRayTracer::_drawLights(glm::vec3 rayStart, glm::vec3 rayDir, glm::v
         return length(pt - closestPt);
     };
 
-    for (uint i = 0; i < _nLights; ++i)
+    for (uint i = 0; i < _maxLights; ++i)
     {
-        float* light = ((float*)_lightData.data() + i * 8);
+        float* light = ((float*)_lightData + i * 8);
         float type = light[0];
         if (type == 3 || type == 2) //local
         {

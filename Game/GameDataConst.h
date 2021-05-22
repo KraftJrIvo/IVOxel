@@ -4,9 +4,13 @@
 
 #include "GameData.h"
 
-struct GameDataLight : public GameData
+struct GameDataConst : public GameData
 {
-    GameDataLight(uint8_t maxLights);
+    GameDataConst(uint8_t chunkLoadRadius, uint8_t maxLights, float epsilon);
+
+	uint8_t _chunkLoadRadius;
+	uint8_t _maxLights;
+	float _epsilon;
 
     void update(GameState& game, uint32_t dataID, GameDataContainer* container = nullptr, uint32_t frameID = 0, bool alignToFourBytes = true) override;
 };

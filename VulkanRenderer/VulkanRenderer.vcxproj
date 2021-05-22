@@ -50,10 +50,6 @@
   <ItemGroup>
     <ClCompile Include="FPSCounter.cpp" />
     <ClCompile Include="FPSLimiter.cpp" />
-    <ClCompile Include="GameState.cpp" />
-    <ClCompile Include="ShaderDataCamera.cpp" />
-    <ClCompile Include="ShaderDataLight.cpp" />
-    <ClCompile Include="ShaderDataMap.cpp" />
     <ClCompile Include="Vertex.cpp" />
     <ClCompile Include="VulkanBuffer.cpp" />
     <ClCompile Include="VulkanCommandBuffers.cpp" />

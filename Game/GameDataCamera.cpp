@@ -5,11 +5,22 @@
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
-void GameDataCamera::update(GameDataContainer* container, uint32_t frameID, uint32_t dataID, GameState& game, bool alignToFourBytes)
+GameDataCamera::GameDataCamera()
+{
+	size = sizeof(Camera);
+	updateGroup = EVERY_FRAME;
+}
+
+void GameDataCamera::update(GameState& game, uint32_t dataID, GameDataContainer* container, uint32_t frameID, bool alignToFourBytes)
 {
 	game.updateRot();
 	game.updateTrans();
 
 	auto& cam = game.getCam();
-	if (container) container->setData(frameID, dataID, &cam);
+
+	checkAndAllocate();
+
+	std::memcpy(data.data(), &cam, size);
+
+	if (container) container->setData(dataID, data.data(), frameID);
 }

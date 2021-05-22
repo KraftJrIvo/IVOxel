@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <GameDataContainer.h>
+#include <GameData.h>
 
 #include "VulkanDevice.h"
 #include "VulkanSwapchain.h"
@@ -14,14 +15,14 @@ struct ShaderData;
 class VulkanDescriptorPool : public GameDataContainer
 {
 public:
-	void initLayouts(const VulkanDevice& device, const std::list<std::shared_ptr<ShaderData>>& shaderData);
+	void initLayouts(const VulkanDevice& device, const std::list<std::shared_ptr<GameData>>& gameData);
 	void init(const VulkanDevice& device, const VulkanSwapchain& swapchain);
 	void destroy(const VulkanDevice& device);
 
 	const std::vector<VkDescriptorSetLayout>& getLayouts();
 	const std::vector<VkDescriptorSet>& getSets(uint32_t frameID);
 
-	void setData(uint32_t frameID, uint32_t dataID, void* ptr) override;
+	void setData(uint32_t dataID, void* ptr, uint32_t frameID) override;
 
 private:
 	VkDescriptorPool _pool;

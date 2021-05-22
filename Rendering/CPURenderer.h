@@ -11,14 +11,12 @@
 class CPURenderer : public IVoxelRenderer
 {
 public:
-	CPURenderer(Window& w, GameState& gs, uint32_t chunkLoadRadius = 1, float epsilon = 0.00001, bool alignToFourBytes = true) :
+	CPURenderer(Window& w, GameState& gs, bool alignToFourBytes = true) :
 		_window(w),
 		_gs(gs),
-		_raytracer(*gs.getMap(), chunkLoadRadius, epsilon, alignToFourBytes),
-		_chunkLoadRadius(chunkLoadRadius),
+		_raytracer(gs.getMap(), alignToFourBytes),
 		_alignToFourBytes(alignToFourBytes),
-		_firstRender(true),
-		_time(0)
+		_firstRender(true)
 	{ }
 
 	void startRender() override;
@@ -30,14 +28,11 @@ private:
 
 	VoxelMapRayTracer _raytracer;
 
-	long _time;
-
-	uint32_t _chunkLoadRadius;
 	bool _alignToFourBytes;
 	bool _firstRender;
 
 	void _drawImage(cv::Mat img);
 	bool _runOnce();
 
-	std::vector<uint8_t> _renderPixel(const VoxelMap& map, const Camera& cam, glm::vec2 xy) const;
+	std::vector<uint8_t> _renderPixel(glm::vec2 xy) const;
 };

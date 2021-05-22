@@ -45,6 +45,12 @@
     <ClInclude Include="Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="GameDataConst.h">
+      <Filter>Header Files\GameData</Filter>
+    </ClInclude>
+    <ClInclude Include="VoxelMapRayTracer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GameState.cpp">
@@ -63,6 +69,12 @@
       <Filter>Source Files\GameData</Filter>
     </ClCompile>
     <ClCompile Include="Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GameDataConst.cpp">
+      <Filter>Source Files\GameData</Filter>
+    </ClCompile>
+    <ClCompile Include="VoxelMapRayTracer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
