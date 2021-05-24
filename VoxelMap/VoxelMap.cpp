@@ -1,5 +1,7 @@
 #include "VoxelMap.h"
 
+#include <omp.h>
+
 #include <algorithm>
 #include <iostream>
 
@@ -69,26 +71,34 @@ bool VoxelMap::checkAndLoad(const std::vector<int32_t>& pos)
 
 		auto temp = _chunks;
 
-		std::vector<int32_t> xyz(3);
-		for (xyz[0] = 0; xyz[0] < _loadDiameter; xyz[0]++)
-			for (xyz[1] = 0; xyz[1] < _loadDiameter; xyz[1]++)
-				for (xyz[2] = 0; xyz[2] < _loadDiameter; xyz[2]++)
-				{
-					if (xyz[0] + diff[0] < _loadDiameter && xyz[0] + diff[0] >= 0 &&
-						xyz[1] + diff[1] < _loadDiameter && xyz[1] + diff[1] >= 0 &&
-						xyz[2] + diff[2] < _loadDiameter && xyz[2] + diff[2] >= 0)
+		#pragma omp parallel
+		{
+			uint8_t nThreads = omp_get_num_threads();
+			uint8_t threadId = omp_get_thread_num();
+
+			std::vector<int32_t> xyz(3);
+			for (xyz[0] = threadId; xyz[0] < _loadDiameter; xyz[0] += nThreads)
+				for (xyz[1] = 0; xyz[1] < _loadDiameter; ++xyz[1])
+					for (xyz[2] = 0; xyz[2] < _loadDiameter; ++xyz[2])
 					{
-						auto idx1 = _getIdx(xyz);
-						auto idx2 = _getIdx({ xyz[0] + diff[0], xyz[1] + diff[1], xyz[2] + diff[2] });
-						_chunks[idx1] = temp[idx2];
+						if (xyz[0] + diff[0] < _loadDiameter && xyz[0] + diff[0] >= 0 &&
+							xyz[1] + diff[1] < _loadDiameter && xyz[1] + diff[1] >= 0 &&
+							xyz[2] + diff[2] < _loadDiameter && xyz[2] + diff[2] >= 0)
+						{
+							auto idx1 = _getIdx(xyz);
+							auto idx2 = _getIdx({ xyz[0] + diff[0], xyz[1] + diff[1], xyz[2] + diff[2] });
+							_chunks[idx1] = temp[idx2];
+						}
+						else
+						{
+							std::vector<int32_t> cAbsPos = _getAbsPos(xyz);
+							auto id = _getIdx(xyz);
+							_loadChunk(cAbsPos, id);
+						}
 					}
-					else
-					{
-						std::vector<int32_t> cAbsPos = _getAbsPos(xyz);
-						auto id = _getIdx(xyz);
-						_loadChunk(cAbsPos, id);
-					}
-				}
+
+			#pragma omp barrier
+		}
 
 		return true;
 	}
@@ -97,29 +107,47 @@ bool VoxelMap::checkAndLoad(const std::vector<int32_t>& pos)
 
 std::vector<uint8_t> VoxelMap::getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius, bool alignToFourBytes)
 {
-	uint32_t cubeSide = 2 * radius + 1;
-	uint32_t nChunks = cubeSide * cubeSide * cubeSide;
+	int32_t cubeSide = 2 * radius + 1;
+	int32_t nChunks = cubeSide * cubeSide * cubeSide;
 
-	uint32_t nChunkBytes = _format.chunkFormat.getSizeInBytes(alignToFourBytes);
-	uint32_t nTotalChunkBytes = nChunks * nChunkBytes;
-	std::vector<uint8_t> chunkData(nTotalChunkBytes, 0);
-	auto chunkDataPtr = chunkData.data();
+	int32_t voxelBytes = pow(_chunkSide, 3) * _format.voxelFormat.getSizeInBytes(alignToFourBytes);
 
-	std::vector<uint8_t> voxData;
+	int32_t nChunkBytes = _format.chunkFormat.getSizeInBytes(alignToFourBytes);
+	int32_t nTotalChunkBytes = nChunks * nChunkBytes;
 
-	for (int32_t x = -radius; x <= radius; ++x)
-		for (int32_t y = -radius; y <= radius; ++y)
-			for (int32_t z = -radius; z <= radius; ++z)
-			{
-				auto chunk = getChunk({ x, y, z });
-				auto header = _format.chunkFormat.formatChunkHeader(chunk, chunkData.size() + voxData.size(), getChunkParals({ x, y, z }), alignToFourBytes);
-				auto voxels = _format.chunkFormat.formatChunk(chunk, alignToFourBytes);
+	std::vector<uint8_t> chunkData(nChunkBytes * nChunks, 0);
 
-				memcpy(chunkDataPtr, header.data(), nChunkBytes);
-				chunkDataPtr += nChunkBytes;
+	std::vector<uint8_t> voxData(voxelBytes * nChunks);
 
-				voxData = utils::joinVectors(voxData, voxels);
-			}
+    #pragma omp parallel
+	{
+		int32_t nThreads = omp_get_num_threads();
+		int32_t threadId = omp_get_thread_num();
+
+		auto chunkDataPtr = chunkData.data() + cubeSide * cubeSide * nChunkBytes * threadId;
+		auto voxDataPtr = voxData.data() + cubeSide * cubeSide * voxelBytes * threadId;
+
+		for (int32_t x = -radius + threadId; x <= radius; x += nThreads)
+		{
+			for (int32_t y = -radius; y <= radius; ++y)
+				for (int32_t z = -radius; z <= radius; ++z)
+				{
+					auto chunk = getChunk({ x, y, z });
+					auto header = _format.chunkFormat.formatChunkHeader(chunk, chunkData.size() + (uint32_t)(voxDataPtr - voxData.data()), getChunkParals({ x, y, z }), alignToFourBytes);
+					auto voxels = _format.chunkFormat.formatChunk(chunk, alignToFourBytes);
+
+					memcpy(chunkDataPtr, header.data(), nChunkBytes);
+					chunkDataPtr += nChunkBytes;
+
+					memcpy(voxDataPtr, voxels.data(), voxelBytes);
+					voxDataPtr += voxelBytes;
+				}
+			voxDataPtr += cubeSide * cubeSide * voxelBytes * (nThreads - 1);
+			chunkDataPtr += cubeSide * cubeSide * nChunkBytes * (nThreads - 1);
+		}
+
+		#pragma omp barrier
+	}
 
 	return utils::joinVectors(chunkData, voxData);
 }
@@ -131,13 +159,22 @@ void VoxelMap::setAbsPos(const std::vector<int32_t>& absPos)
 
 void VoxelMap::_loadChunks()
 {
-	std::vector<int32_t> xyz(3);
-	for (xyz[0] = 0; xyz[0] < _loadDiameter; xyz[0]++)
-		for (xyz[1] = 0; xyz[1] < _loadDiameter; xyz[1]++)
-			for (xyz[2] = 0; xyz[2] < _loadDiameter; xyz[2]++)
-			{
-				_loadChunk(_getAbsPos(xyz), _getIdx(xyz));
-			}
+	#pragma omp parallel
+	{
+		int32_t nThreads = omp_get_num_threads();
+		int32_t threadId = omp_get_thread_num();
+
+		std::vector<int32_t> xyz(3);
+		for (xyz[0] = threadId; xyz[0] < _loadDiameter; xyz[0] += nThreads)
+			for (xyz[1] = 0; xyz[1] < _loadDiameter; xyz[1]++)
+				for (xyz[2] = 0; xyz[2] < _loadDiameter; xyz[2]++)
+				{
+					_loadChunk(_getAbsPos(xyz), _getIdx(xyz));
+				}
+
+		#pragma omp barrier
+	}
+	
 }
 
 void VoxelMap::_loadChunk(const std::vector<int32_t>& pos, uint32_t id)
