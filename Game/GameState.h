@@ -30,6 +30,7 @@ public:
 	void updateRot();
 	void updateTrans();
 
+	const std::list<std::shared_ptr<GameData>> getGameData() const;
 	const std::shared_ptr<GameData> getGameData(uint8_t key) const;
 	const glm::vec2& getRot() { return _curRot; }
 	const glm::vec3& getTrans() { return _cam.pos; }

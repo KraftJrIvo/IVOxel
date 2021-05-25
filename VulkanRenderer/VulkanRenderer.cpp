@@ -1,5 +1,4 @@
 #include "VulkanRenderer.h"
-#include "Window.h"
 #include "Vertex.h"
 
 #include "FPSCounter.h"
@@ -11,11 +10,10 @@
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp>
 
-Window window(512, 512, L"test");
-
 #define FPS_LIMIT 144
 
-VulkanRenderer::VulkanRenderer() :
+VulkanRenderer::VulkanRenderer(Window& w, GameState& gs) :
+	AbstractRenderer(w, gs, true),
 #ifdef _DEBUG
 	_vulkan(
 		{ "VK_LAYER_KHRONOS_validation" }, 
@@ -28,31 +26,7 @@ VulkanRenderer::VulkanRenderer() :
 	)
 #endif
 {
-	_surface.init(_vulkan, window);
-}
-
-VulkanRenderer::~VulkanRenderer()
-{
-	auto device = _vulkan.getDevice().get();
-
-	for (uint32_t i = 0; i < _swapchain.getImgCount(); ++i)
-	{
-		vkDestroySemaphore(_mainDevice.get(), _semImgAvailable[i], nullptr);
-		vkDestroySemaphore(_mainDevice.get(), _semRenderDone[i], nullptr);
-		vkDestroyFence(_mainDevice.get(), _frameFences[i], nullptr);
-	}
-
-	_shaderManager.destroy(_mainDevice);
-	_descrPool.destroy(_mainDevice);
-
-	_clearEnv();
-
-	_surface.destroy(_vulkan);
-}
-
-void VulkanRenderer::init(GameState& gs)
-{
-	_game = gs;
+	_surface.init(_vulkan, _window);
 
 	std::vector<uint32_t> queueFamilies = { VK_QUEUE_GRAPHICS_BIT, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT };
 	std::vector<VkPhysicalDeviceType> deviceTypesByPriority = { VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU };
@@ -76,6 +50,25 @@ void VulkanRenderer::init(GameState& gs)
 	}
 }
 
+VulkanRenderer::~VulkanRenderer()
+{
+	auto device = _vulkan.getDevice().get();
+
+	for (uint32_t i = 0; i < _swapchain.getImgCount(); ++i)
+	{
+		vkDestroySemaphore(_mainDevice.get(), _semImgAvailable[i], nullptr);
+		vkDestroySemaphore(_mainDevice.get(), _semRenderDone[i], nullptr);
+		vkDestroyFence(_mainDevice.get(), _frameFences[i], nullptr);
+	}
+
+	_shaderManager.destroy(_mainDevice);
+	_descrPool.destroy(_mainDevice);
+
+	_clearEnv();
+
+	_surface.destroy(_vulkan);
+}
+
 void VulkanRenderer::startRender()
 {
 	auto queue = _mainDevice.getQueueByType(VK_QUEUE_GRAPHICS_BIT);
@@ -83,7 +76,7 @@ void VulkanRenderer::startRender()
 	auto cbBeginInfo = vkTypes::getCBBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
-	auto ra = window.getRenderArea();
+	auto ra = _window.getRenderArea();
 	VkRect2D renderArea = { ra.x, ra.y, ra.z, ra.w };
 	std::vector<VkClearValue> clearVals(2);
 	clearVals[0].depthStencil.depth = 1.0f;
@@ -101,18 +94,21 @@ void VulkanRenderer::startRender()
 
 	uint32_t frameID = 0;
 
+	for (int i = 0; i < _swapchain.getImgCount(); ++i)
+		_gs.update(EVERY_INIT, &_descrPool, i);
+
 	while (_runOnce())
 	{
 		fpsCounter.tellFPS(1000);
 
-		if (window.wasResized())
+		if (_window.wasResized())
 		{
 			do
 			{
-				ra = window.getRenderArea();
-				renderArea = { ra.x, ra.y, ra.z, ra.w };
+				ra = _window.getRenderArea();
+				renderArea.offset.x = ra.x; renderArea.offset.y = ra.y; renderArea.extent.width = ra.z; renderArea.extent.height = ra.w;
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
-				window.Update();
+				_window.Update();
 			} 
 			while (!renderArea.extent.width || !renderArea.extent.height);
 			_recreateEnv();
@@ -143,14 +139,14 @@ void VulkanRenderer::startRender()
 
 		_transitionImageLayout(_commandBuffs[frameID], _images[frameID], _surface.getFormat().format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
 		_transitionImageLayout(_commandBuffs[frameID], _swapchain.getImgs()[frameID], _surface.getFormat().format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		_blitImage(_commandBuffs[frameID], _images[frameID], _swapchain.getImgs()[frameID], renderArea.extent.width, renderArea.extent.height, window.getRenderScale());
+		_blitImage(_commandBuffs[frameID], _images[frameID], _swapchain.getImgs()[frameID], renderArea.extent.width, renderArea.extent.height, _window.getRenderScale());
 		_transitionImageLayout(_commandBuffs[frameID], _swapchain.getImgs()[frameID], _surface.getFormat().format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
 		vkEndCommandBuffer(_commandBuffs[frameID]);
 
 		vkResetFences(_mainDevice.get(), 1, &_frameFences[frameID]);
 
-		_game.update(&_descrPool, frameID);
+		_gs.update(EVERY_FRAME, &_descrPool, frameID);
 
 		std::vector<VkSemaphore> waitSemaphores = { _semImgAvailable[frameID] };
 		std::vector<VkSemaphore> signalSemaphores = { _semRenderDone[frameID] };
@@ -171,7 +167,7 @@ void VulkanRenderer::startRender()
 
 bool VulkanRenderer::_runOnce()
 {
-	return window.Update();
+	return _window.Update();
 }
 
 void VulkanRenderer::_beginRender(uint32_t frameID)
@@ -195,7 +191,7 @@ void VulkanRenderer::_endRender(uint32_t frameID)
 
 void VulkanRenderer::stop()
 {
-	window.Close();
+	_window.Close();
 }
 
 void VulkanRenderer::_initSync()
@@ -239,23 +235,23 @@ void VulkanRenderer::_initEnv()
 {
 	if (_firstInit)
 	{
-		_game.init(&window);
 		_geomBuffs.init(_mainDevice);
 		_initShaders();
-		_descrPool.initLayouts(_mainDevice, _game.getGameData());
+		_descrPool.initLayouts(_mainDevice, _gs.getGameData());
 	}
 
 	_surface.initFormat(_mainDevice);
-	_swapchain.init(_mainDevice, _surface, window.getSizeScaled(), window.getRenderScale());
-	_images.init(_mainDevice, _surface, _swapchain, window.getSizeScaled(), window.getRenderScale());
+	_swapchain.init(_mainDevice, _surface, _window.getSizeScaled(), _window.getRenderScale());
+	_images.init(_mainDevice, _surface, _swapchain, _window.getSizeScaled(), _window.getRenderScale());
 	_dsImg.init(_mainDevice, _surface);
 	
 	auto shaderInfos = _shaderManager.getShaderStageCreateInfos({{ShaderType::VERTEX, "square"}, {ShaderType::FRAGMENT, "ray"}});
 	
 	_renderPass.init(_mainDevice, _dsImg.getFormat(), _surface.getFormat().format);
-	auto ra = window.getRenderAreaScaled();
-	_pipeline.init(_mainDevice, _renderPass, {ra.x, ra.y, ra.z, ra.w}, _descrPool.getLayouts(), shaderInfos);
-	_frameBuffs.init(_mainDevice, _renderPass, window.getSizeScaled(), _dsImg.getImgView(), _images.getImgViews());
+	auto ra = _window.getRenderAreaScaled();
+	VkRect2D r2d; r2d.offset.x = ra.x; r2d.offset.y = ra.y; r2d.extent.width = ra.z; r2d.extent.height = ra.w;
+	_pipeline.init(_mainDevice, _renderPass, r2d, _descrPool.getLayouts(), shaderInfos);
+	_frameBuffs.init(_mainDevice, _renderPass, _window.getSizeScaled(), _dsImg.getImgView(), _images.getImgViews());
 	_commandBuffs.init(_mainDevice, _swapchain.getImgCount());
 
 	if (_firstInit)

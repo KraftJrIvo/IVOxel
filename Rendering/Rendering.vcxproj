@@ -20,7 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CPURenderer.h" />
-    <ClInclude Include="IVoxelRenderer.h" />
+    <ClInclude Include="AbstractRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CPURenderer.cpp" />

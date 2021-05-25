@@ -65,6 +65,15 @@ void GameState::updateTrans()
 	_cam.translate(glm::mat3(rotmat) * getTransDelta() / 100.0f);
 }
 
+const std::list<std::shared_ptr<GameData>> GameState::getGameData() const
+{
+	std::list<std::shared_ptr<GameData>> list;
+	for (auto& gd : _gameData) {
+		list.push_back(gd.second);
+	}
+	return list;
+}
+
 const std::shared_ptr<GameData> GameState::getGameData(uint8_t key) const
 {
 	if (_gameData.count(key)) 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <IVoxelRenderer.h>
+#include <AbstractRenderer.h>
 
 #include <GameState.h>
 
@@ -17,13 +17,12 @@
 #include "VulkanCommandBuffers.h"
 #include "VulkanDepthStencilImage.h"
 
-class VulkanRenderer : public IVoxelRenderer
+class VulkanRenderer : public AbstractRenderer
 {
 public:
-	VulkanRenderer();
+	VulkanRenderer(Window& w, GameState& gs);
 	~VulkanRenderer();
 	
-	void init(GameState& gs);
 	void startRender() override;
 	void stop() override;
 
@@ -42,8 +41,6 @@ private:
 	VulkanGeometryBuffers _geomBuffs;
 	VulkanFrameBuffers _frameBuffs;
 	VulkanCommandBuffers _commandBuffs;
-
-	GameState _game;
 
 	uint32_t _currentSwapchainImgID;
 	std::vector<VkSemaphore> _semImgAvailable;
