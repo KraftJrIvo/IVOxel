@@ -204,6 +204,11 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
                 {
                     vec3 dirToLight = lCoord - absRayStart;
                     float lightDist = length(dirToLight);
+                    float distCoeff = (1.0f - (lightDist / 1.5f));
+
+                    if (lightDist > 1.5)
+                        continue;
+
                     dirToLight = normalize(dirToLight);
 
                     vec3 lightHitPoint, n, c;
@@ -211,7 +216,7 @@ bool VoxelMapRayTracer::_raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& 
 
                     float diff = length(lightHitPoint - absRayStart);
                     if (diff < _epsilon * 50.0f)
-                        color = voxel.material->shade(color, voxColor, absRayStart, normal, dirToLight, lColor);
+                        color = voxel.material->shade(color, voxColor, absRayStart, normal, dirToLight, lColor * distCoeff);
                 }
                 else
                     break;

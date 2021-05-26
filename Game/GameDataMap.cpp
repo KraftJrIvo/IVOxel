@@ -13,7 +13,7 @@ void GameDataMap::update(GameState& game, uint32_t dataID, GameDataContainer* co
 {
 	auto& cam = game.getCam();
 	std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
-	auto mapData = game.getMap().getChunksDataAt(pos, game.getMap().getLoadRadius(), alignToFourBytes);
+	auto mapData = game.getMap().getChunksData(game.getMap().getLoadRadius(), alignToFourBytes);
 
 	checkAndAllocate();
 

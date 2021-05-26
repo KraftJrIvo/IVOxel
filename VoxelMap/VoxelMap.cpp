@@ -61,7 +61,7 @@ uint32_t VoxelMap::getMapDataSize(bool alignToFourBytes)
 	return pow(_loadDiameter, 3) * _format.getSizeInBytes(pow(_chunkSide, 3), alignToFourBytes);
 }
 
-bool VoxelMap::checkAndLoad(const std::vector<int32_t>& pos)
+bool VoxelMap::checkAndLoad(const std::vector<int32_t>& pos, bool alignToFourBytes)
 {
 	if (_curAbsPos[0] != pos[0] || _curAbsPos[1] != pos[1] || _curAbsPos[2] != pos[2])
 	{
@@ -98,6 +98,17 @@ bool VoxelMap::checkAndLoad(const std::vector<int32_t>& pos)
 					}
 
 			#pragma omp barrier
+
+			for (xyz[0] = threadId; xyz[0] < _loadDiameter; xyz[0] += nThreads)
+				for (xyz[1] = 0; xyz[1] < _loadDiameter; ++xyz[1])
+					for (xyz[2] = 0; xyz[2] < _loadDiameter; ++xyz[2])
+					{
+						auto id = _getIdx(xyz);
+						_prepChunk(xyz, id, alignToFourBytes);
+					}
+
+
+			#pragma omp barrier
 		}
 
 		return true;
@@ -105,7 +116,7 @@ bool VoxelMap::checkAndLoad(const std::vector<int32_t>& pos)
 	return false;
 }
 
-std::vector<uint8_t> VoxelMap::getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius, bool alignToFourBytes)
+std::vector<uint8_t> VoxelMap::getChunksData(uint8_t radius, bool alignToFourBytes)
 {
 	int32_t cubeSide = 2 * radius + 1;
 	int32_t nChunks = cubeSide * cubeSide * cubeSide;
@@ -133,8 +144,8 @@ std::vector<uint8_t> VoxelMap::getChunksDataAt(const std::vector<int32_t>& absPo
 				for (int32_t z = -radius; z <= radius; ++z)
 				{
 					auto chunk = getChunk({ x, y, z });
-					auto header = _format.chunkFormat.formatChunkHeader(chunk, chunkData.size() + (uint32_t)(voxDataPtr - voxData.data()), getChunkParals({ x, y, z }), alignToFourBytes);
-					auto voxels = _format.chunkFormat.formatChunk(chunk, alignToFourBytes);
+					auto header = _format.chunkFormat.formatChunkHeader(chunk, chunkData.size() + (uint32_t)(voxDataPtr - voxData.data()), chunk.parals, alignToFourBytes);
+					auto voxels = chunk.data;
 
 					memcpy(chunkDataPtr, header.data(), nChunkBytes);
 					chunkDataPtr += nChunkBytes;
@@ -157,7 +168,7 @@ void VoxelMap::setAbsPos(const std::vector<int32_t>& absPos)
 	_curAbsPos = absPos;
 }
 
-void VoxelMap::_loadChunks()
+void VoxelMap::_loadChunks(bool alignToFourBytes)
 {
 	#pragma omp parallel
 	{
@@ -173,8 +184,23 @@ void VoxelMap::_loadChunks()
 				}
 
 		#pragma omp barrier
+
+		for (xyz[0] = threadId; xyz[0] < _loadDiameter; xyz[0] += nThreads)
+			for (xyz[1] = 0; xyz[1] < _loadDiameter; xyz[1]++)
+				for (xyz[2] = 0; xyz[2] < _loadDiameter; xyz[2]++)
+				{
+					_prepChunk(xyz, _getIdx(xyz), alignToFourBytes);
+				}
+
+		#pragma omp barrier
 	}
 	
+}
+
+void VoxelMap::_prepChunk(const std::vector<int32_t>& locPos, uint32_t id, bool alignToFourBytes)
+{
+	_chunks[id]->parals = getChunkParals({ locPos[0] - _loadRadius, locPos[1] - _loadRadius, locPos[2] - _loadRadius });
+	_chunks[id]->data = _format.chunkFormat.formatChunk(*_chunks[id], alignToFourBytes);
 }
 
 void VoxelMap::_loadChunk(const std::vector<int32_t>& pos, uint32_t id)

@@ -16,7 +16,7 @@ public:
 	VoxelMapFormat getFormat() const;
 	VoxelTypeStorer& getVoxelTypeStorer();
 	VoxelChunk& getChunk(const std::vector<int32_t>& relPos);
-	std::vector<uint8_t> getChunksDataAt(const std::vector<int32_t>& absPos, uint8_t radius, bool alignToFourBytes = true);
+	std::vector<uint8_t> getChunksData(uint8_t radius, bool alignToFourBytes = true);
 	std::vector<uint8_t> getChunkParals(const std::vector<int32_t>& pos);
 	std::vector<uint8_t> getLightDataAt(const std::vector<int32_t>& absPos, uint8_t radius, float time = 0.0f) const;
 
@@ -29,7 +29,7 @@ public:
 	void moveLight(uint32_t lightID, const std::vector<float>& absPos);
 	void removeLight(uint32_t lightID);
 
-	bool checkAndLoad(const std::vector<int32_t>& pos);
+	bool checkAndLoad(const std::vector<int32_t>& pos, bool alignToFourBytes = true);
 
 	void setAbsPos(const std::vector<int32_t>& absPos);
 
@@ -55,8 +55,9 @@ protected:
 
 	uint32_t _getIdx(const std::vector<int32_t>& pos) const;
 	std::vector<int32_t> _getAbsPos(const std::vector<int32_t>& pos) const;
-	void _loadChunks();
-	void _loadChunk(const std::vector<int32_t>& pos, uint32_t id);
+	void _loadChunks(bool alignToFourBytes = true);
+	void _loadChunk(const std::vector<int32_t>& absPos, uint32_t id);
+	void _prepChunk(const std::vector<int32_t>& locPos, uint32_t id, bool alignToFourBytes = true);
 	
 	bool _checkParal(std::vector<int16_t> from, std::vector<int16_t> to);
 	bool _checkParalDist(std::vector<int16_t> from, std::vector<int16_t> to, const std::vector<int8_t>& dir);

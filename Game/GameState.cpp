@@ -25,7 +25,7 @@ GameState::GameState(Window* window, VoxelMap& map) :
 
 	_gameData = { 
 		{CAMERA, std::make_shared<GameDataCamera>()},
-		{LIGHTING, std::make_shared<GameDataLight>(10)},
+		{LIGHTING, std::make_shared<GameDataLight>(map.getMaxLights())},
 		{LOCAL_MAP, std::make_shared<GameDataMap>(map.getMapDataSize(true))},
 		{CONSTANTS, std::make_shared<GameDataConst>(map.getLoadRadius(), map.getMaxLights(), 0.00001)}
 	};

@@ -32,7 +32,7 @@ int main()
 	VCGeneratorSin generator;
 	generator.setGroundType({ vts.getShape(2), vts.getMaterial(1) });
 
-	VoxelMap map(format, generator, 4, 2);
+	VoxelMap map(format, generator, 4, 7, 100);
 	
 	GameState game(&w, map);
 

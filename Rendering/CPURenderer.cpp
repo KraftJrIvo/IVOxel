@@ -51,7 +51,7 @@ void CPURenderer::startRender()
 
 		std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
 		
-		if (map.checkAndLoad(pos) || _firstRender)
+		if (map.checkAndLoad(pos, false) || _firstRender)
 		{
 			_gs.update(EVERY_LOAD, &_raytracer);
 			map.setAbsPos(pos);

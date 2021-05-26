@@ -40,6 +40,9 @@ public:
 	float minOffset;
 	bool empty;
 
+	std::vector<uint8_t> parals;
+	std::vector<uint8_t> data;
+
 	VoxelChunkFormat format;
 	VoxelFormat voxFormat, voxFormatForPyr;
 	VoxelChunkPyramid pyramid;
