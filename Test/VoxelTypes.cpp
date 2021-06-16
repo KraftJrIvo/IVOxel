@@ -33,7 +33,7 @@ uint32_t TestVoxelTypeCoder::encodeMaterial(std::shared_ptr<VoxelMaterial> mat)
 bool ShapeCube::raytrace(glm::vec3 start, glm::vec3 dir, VoxelNeighbours neighs, glm::vec3& hit, glm::vec3& normal)
 {
 	glm::vec3 g = start - glm::vec3(0.5f, 0.5f, 0.5f);
-	if (g.x == g.y == g.z == 0) {
+	if (g.x == 0 && g.y == 0 && g.z == 0) {
 		float maxD = std::max(dir[0], std::max(dir[1], dir[2]));
 		for (uint8_t i = 0; i < 3; ++i)
 			if (dir[i] == maxD)

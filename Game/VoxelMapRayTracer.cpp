@@ -140,7 +140,7 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
             }
         }
         vec3 absCoordVox = {0,0,0};
-        _marchAndGetNextDir(rayDir, stepsToTake, ivec2(0, sideSteps), voxelState.parals.data(), marchFinish, marchPos, lastRes, absCoordVox);
+        _marchAndGetNextDir(rayDir, 1, ivec2(0, sideSteps), voxelState.parals.data(), marchFinish, marchPos, lastRes, absCoordVox);
         absCoord += absCoordVox * voxRatio;
         curVoxPos = ivec3(floor(marchPos));
         keepTracing = !marchFinish;
