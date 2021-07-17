@@ -41,9 +41,6 @@ glm::vec3 VoxelMapRayTracer::raytracePixel(glm::vec2 xy, glm::vec3& normal, glm:
     vec3 start = { fract(cam->pos.x), fract(cam->pos.y), fract(cam->pos.z) };
     vec3 dir = mat3(cam->mvp) * coords;
 
-    int bounces = 1;
-    float len = 0;
-
     return raytraceMap(start, dir, normal, color);
 }
 

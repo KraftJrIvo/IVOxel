@@ -5,31 +5,39 @@ layout(location = 0) in vec3 fragColor;
 
 layout(location = 0) out vec4 outColor;
 
-layout(set = 0, binding = 0) uniform ViewShaderData {
-    mat4 mvp;
-    vec2 resolution;
-    float time;
-    float fov;
+layout(set = 0, binding = 0) uniform CameraData {
     vec3 pos;
-} view;
+    mat4 mvp;
+    vec2 res;
+    float fov;
+} cam;
 
-layout(set = 1, binding = 0) uniform LightingShaderData {
-    vec4 coords[16];
-    vec4 colors[16];
-    int nLights;
+layout(set = 1, binding = 0) uniform LightData {
+    vec4 data[2 * 100];
 } light;
 
-layout(set = 2, binding = 0) uniform MapShaderData {
-    vec4 chunkOffsets[8];
-    uvec4 chunks[4096 / 16];
+const int VOX_SIZE = 32;
+const int CHUNK_SIZE = 32;
+const int MAP_DATA_SIZE = 7020000 / 4;
+layout(set = 2, binding = 0) uniform MapData {
+    uvec4 data[MAP_DATA_SIZE];
 } map;
+
+const int LOAD_RADIUS = 0;
+const int MAX_LIGHTS = 1;
+const int EPSILON = 2;
+layout(set = 3, binding = 0) uniform ConstData {
+    vec4 data;
+} constants;
+
+//---UTILS-------------------------------------------------------------------------------------------------------
 
 uint get_uint(uint start_byte_ix)
 {
   uint uint_in_vec = (start_byte_ix / 4) % 4;
   uint vec_ix = start_byte_ix / 16;
 
-  return map.chunks[vec_ix][uint_in_vec];
+  return map.data[vec_ix][uint_in_vec];
 }
 
 int get_byte(uint byte_ix, bool signed)
@@ -44,74 +52,100 @@ int get_byte(uint byte_ix, bool signed)
   return int(result);
 }
 
-int get_word(uint byte_ix, bool signed)
+//---MAP-UTILS---------------------------------------------------------------------------------------------------
+
+bool checkMapBounds(vec3 absPos)
 {
-  uint byte1 = get_byte(byte_ix, false);
-  uint byte2 = get_byte(byte_ix + 1, false);
-
-  uint result = (byte2 << 8) + byte1;
-
-  if (signed && (byte2 & 0x80) > 0)
-     return int(result) - 0x10000;
-  return int(result);
+    float chunkLoadRadius = constants.data[LOAD_RADIUS];
+    for (int i = 0; i < 3; ++i)
+        if (absPos[i] < -chunkLoadRadius || absPos[i] >= chunkLoadRadius + 1.0f)
+            return true;
+    return false;
 }
 
-int get_dword(uint start_byte_ix, bool signed)
+bool checkChunkBounds(vec3 pos, float steps)
 {
-  uint byte1 = get_byte(start_byte_ix, false);
-  uint byte2 = get_byte(start_byte_ix + 1, false);
-  uint byte3 = get_byte(start_byte_ix + 2, false);
-  uint byte4 = get_byte(start_byte_ix + 3, false);
-
-  uint result = (byte4 << 8 * 3) + (byte3 << 8 * 2) + (byte2 << 8) + byte1;
-
-  if (signed && (byte4 & 0x80) > 0)
-     return int(result) - 0xFFFFFFFF - 1;
-  return int(result);
+    for (int i = 0; i < 3; ++i)
+        if (pos[i] < 0 || pos[i] >= steps)
+            return true;
+    return false;
 }
 
-float calculateDist(vec3 start, vec3 end, float div)
+void getChunkState(uint off, inout bool fullness, inout uint voxOff, inout uint side, inout uvec3 parals[8]) 
 {
-	vec3 pos = end - start;
-
-	float val = length(pos);
-
-	if (div != 1.0f)
-		val /= div;
-
-	return val;
+    fullness = get_byte(off, false) > 0;
+    voxOff = get_uint(off + 1);
+    side = get_byte(off + 5, false);
+    for (int i = 0; i < 8; ++i)
+        for (int j = 0; j < 3; ++j)
+            parals[i][j] = get_uint(off + 6 + 3 * i + j);
 }
 
-#define EPSILON 0.000001
+void getVoxelState(uint off, inout bool fullness, inout uint size, inout uint neighs, inout uvec3 parals[8]) 
+{
+    fullness = get_byte(off, false) > 0;
+    size = get_uint(off + 1);
+    neighs = get_uint(off + 2);
+    for (int i = 0; i < 8; ++i)
+        for (int j = 0; j < 3; ++j)
+            parals[i][j] = get_uint(off + 6 + 3 * i + j);
+}
+
+void unformatVoxel(uint off, inout uint size, inout uint shape, inout uint material, inout vec3 color)
+{
+    size = get_byte(off + 1, false);
+    shape = get_byte(off + 2, false);
+    material = get_byte(off + 3, false);
+    color.r = get_byte(off + 4, false);
+    color.g = get_byte(off + 5, false);
+    color.b = get_byte(off + 6, false);
+}
+
+void getLight(uint off, inout uint type, vec3 coord, vec4 color)
+{
+    vec4 l1 = light.data[2 * off];
+    type = uint(l1[0]);
+    coord = l1.yzw;
+    color = light.data[2 * off + 1];
+}
+
+//---TRACE-UTILS-------------------------------------------------------------------------------------------------
 
 vec3 getCurEntryPoint(vec3 absPos, float side, vec3 lastRes)
 {
-	vec3 result = vec3(0, 0, 0);
-
-	vec3 curPos = absPos / side;
+    float epsilon = constants.data[EPSILON];
+    vec3 result = vec3(0);
+    vec3 curPos = absPos / side;
 
     for (int i = 0; i < 3; ++i)
     {
         while (curPos[i] < 0) curPos[i] += 1.0;
-        result[i] = (lastRes[i] < 0) ? 1.0 - EPSILON : (curPos[i] - floor(curPos[i]));
+        result[i] = (lastRes[i] < 0) ? 1.0 - epsilon : (curPos[i] - floor(curPos[i]));
     }
 
-	return result;
+    return result;
 }
 
-vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, inout bool finish, inout vec3 absPos, inout vec3 lastRes, inout float len)
+vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, uvec3 parals[8], inout bool finish, inout vec3 absPos, inout vec3 lastRes, inout vec3 absCoord)
 {
+    float epsilon = constants.data[EPSILON];
+
     vec3 isNeg;
     for (int i = 0; i < 3; ++i)
         isNeg[i] = dir[i] < 0 ? 1.0 : 0.0;
-    
+
     vec3 vecStart = getCurEntryPoint(absPos, side, lastRes);
+
+    vec3 vec = vec3(1.0, 2.0, 4.0) * (vec3(1,1,1) - isNeg);
+    int paralN = int(vec.x + vec.y + vec.z);
+    vec3 paral = vec3(parals[paralN]);
 
     vec3 path;
     for (int i = 0; i < 3; ++i)
     {
-        path[i] = (isNeg[i] != 0) ? -vecStart[i] : (1.0 - vecStart[i]);
-        path[i] = (path[i] == 0) ? EPSILON : path[i];
+        if (side > 1 && paral[i] > 0) paral[i] -= side - 1.0f;
+        path[i] = (isNeg[i] != 0) ? (-side * vecStart[i] - float(paral[i])) : (paral[i] + side * (1.0f - vecStart[i]));
+        path[i] = (path[i] == 0) ? epsilon : path[i];
     }
 
     vec3 diffs = dir / path;
@@ -119,62 +153,45 @@ vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, inout bool finish, i
 
     vec3 result;
     for (int i = 0; i < 3; ++i)
-        result[i] = (1.0 - 2.0 * isNeg[i]) * (abs(maxDiff - diffs[i]) < EPSILON ? 1.0 : 0.0);
+        result[i] = (1.0 - 2.0 * isNeg[i]) * (abs(maxDiff - diffs[i]) < epsilon ? 1.0 : 0.0);
 
     vec3 intersection;
     for (int i = 0; i < 3; ++i)
     {
         int otherCoord1 = (i == 0) ? 1 : 0;
         int otherCoord2 = (i == 2) ? 1 : 2;
-    	intersection[i] = (result[i] != 0) ? 
-    		((isNeg[i] == 0 ? 1.0 : 0) - vecStart[i]) : 
-    		((result[otherCoord1] != 0) ? 
-    			(path[otherCoord1] * dir[i] / dir[otherCoord1]) : 
-    			(path[otherCoord2] * dir[i] / dir[otherCoord2]));
-        absPos[i] += intersection[i] * side;
-        if (isNeg[i] != 0)
-            absPos[i] -= EPSILON;
-
-        finish = finish || ((absPos[i] - EPSILON <= minmax[0] && dir[i] < 0) || (absPos[i] >= minmax[1] && dir[i] > 0));
+        intersection[i] = (abs(result[i]) != 0) ? 
+            ((isNeg[i] == 0 ? (side + paral[i]) : -float(paral[i])) - side * vecStart[i]) :
+            ((abs(result[otherCoord1]) != 0) ?
+                (path[otherCoord1] * dir[i] / dir[otherCoord1]) :
+                (path[otherCoord2] * dir[i] / dir[otherCoord2]));
+        absPos[i] += intersection[i];
+        absPos[i] += epsilon * (1.0 - 2.0 * isNeg[i]);
+        finish = finish || ((absPos[i] - epsilon <= minmax[0] && dir[i] < 0) || (absPos[i] >= minmax[1] && dir[i] > 0));
     }
 
-    len += length(intersection);
+    absCoord += intersection / side;
 
     lastRes = result;
-	return result;
+    return result;
 }
 
-int getChunkOffset(vec3 pos)
-{
-    if (pos.x >= -1 && pos.x <= 1 && pos.y >= -1 && pos.y <= 1 && pos.z >= -1 && pos.z <= 1)
-    {
-        int id = int(pos.z + 1) * 9 + int(pos.y + 1) * 3 + int(pos.x + 1);
-        int vecId = id / 4;
-        int elemId = id % 4;
-        return int(map.chunkOffsets[vecId][elemId]);
-    }
-    return -1;
-}
-
-const uint MAX_VOX_POW = 5;
-const uint DIM = 3;
-
-float raytrace_cube(vec3 orig, vec3 dir, inout vec3 hit, inout vec3 normal)
+bool raytrace_cube(vec3 orig, vec3 dir, inout vec3 hit, inout vec3 normal)
 {
 	vec3 g = orig - vec3(0.5f, 0.5f, 0.5f);
 	vec3 gabs = vec3(abs(g[0]), abs(g[1]), abs(g[2]));
 	float maxG = max(gabs[0], max(gabs[1], gabs[2]));
-	for (uint i = 0; i < DIM; ++i)
+	for (uint i = 0; i < 3; ++i)
 		if (gabs[i] == maxG)
 		{
 			normal[i] = g[i] / 0.5f;
-			normal[(i + 1) % DIM] = 0;
-			normal[(i + 2) % DIM] = 0;
+			normal[(i + 1) % 3] = 0;
+			normal[(i + 2) % 3] = 0;
 			break;
 		}
 	hit = orig;
 
-	return 0;
+	return true;
 }
 
 
@@ -238,403 +255,211 @@ float getSphereIntersectionDist(vec3 orig, vec3 dir)
 	return t0;
 }
 
-float raytrace_sphere(vec3 orig, vec3 dir, inout vec3 hit, inout vec3 normal)
+bool raytrace_sphere(vec3 orig, vec3 dir, inout vec3 hit, inout vec3 normal)
 {
     float len = getSphereIntersectionDist(orig, dir);
 	hit = orig + dir * len;
 	vec3 center = { 0.5f, 0.5f, 0.5f };
 	normal = hit - center;
 
-	return len;
+	return len >= 0;
 }
 
-void raytraceMap2(vec3 rayStart, vec3 rayDir, inout int bounces, inout float len);
-
-const uint bytesForLayer[4][MAX_VOX_POW + 1] = 
+bool raytrace(uint type, vec3 start, vec3 dir, uint neighs, inout vec3 hit, inout vec3 normal)
 {
-    {0, 0, 0, 0, 0, 0},
-    {1, 1, 1, 1, 1, 1},
-    {1, 1, 1, 2, 2, 2},
-    {1, 1, 2, 2, 4, 4}
-};
-
-vec3 getVoxelInfo(int chunkOffset, vec3 pos, inout uint voxPower, inout int voxType)
-{
-    uint ptr = chunkOffset;
-    uint nLeavesBeforeCurrent = 0;
-    uint curPwr = 0;
-    uint curLayerLen = 1;
-    uint nOffsetBytes = get_dword(ptr, false);
-    uint base = get_byte(ptr + 4, false);
-    uint power = get_byte(ptr + 5, false);
-    uint voxSizeInBytes = get_byte(ptr + 6, false);
-    ptr += 7;
-
-    uint leavesOnLayers[MAX_VOX_POW + 1];
-    for (uint i = 0; i < power + 1; ++i)
+    if (type == 1) 
     {
-        leavesOnLayers[i] = get_dword(ptr, false);
-        ptr += 4;
+        return raytrace_cube(start, dir, hit, normal);
     }
-
-    uint curPwrLayerPos = 0;
-
-    uint totalWidth = uint(pow(base, power));
-    uint zLayerLen = uint(pow(base, DIM - 1));
-	uint yRowLen = uint(pow(base, DIM - 2));
-
-    uint bytesForThisLayer = bytesForLayer[base][curPwr];
-
-    bool offsetIsFinal = false;
-    while (!offsetIsFinal)
+    else
     {
-        int val;
-        if (bytesForThisLayer == 1)
-			val = get_byte(ptr, true);
-		else if (bytesForThisLayer == 2)
-			val = get_word(ptr, true);
-		else
-			val = get_dword(ptr, true);
-
-        offsetIsFinal = val < 0;
-
-        val = offsetIsFinal ? (-val - 1) : val;
-        nLeavesBeforeCurrent += (offsetIsFinal ? val : leavesOnLayers[curPwr]);
-
-        if (offsetIsFinal)
-            break;
-
-        ptr += bytesForThisLayer * uint(curLayerLen - curPwrLayerPos);
-
-        uint curSide = totalWidth / uint(pow(base, curPwr));
-        uint sidePart = curSide / base;
-        curPwrLayerPos = ((uint(pos[2]) % curSide) / sidePart) * zLayerLen + ((uint(pos[1]) % curSide) / sidePart) * yRowLen + ((uint(pos[0]) % curSide) / sidePart);
-
-        uint sz = uint(pow(base, DIM));
-        curLayerLen -= leavesOnLayers[curPwr];
-        curLayerLen *= sz;
-
-        curPwr++;
-        bytesForThisLayer = bytesForLayer[base][curPwr];
-        ptr += bytesForThisLayer * uint(val * sz + curPwrLayerPos);
+        return raytrace_sphere(start, dir, hit, normal);
     }
-
-    ptr = chunkOffset + 4 + 3 + (power+1) * 4 + nOffsetBytes;
-    ptr += voxSizeInBytes * nLeavesBeforeCurrent;
-
-    voxPower = curPwr;
-
-    voxType = get_byte(ptr++, true);
-    uint color = get_byte(ptr, false);
-    float r = float(32 * ((color & 0xE0) >> 5)) / 255.0;
-    float g = float(32 * ((color & 0x1C) >> 2)) / 255.0;
-    float b = float(64 * (color & 0x03)) / 255.0;
-
-    return vec3(r, g, b);
 }
+//---MAIN--------------------------------------------------------------------------------------------------------
 
-vec3 rayTraceVoxel(int voxType, vec3 voxColor, vec3 rayStart, vec3 rayDir, vec3 absPos, float voxRatio, inout float len, inout bool finish)
+bool raytraceVoxel(uint voxOff, const uint neighs, vec3 rayStart, vec3 rayDir, vec3 absPos, float voxRatio, inout vec3 absCoord, inout vec3 normal, inout vec4 color)
 {
+    float chunkLoadRadius = constants.data[LOAD_RADIUS];
+    float maxLights = constants.data[MAX_LIGHTS];
+    float epsilon = constants.data[EPSILON];
+    
+    uint vox_size;
+    uint vox_shape; 
+    uint vox_material;
+    vec3 vox_color;
+    unformatVoxel(voxOff, vox_size, vox_shape, vox_material, vox_color);
+
+    if (vox_shape == 0)
+        return false;
+    
     vec3 dir = rayDir;
     dir = normalize(dir);
-
-    vec3 hit;
-    vec3 normal;
-
-    float lenVox = 0;
-
-    if (voxType == 0)
-        lenVox = raytrace_cube(rayStart, dir, hit, normal);
-    else if (voxType == 1)
-        lenVox = raytrace_sphere(rayStart, dir, hit, normal);
-
-    hit *= voxRatio;
-    lenVox *= voxRatio;
-
+    
+    vec3 hitCoord;
+    bool hit = raytrace(vox_shape, rayStart, dir, neighs, hitCoord, normal);
+    hitCoord *= voxRatio;
     normal = normalize(normal);
 
-    vec3 colorCoeffs = {0,0,0};
-
-    vec3 color = voxColor;
-    vec3 absRayStart = absPos + hit;
-
-    if (lenVox >= 0)
+    if (hit)
     {
-        for (uint i = 0; i <= light.nLights; ++i)
+        vec3 absRayStart = absPos + hitCoord;
+        
+        vec3 voxColor = vox_color / 255.0f;
+        color = vec4(0);
+
+        for (uint i = 0; i < maxLights; ++i)
         {
-            vec3 lCoords, lColor;
-            if (i == light.nLights)
+            uint type;
+            vec3 lCoord;
+            vec4 lColor;
+            getLight(i, type, lCoord, lColor);
+
+            if (type == 1) // ambient
             {
-                lCoords = absRayStart + vec3(0.1, 10.1, 0.1);
-                lColor = vec3(0.33, 0.33, 0.33);
+                for (int i = 0; i < 3; ++i)
+                {
+                    float res = voxColor[i] * lColor[i];
+                    color[i] = clamp(color[i] + res, 0.0f, voxColor[i]);
+                }
+            }
+            else if (type == 2) // global
+            {
+                //vec3 lightHitPoint, n, c;
+                //lightHitPoint = raytraceMap(absRayStart + lCoord * _epsilon * 8.0f, lCoord, n, c, true);
+                //if (max(lightHitPoint.x, max(lightHitPoint.y, lightHitPoint.z)) > (float)_chunkLoadRadius + 0.95f ||
+                //    min(lightHitPoint.x, max(lightHitPoint.y, lightHitPoint.z)) < -(float)_chunkLoadRadius + 0.05f)
+                //    color = voxel.material->shade(color, voxColor, absRayStart, normal, lCoord, lColor);
+            }
+            else if (type == 3) // local
+            {
+                //vec3 dirToLight = lCoord - absRayStart;
+                //float lightDist = length(dirToLight);
+                //float distCoeff = (1.0f - (lightDist / 1.5f));
+                //
+                //if (lightDist > 1.5)
+                //    continue;
+                //
+                //dirToLight = normalize(dirToLight);
+                //
+                //vec3 lightHitPoint, n, c;
+                //lightHitPoint = raytraceMap(lCoord, -dirToLight, n, c, true);
+                //
+                //float diff = length(lightHitPoint - absRayStart);
+                //if (diff < _epsilon * 50.0f)
+                //    color = voxel.material->shade(color, voxColor, absRayStart, normal, dirToLight, lColor * distCoeff);
             }
             else
-            {
-                lCoords = light.coords[i].xyz;
-                lColor = light.colors[i].xyz;
-            }
-
-            vec3 dirToLight = lCoords - absRayStart;
-            float lightDist = length(dirToLight);
-            dirToLight = normalize(dirToLight);
-
-            int b = 0;
-            float traceLen = 0;
-            raytraceMap2(lCoords, -dirToLight, b, traceLen);
-
-            float lightStr = 0;
-            if (traceLen + 0.001 >= lightDist)
-			{
-				float dotVal = dot(dirToLight, normal);
-				lightStr = (dotVal < 0) ? 0 : dotVal;
-			}
-
-            colorCoeffs += lColor * lightStr;
+                break;
         }
-
-        for (uint i = 0; i < 3; ++i)
-		{
-			colorCoeffs[i] = (colorCoeffs[i] > 1.0) ? 1.0 : (colorCoeffs[i] < 0.0) ? 0 : colorCoeffs[i];
-			color[i] = color[i] * colorCoeffs[i];
-		}
-
-        len += lenVox;
-
-        finish = true;
+        
+        absCoord = absRayStart;
+        color.a = 1.0;
+        
+        return true;
     }
-    
-    return color;
+    return false;
 }
 
-vec3 rayTraceChunk(int chunkOffset, vec3 rayStart, vec3 rayDir, ivec3 curChunkPos, inout int bounces, inout float len)
+bool raytraceChunk(bool fullness, uint voxOffset, uint side, vec3 rayStart, vec3 rayDir, ivec3 curChunkPos, inout vec3 absCoord, inout vec3 normal, inout vec4 color)
 {
-    vec3 resultColor = vec3(0,0,0);
-
-    uint base = get_byte(chunkOffset + 4, false);
-    uint power = get_byte(chunkOffset + 5, false);
-
-    uint sideSteps = uint(pow(base, power));
-
-    vec3 start = rayStart * sideSteps;
+    vec3 resultColor = vec3(0, 0, 0);
+    float sideSteps = side;
+    vec3 marchPos = rayStart * sideSteps;
     vec3 lastRes = vec3(0);
-    vec3 marchPos = start;
     bool marchFinish = false;
-
-    ivec3 curVoxPos = ivec3(floor(start));
-
+    uvec3 curVoxPos = ivec3(floor(marchPos));
     uint stepsToTake = 1;
-
-    bool keepTracing = true;
+    bool keepTracing = fullness;
 
     while (keepTracing)
     {
-        uint voxPow; 
-        int voxType;
-        vec3 voxColor = getVoxelInfo(chunkOffset, curVoxPos, voxPow, voxType);
+        if (checkChunkBounds(curVoxPos, sideSteps))
+            break;
 
-        stepsToTake = uint(sideSteps / pow(base, voxPow));
+        uint voxOff = voxOffset + (curVoxPos[0] * side * side + curVoxPos[1] * side + curVoxPos[2]) * VOX_SIZE;
+
+        bool vox_fullness;
+        uint vox_size;
+        uint vox_neighs;
+        uvec3 vox_parals[8];
+        getVoxelState(voxOff, vox_fullness, vox_size, vox_neighs, vox_parals);
+        
+        stepsToTake = uint(sideSteps / pow(2, vox_size));
+        vec3 absPos = vec3(curChunkPos) + (vec3(curVoxPos - curVoxPos % stepsToTake) / float(sideSteps));
 
         float voxRatio = float(stepsToTake) / float(sideSteps);
 
-        if (voxType.x != -1)
+        if (vox_fullness)
         {
             vec3 entry = getCurEntryPoint(marchPos, stepsToTake, lastRes);
-
-            vec3 absPos = vec3(curChunkPos) + (vec3(curVoxPos - curVoxPos % stepsToTake) / float(sideSteps));
-            
-            bool finish = false;
-            vec3 color = rayTraceVoxel(voxType, voxColor, entry, rayDir, absPos, voxRatio, len, finish);
-            
-            if (finish)
-            {
-                bounces--;
-                return color;
-            }
+            if (raytraceVoxel(voxOff, vox_neighs, entry, rayDir, absPos, voxRatio, absCoord, normal, color))
+                return true;
         }
-
-        float voxLen = 0;
-        marchAndGetNextDir(rayDir, stepsToTake, ivec2(0, sideSteps), marchFinish, marchPos, lastRes, voxLen);
-        len += voxLen * voxRatio;
-
+        vec3 absCoordVox = {0,0,0};
+        marchAndGetNextDir(rayDir, 1, ivec2(0, sideSteps), vox_parals, marchFinish, marchPos, lastRes, absCoordVox);
+        absCoord += absCoordVox * voxRatio;
         curVoxPos = ivec3(floor(marchPos));
-
         keepTracing = !marchFinish;
     }
 
-	return resultColor;
+    return false;
 }
 
-vec3 raytraceMap(vec3 rayStart, vec3 rayDir, inout int bounces, inout float len)
+vec3 raytraceMap(vec3 rayStart, vec3 rayDir, inout vec3 normal, inout vec4 color)
 {
-	vec3 resultColor = vec3(0, 0, 0);
+    float chunkLoadRadius = constants.data[LOAD_RADIUS];
+    float chunkLoadDiameter = chunkLoadRadius * 2 + 1;
 
-    vec3 curPos = rayStart;
-    ivec3 curChunkPos = ivec3(floor(curPos));
-
+    vec3 lastRes = vec3(0);
+    
+    ivec3 curChunkPos = ivec3(floor(rayStart));
     bool notFinish = true;
     bool marchFinish = false;
     vec3 marchAbsPos = rayStart;
-    vec3 lastRes = vec3(0,0,0);
 
-    while (notFinish)
-	{
-        int chunkOffset = getChunkOffset(curChunkPos);
+    while (notFinish && !marchFinish)
+    {
+        if (checkMapBounds(curChunkPos))
+            break;
 
-        float prevLen = len;
-        if (chunkOffset != -1) 
-            resultColor = rayTraceChunk(chunkOffset, getCurEntryPoint(marchAbsPos, 1.0, lastRes), rayDir, curChunkPos, bounces, len);
+        uint idx = uint((curChunkPos.x + chunkLoadRadius) * chunkLoadDiameter * chunkLoadDiameter + curChunkPos.y + chunkLoadRadius * chunkLoadDiameter + curChunkPos.z + chunkLoadRadius);
+        uint off = CHUNK_SIZE * idx;
 
-        notFinish = bounces > 0 && !marchFinish;
+	    bool fullness;
+	    uint voxOff;
+	    uint side;
+	    uvec3 parals[8];
+        getChunkState(off, fullness, voxOff, side, parals);
+
+        vec3 prevHitPoint = marchAbsPos;
+        notFinish = !fullness || !raytraceChunk(fullness, voxOff, side, getCurEntryPoint(marchAbsPos, 1.0, lastRes), rayDir, curChunkPos, marchAbsPos, normal, color);
 
         if (notFinish)
         {
-            len = prevLen;
-            curChunkPos += ivec3(marchAndGetNextDir(rayDir, 1, ivec2(-1, 2), marchFinish, marchAbsPos, lastRes, len));
+            marchAbsPos = prevHitPoint;
+            vec3 coord;
+            marchAndGetNextDir(rayDir, 1, ivec2(-chunkLoadRadius, chunkLoadRadius + 1), parals, marchFinish, marchAbsPos, lastRes, coord);
+            curChunkPos = ivec3(floor(marchAbsPos));
         }
     }
-	
-	return resultColor;
-}
 
-vec3 getNearestLinePt(vec3 linePnt, vec3 lineDir, vec3 pt)
-{
-    vec3 dir = normalize(lineDir);
-    vec3 v = pt - linePnt;
-    float d = dot(v, dir);
-    return linePnt + dir * d;
-}
+    if (marchFinish) {
+        marchAbsPos = clamp(rayDir * 1000000.0f, vec3(-chunkLoadRadius), vec3(chunkLoadRadius + 1.0));
+    }
 
-float getPtLineDist(vec3 linePt, vec3 lineDir, vec3 pt)
-{
-    vec3 closestPt = getNearestLinePt(linePt, lineDir, pt);
-    return length(pt - closestPt);
+    //drawLights(rayStart, rayDir, marchAbsPos, color);
+
+    return marchAbsPos;
 }
 
 void main()
 {
-    vec2 coeffs = (gl_FragCoord.xy - view.resolution.xy/2.0)/view.resolution.y;
+    vec2 coeffs = (gl_FragCoord.xy - cam.res / 2.0) / cam.res.y;
+    vec3 coords = vec3(coeffs.y, coeffs.x, -1.0);
+    vec3 start = cam.pos;
+    vec3 dir = mat3(cam.mvp) * coords;
 
-    vec3 coords = vec3(coeffs.y, -coeffs.x, -1.0);
-
-    vec3 start =  view.pos;
-    vec3 dir = mat3(view.mvp) * coords;
-
-    int bounces = 1;
-    float len = 0;
-
-    outColor = vec4(raytraceMap(start, dir, bounces, len), 1.0);
-
-    for (uint i = 0; i < light.nLights; ++i)
-    {
-        float lightLen = length(start - light.coords[i].xyz);
-        if (lightLen < len)
-        {
-            float lightDist = getPtLineDist(start, dir, light.coords[i].xyz);
-            float g = (0.1 - lightDist) * 10.0;
-            float coeff = g < 0 ? 0 : g;
-            vec3 c = coeff * light.colors[i].xyz;
-            outColor.xyz += c;
-        }
-    }
-}
-
-void rayTraceVoxel2(int voxType, vec3 voxColor, vec3 rayStart, vec3 rayDir, vec3 absPos, float voxRatio, inout float len, inout bool finish)
-{
-    vec3 hit, normal;
-    float lenVox = voxRatio;
-
-    if (voxType == 0)
-        lenVox *= raytrace_cube(rayStart, rayDir, hit, normal);
-    else if (voxType == 1)
-        lenVox *= raytrace_sphere(rayStart, rayDir, hit, normal);
-
-    if (lenVox >= 0)
-    {
-        len += lenVox;
-        finish = true;
-    }
-}
-
-void rayTraceChunk2(int chunkOffset, vec3 rayStart, vec3 rayDir, ivec3 curChunkPos, inout bool finish, inout float len)
-{
-    uint base = get_byte(chunkOffset + 4, false);
-    uint power = get_byte(chunkOffset + 5, false);
-
-    uint sideSteps = uint(pow(base, power));
-
-    vec3 start = rayStart * sideSteps;
-    vec3 lastRes = vec3(0);
-    vec3 marchPos = start;
-    bool marchFinish = false;
-
-    ivec3 curVoxPos = ivec3(floor(start));
-
-    uint stepsToTake = 1;
-
-    bool notFinish = true;
-
-    while (notFinish)
-    {
-        uint voxPow; 
-        int voxType;
-        getVoxelInfo(chunkOffset, curVoxPos, voxPow, voxType);
-
-        stepsToTake = uint(sideSteps / pow(base, voxPow));
-
-        float voxRatio = float(stepsToTake) / float(sideSteps);
-
-        if (voxType.x != -1)
-        {
-            vec3 entry = getCurEntryPoint(marchPos, stepsToTake, lastRes);
-
-            vec3 absPos = vec3(curChunkPos) + (vec3(curVoxPos - curVoxPos % stepsToTake) / float(sideSteps));
-            
-            bool intersected = false;
-            vec3 color;
-            rayTraceVoxel2(voxType, color, entry, rayDir, absPos, voxRatio, len, intersected);
-            
-            if (intersected)
-            {
-                finish = true;
-                return;
-            }
-        }
-
-        float voxLen = 0;
-        marchAndGetNextDir(rayDir, stepsToTake, ivec2(0, sideSteps), marchFinish, marchPos, lastRes, voxLen);
-        len += voxLen * voxRatio;
-
-        curVoxPos = ivec3(floor(marchPos));
-
-        notFinish = !marchFinish;
-    }
-}
-
-void raytraceMap2(vec3 rayStart, vec3 rayDir, inout int bounces, inout float len)
-{
-    vec3 curPos = rayStart;
-    ivec3 curChunkPos = ivec3(floor(curPos));
-
-    bool intersected = false;
-    bool notFinish = true;
-    bool marchFinish = false;
-    vec3 marchAbsPos = rayStart;
-    vec3 lastRes = vec3(0,0,0);
-
-    while (notFinish)
-	{
-        int chunkOffset = getChunkOffset(curChunkPos);
-
-        float prevLen = len;
-        if (chunkOffset != -1) 
-            rayTraceChunk2(chunkOffset, getCurEntryPoint(marchAbsPos, 1.0, lastRes), rayDir, curChunkPos, intersected, len);
-
-        notFinish = !marchFinish && !intersected;
-
-        if (notFinish)
-        {
-            len = prevLen;
-            curChunkPos += ivec3(marchAndGetNextDir(rayDir, 1, ivec2(-1, 2), marchFinish, marchAbsPos, lastRes, len));
-        }
-    }
+    vec3 normal;
+    raytraceMap(start, dir, normal, outColor);
 }

@@ -1,4 +1,5 @@
 #include "VulkanDescriptorPool.h"
+#include <iostream>
 
 void VulkanDescriptorPool::initLayouts(const VulkanDevice& device, const std::list<std::shared_ptr<GameData>>& gameData)
 {
@@ -29,10 +30,10 @@ void VulkanDescriptorPool::init(const VulkanDevice& device, const VulkanSwapchai
 
 	VkDescriptorPoolSize poolSize = {};
 	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	poolSize.descriptorCount = 3 * static_cast<uint32_t>(swapchain.getImgCount());
+	poolSize.descriptorCount = _setLayouts.size() * static_cast<uint32_t>(swapchain.getImgCount());
 
 	std::vector<VkDescriptorPoolSize> sizes = { poolSize };
-	auto info = vkTypes::getDescriptorPoolCreateInfo(sizes, 3 * swapchain.getImgCount());
+	auto info = vkTypes::getDescriptorPoolCreateInfo(sizes, _setLayouts.size() * swapchain.getImgCount());
 
 	vkCreateDescriptorPool(device.get(), &info, nullptr, &_pool);
 
@@ -53,7 +54,6 @@ void VulkanDescriptorPool::init(const VulkanDevice& device, const VulkanSwapchai
 
 		_setsByType[i].resize(swapchain.getImgCount());
 		vkAllocateDescriptorSets(device.get(), &allocInfo, _setsByType[i].data());
-
 		for (int j = 0; j < swapchain.getImgCount(); j++) {
 			_setsByFrame[j].resize(_setSizes.size());
 			_setsByFrame[j][i] = _setsByType[i][j];

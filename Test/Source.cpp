@@ -1,10 +1,12 @@
-//#include <GPURenderer.h>
+#include <VulkanRenderer.h>
 #include <CPURenderer.h>
 #include <VoxelMap.h>
 
 #include <VCGeneratorSin.h>
 
 #include "VoxelTypes.h"
+
+#define USE_GPU
 
 int main()
 {
@@ -18,7 +20,7 @@ int main()
 
 	VoxelChunkFormat chunkFormat = {
 		ChunkFullnessFormat::UINT8, ChunkOffsetFormat::UINT32,
-		ChunkSizeFormat::UINT8, ParalsInfoFormat::NON_CUBIC_FLOAT32
+		ChunkSizeFormat::UINT8, ParalsInfoFormat::NON_CUBIC_UINT8
 	};
 	VoxelFormat voxFormat = {
 		VoxelFullnessFormat::UINT8, VoxelSizeFormat::UINT8,
@@ -36,7 +38,11 @@ int main()
 	
 	GameState game(&w, map);
 
+#ifdef USE_GPU
+	VulkanRenderer renderer(w, game);
+#else
 	CPURenderer renderer(w, game);
+#endif
 
 	renderer.startRender();
 
