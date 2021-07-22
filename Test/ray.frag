@@ -6,14 +6,14 @@ layout(location = 0) in vec3 fragColor;
 layout(location = 0) out vec4 outColor;
 
 layout(set = 0, binding = 0) uniform CameraData {
-    vec3 pos;
     mat4 mvp;
     vec2 res;
     float fov;
+    vec3 pos;
 } cam;
 
 layout(set = 1, binding = 0) uniform LightData {
-    vec4 data[2 * 100];
+    vec4 data[96 * 2];
 } light;
 
 const int VOX_SIZE = 32;
@@ -40,16 +40,12 @@ uint get_uint(uint start_byte_ix)
   return map.data[vec_ix][uint_in_vec];
 }
 
-int get_byte(uint byte_ix, bool signed)
+uint get_byte(uint byte_ix)
 {
   uint byte_in_uint = byte_ix % 4;
   uint bytes = get_uint(byte_ix);
 
-  uint result = (bytes >> ((byte_in_uint) * 8)) & 0xFF;
-
-  if (signed && (result & 0x80) > 0)
-    return int(result) - int(0x100);
-  return int(result);
+  return (bytes >> ((byte_in_uint) * 8)) & 0xFF;
 }
 
 //---MAP-UTILS---------------------------------------------------------------------------------------------------
@@ -58,7 +54,7 @@ bool checkMapBounds(vec3 absPos)
 {
     float chunkLoadRadius = constants.data[LOAD_RADIUS];
     for (int i = 0; i < 3; ++i)
-        if (absPos[i] < -chunkLoadRadius || absPos[i] >= chunkLoadRadius + 1.0f)
+        if (absPos[i] < -chunkLoadRadius || absPos[i] >= chunkLoadRadius + 1.0)
             return true;
     return false;
 }
@@ -73,32 +69,32 @@ bool checkChunkBounds(vec3 pos, float steps)
 
 void getChunkState(uint off, inout bool fullness, inout uint voxOff, inout uint side, inout uvec3 parals[8]) 
 {
-    fullness = get_byte(off, false) > 0;
+    fullness = get_byte(off) > 0;
     voxOff = get_uint(off + 1);
-    side = get_byte(off + 5, false);
+    side = get_byte(off + 5);
     for (int i = 0; i < 8; ++i)
         for (int j = 0; j < 3; ++j)
-            parals[i][j] = get_uint(off + 6 + 3 * i + j);
+            parals[i][j] = get_byte(off + 6 + 3 * i + j);
 }
 
 void getVoxelState(uint off, inout bool fullness, inout uint size, inout uint neighs, inout uvec3 parals[8]) 
 {
-    fullness = get_byte(off, false) > 0;
+    fullness = get_byte(off) > 0;
     size = get_uint(off + 1);
     neighs = get_uint(off + 2);
     for (int i = 0; i < 8; ++i)
         for (int j = 0; j < 3; ++j)
-            parals[i][j] = get_uint(off + 6 + 3 * i + j);
+            parals[i][j] = get_byte(off + 6 + 3 * i + j);
 }
 
 void unformatVoxel(uint off, inout uint size, inout uint shape, inout uint material, inout vec3 color)
 {
-    size = get_byte(off + 1, false);
-    shape = get_byte(off + 2, false);
-    material = get_byte(off + 3, false);
-    color.r = get_byte(off + 4, false);
-    color.g = get_byte(off + 5, false);
-    color.b = get_byte(off + 6, false);
+    size = get_byte(off + 1);
+    shape = get_byte(off + 2);
+    material = get_byte(off + 3);
+    color.r = get_byte(off + 4);
+    color.g = get_byte(off + 5);
+    color.b = get_byte(off + 6);
 }
 
 void getLight(uint off, inout uint type, vec3 coord, vec4 color)
@@ -409,7 +405,7 @@ bool raytraceChunk(bool fullness, uint voxOffset, uint side, vec3 rayStart, vec3
 vec3 raytraceMap(vec3 rayStart, vec3 rayDir, inout vec3 normal, inout vec4 color)
 {
     float chunkLoadRadius = constants.data[LOAD_RADIUS];
-    float chunkLoadDiameter = chunkLoadRadius * 2 + 1;
+    float chunkLoadDiameter = chunkLoadRadius * 2.0 + 1.0;
 
     vec3 lastRes = vec3(0);
     

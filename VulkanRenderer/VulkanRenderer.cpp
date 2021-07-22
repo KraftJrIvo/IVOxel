@@ -71,6 +71,9 @@ VulkanRenderer::~VulkanRenderer()
 
 void VulkanRenderer::startRender()
 {
+	auto& cam = _gs.getCam();
+	auto& map = _gs.getMap();
+
 	auto queue = _mainDevice.getQueueByType(VK_QUEUE_GRAPHICS_BIT);
 
 	auto cbBeginInfo = vkTypes::getCBBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -114,6 +117,15 @@ void VulkanRenderer::startRender()
 			_recreateEnv();
 		}
 
+		std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
+
+		if (map.checkAndLoad(pos, false) || _firstRender)
+		{
+			_gs.update(EVERY_LOAD, &_raytracer);
+			map.setAbsPos(pos);
+			_firstRender = false;
+		}
+
 		_beginRender(frameID);
 
 		if (_imgsInFlight[frameID]) {
@@ -132,7 +144,7 @@ void VulkanRenderer::startRender()
 		_geomBuffs.bindCmdBuffer(_mainDevice, _commandBuffs[frameID]);
 
 		auto& sets = _descrPool.getSets(frameID);
-		vkCmdBindDescriptorSets(_commandBuffs[frameID], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline.getLayout(), 0, 3, sets.data(), 0, nullptr);
+		vkCmdBindDescriptorSets(_commandBuffs[frameID], VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline.getLayout(), 0, sets.size(), sets.data(), 0, nullptr);
 		vkCmdDrawIndexed(_commandBuffs[frameID], _geomBuffs.getIndicesCount(), 1, 0, 0, 0);
 
 		vkCmdEndRenderPass(_commandBuffs[frameID]);

@@ -18,10 +18,10 @@ public:
 		rotate(rotation);
 	}
 
-	glm::vec3 pos;
 	glm::mat4 mvp;
 	glm::vec2 res;
 	float	  fov;
+	glm::vec3 pos;
 
 	Window* window;
 
