@@ -7,6 +7,7 @@
 
 #include "GameData.h"
 #include "Camera.h"
+#include "Window.h"
 
 class Window;
 
@@ -45,6 +46,7 @@ private:
 
 	std::map<uint8_t, std::shared_ptr<GameData>> _gameData;
 
+	Window* _window;
 	Camera _cam;
 	glm::vec3 _curRot;
 

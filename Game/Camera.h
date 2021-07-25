@@ -2,8 +2,6 @@
 
 #include <glm/glm.hpp>
 
-#include "Window.h"
-
 struct Camera
 {
 public:
@@ -22,8 +20,6 @@ public:
 	glm::vec2 res;
 	float	  fov;
 	glm::vec3 pos;
-
-	Window* window;
 
 	void translate(glm::vec3 delta);
 	void rotate(glm::vec3 delta);

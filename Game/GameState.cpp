@@ -11,9 +11,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 GameState::GameState(Window* window, VoxelMap& map) : 
-	_map(map)
+	_map(map),
+	_window(window)
 { 
-	_cam.window = window;
 	_cam.fov = 90.0f;
 	auto ra = getRenderArea();
 	_cam.res = { ra[2], ra[3] };
@@ -33,19 +33,19 @@ GameState::GameState(Window* window, VoxelMap& map) :
 
 glm::vec4 GameState::getRenderArea() const
 {
-	auto ra = _cam.window->getRenderArea();
+	auto ra = _window->getRenderArea();
 	return ra;
 }
 
 glm::vec3 GameState::getRotDelta() const
 {
-	auto dr = _cam.window->getCurDeltaRot();
+	auto dr = _window->getCurDeltaRot();
 	return glm::vec3(dr[0], dr[1], 0);
 }
 
 glm::vec3 GameState::getTransDelta() const
 {
-	auto dt = _cam.window->getCurDeltaTrans();
+	auto dt = _window->getCurDeltaTrans();
 	return glm::vec3(dt[0], dt[1], dt[2]);
 }
 
