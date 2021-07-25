@@ -67,7 +67,7 @@ bool checkChunkBounds(vec3 pos, float steps)
     return false;
 }
 
-void getChunkState(uint off, inout bool fullness, inout uint voxOff, inout uint side, inout uvec3 parals[8]) 
+void getChunkState(uint off, out bool fullness, out uint voxOff, out uint side, out uvec3 parals[8]) 
 {
     fullness = get_byte(off) > 0;
     voxOff = get_uint(off + 1);
@@ -77,7 +77,7 @@ void getChunkState(uint off, inout bool fullness, inout uint voxOff, inout uint 
             parals[i][j] = get_byte(off + 6 + 3 * i + j);
 }
 
-void getVoxelState(uint off, inout bool fullness, inout uint size, inout uint neighs, inout uvec3 parals[8]) 
+void getVoxelState(uint off, out bool fullness, out uint size, out uint neighs, out uvec3 parals[8]) 
 {
     fullness = get_byte(off) > 0;
     size = get_uint(off + 1);
@@ -87,7 +87,7 @@ void getVoxelState(uint off, inout bool fullness, inout uint size, inout uint ne
             parals[i][j] = get_byte(off + 6 + 3 * i + j);
 }
 
-void unformatVoxel(uint off, inout uint size, inout uint shape, inout uint material, inout vec3 color)
+void unformatVoxel(uint off, out uint size, out uint shape, out uint material, out vec3 color)
 {
     size = get_byte(off + 1);
     shape = get_byte(off + 2);
@@ -97,7 +97,7 @@ void unformatVoxel(uint off, inout uint size, inout uint shape, inout uint mater
     color.b = get_byte(off + 6);
 }
 
-void getLight(uint off, inout uint type, vec3 coord, vec4 color)
+void getLight(uint off, out uint type, out vec3 coord, out vec4 color)
 {
     vec4 l1 = light.data[2 * off];
     type = uint(l1[0]);
@@ -122,7 +122,7 @@ vec3 getCurEntryPoint(vec3 absPos, float side, vec3 lastRes)
     return result;
 }
 
-vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, uvec3 parals[8], inout bool finish, inout vec3 absPos, inout vec3 lastRes, inout vec3 absCoord)
+vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, uvec3 parals[8], out bool finish, inout vec3 absPos, out vec3 lastRes, inout vec3 absCoord)
 {
     float epsilon = constants.data[EPSILON];
 
@@ -172,7 +172,7 @@ vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, uvec3 parals[8], ino
     return result;
 }
 
-bool raytrace_cube(vec3 orig, vec3 dir, inout vec3 hit, inout vec3 normal)
+bool raytrace_cube(vec3 orig, vec3 dir, out vec3 hit, out vec3 normal)
 {
 	vec3 g = orig - vec3(0.5f, 0.5f, 0.5f);
 	vec3 gabs = vec3(abs(g[0]), abs(g[1]), abs(g[2]));
@@ -190,8 +190,7 @@ bool raytrace_cube(vec3 orig, vec3 dir, inout vec3 hit, inout vec3 normal)
 	return true;
 }
 
-
-bool solveQuadratic(float a, float b, float c, inout float x0, inout float x1)
+bool solveQuadratic(float a, float b, float c, out float x0, out float x1)
 {
 	float discr = b * b - 4 * a * c;
 
@@ -251,7 +250,7 @@ float getSphereIntersectionDist(vec3 orig, vec3 dir)
 	return t0;
 }
 
-bool raytrace_sphere(vec3 orig, vec3 dir, inout vec3 hit, inout vec3 normal)
+bool raytrace_sphere(vec3 orig, vec3 dir, out vec3 hit, out vec3 normal)
 {
     float len = getSphereIntersectionDist(orig, dir);
 	hit = orig + dir * len;
@@ -261,7 +260,7 @@ bool raytrace_sphere(vec3 orig, vec3 dir, inout vec3 hit, inout vec3 normal)
 	return len >= 0;
 }
 
-bool raytrace(uint type, vec3 start, vec3 dir, uint neighs, inout vec3 hit, inout vec3 normal)
+bool raytrace(uint type, vec3 start, vec3 dir, uint neighs, out vec3 hit, out vec3 normal)
 {
     if (type == 1) 
     {
@@ -453,7 +452,7 @@ void main()
 {
     vec2 coeffs = (gl_FragCoord.xy - cam.res / 2.0) / cam.res.y;
     vec3 coords = vec3(coeffs.y, coeffs.x, -1.0);
-    vec3 start = cam.pos;
+    vec3 start = fract(cam.pos);
     vec3 dir = mat3(cam.mvp) * coords;
 
     vec3 normal;

@@ -10,13 +10,16 @@
 class CPURenderer : public AbstractRenderer
 {
 public:
-	CPURenderer(Window& w, GameState& gs) : AbstractRenderer(w, gs, false)
+	CPURenderer(Window& w, GameState& gs) : 
+		AbstractRenderer(w, gs, false),
+		_raytracer(gs.getMap(), false)
 	{ }
 
 	void startRender() override;
 	void stop() override;
 
 private:
+	VoxelMapRayTracer _raytracer;
 
 	void _drawImage(cv::Mat img);
 	bool _runOnce();

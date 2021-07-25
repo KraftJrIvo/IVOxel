@@ -110,6 +110,7 @@ void VulkanRenderer::startRender()
 			{
 				ra = _window.getRenderArea();
 				renderArea.offset.x = ra.x; renderArea.offset.y = ra.y; renderArea.extent.width = ra.z; renderArea.extent.height = ra.w;
+				cam.res = { renderArea.extent.width, renderArea.extent.height };
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 				_window.Update();
 			} 
@@ -121,7 +122,8 @@ void VulkanRenderer::startRender()
 
 		if (map.checkAndLoad(pos, false) || _firstRender)
 		{
-			_gs.update(EVERY_LOAD, &_raytracer);
+			for (int i = 0; i < _swapchain.getImgCount(); ++i)
+				_gs.update(EVERY_LOAD, &_descrPool, i);
 			map.setAbsPos(pos);
 			_firstRender = false;
 		}
