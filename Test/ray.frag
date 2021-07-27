@@ -32,7 +32,7 @@ layout(set = 3, binding = 0) uniform ConstData {
 
 //---UTILS-------------------------------------------------------------------------------------------------------
 
-uint get_uint(uint start_byte_ix)
+uint get_byte_group(uint start_byte_ix)
 {
   uint uint_in_vec = (start_byte_ix / 4) % 4;
   uint vec_ix = start_byte_ix / 16;
@@ -43,9 +43,14 @@ uint get_uint(uint start_byte_ix)
 uint get_byte(uint byte_ix)
 {
   uint byte_in_uint = byte_ix % 4;
-  uint bytes = get_uint(byte_ix);
+  uint bytes = get_byte_group(byte_ix);
 
   return (bytes >> ((byte_in_uint) * 8)) & 0xFF;
+}
+
+uint get_uint(uint byte_ix)
+{
+    return (get_byte(byte_ix)) | (get_byte(byte_ix + 1) << 0x8) | (get_byte(byte_ix + 2) << 0x10) | (get_byte(byte_ix + 3) << 0x18);
 }
 
 //---MAP-UTILS---------------------------------------------------------------------------------------------------
@@ -80,11 +85,11 @@ void getChunkState(uint off, out bool fullness, out uint voxOff, out uint side, 
 void getVoxelState(uint off, out bool fullness, out uint size, out uint neighs, out uvec3 parals[8]) 
 {
     fullness = get_byte(off) > 0;
-    size = get_uint(off + 1);
-    neighs = get_uint(off + 2);
+    size = get_byte(off + 1);
+    neighs = get_byte(off + 2);
     for (int i = 0; i < 8; ++i)
         for (int j = 0; j < 3; ++j)
-            parals[i][j] = get_byte(off + 6 + 3 * i + j);
+            parals[i][j] = get_byte((off + 3) + 3 * i + j);
 }
 
 void unformatVoxel(uint off, out uint size, out uint shape, out uint material, out vec3 color)
@@ -366,7 +371,7 @@ bool raytraceChunk(bool fullness, uint voxOffset, uint side, vec3 rayStart, vec3
     uvec3 curVoxPos = ivec3(floor(marchPos));
     uint stepsToTake = 1;
     bool keepTracing = fullness;
-
+    
     while (keepTracing)
     {
         if (checkChunkBounds(curVoxPos, sideSteps))
@@ -379,7 +384,7 @@ bool raytraceChunk(bool fullness, uint voxOffset, uint side, vec3 rayStart, vec3
         uint vox_neighs;
         uvec3 vox_parals[8];
         getVoxelState(voxOff, vox_fullness, vox_size, vox_neighs, vox_parals);
-        
+
         stepsToTake = uint(sideSteps / pow(2, vox_size));
         vec3 absPos = vec3(curChunkPos) + (vec3(curVoxPos - curVoxPos % stepsToTake) / float(sideSteps));
 
@@ -389,7 +394,7 @@ bool raytraceChunk(bool fullness, uint voxOffset, uint side, vec3 rayStart, vec3
         {
             vec3 entry = getCurEntryPoint(marchPos, stepsToTake, lastRes);
             if (raytraceVoxel(voxOff, vox_neighs, entry, rayDir, absPos, voxRatio, absCoord, normal, color))
-                return true;
+            return true;
         }
         vec3 absCoordVox = {0,0,0};
         marchAndGetNextDir(rayDir, 1, ivec2(0, sideSteps), vox_parals, marchFinish, marchPos, lastRes, absCoordVox);

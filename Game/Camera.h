@@ -19,6 +19,7 @@ public:
 	glm::mat4 mvp;
 	glm::vec2 res;
 	float	  fov;
+	float _align_; //for gpu alignment
 	glm::vec3 pos;
 
 	void translate(glm::vec3 delta);
