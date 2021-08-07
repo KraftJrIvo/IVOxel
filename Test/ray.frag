@@ -18,7 +18,7 @@ layout(set = 1, binding = 0) uniform LightData {
 
 const int VOX_SIZE = 32;
 const int CHUNK_SIZE = 32;
-const int MAP_DATA_SIZE = 7020000 / 4;
+const int MAP_DATA_SIZE = 56160 / 4;
 layout(set = 2, binding = 0) uniform MapData {
     uvec4 data[MAP_DATA_SIZE];
 } map;
@@ -461,5 +461,6 @@ void main()
     vec3 dir = mat3(cam.mvp) * coords;
 
     vec3 normal;
+    outColor = vec4(vec3(0.0), 1.0);
     raytraceMap(start, dir, normal, outColor);
 }
