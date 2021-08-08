@@ -79,7 +79,7 @@ void getChunkState(uint off, out bool fullness, out uint voxOff, out uint side, 
     side = get_byte(off + 5);
     for (int i = 0; i < 8; ++i)
         for (int j = 0; j < 3; ++j)
-            parals[i][j] = get_byte(off + 6 + 3 * i + j);
+            parals[i][j] = get_byte((off + 6) + 3 * i + j);
 }
 
 void getVoxelState(uint off, out bool fullness, out uint size, out uint neighs, out uvec3 parals[8]) 
@@ -127,7 +127,7 @@ vec3 getCurEntryPoint(vec3 absPos, float side, vec3 lastRes)
     return result;
 }
 
-vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, uvec3 parals[8], out bool finish, inout vec3 absPos, out vec3 lastRes, inout vec3 absCoord)
+vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, uvec3 parals[8], inout bool finish, inout vec3 absPos, inout vec3 lastRes, inout vec3 absCoord)
 {
     float epsilon = constants.data[EPSILON];
 
@@ -139,13 +139,13 @@ vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, uvec3 parals[8], out
 
     vec3 vec = vec3(1.0, 2.0, 4.0) * (vec3(1,1,1) - isNeg);
     int paralN = int(vec.x + vec.y + vec.z);
-    vec3 paral = vec3(parals[paralN]);
+    vec3 paral = parals[paralN];
 
     vec3 path;
     for (int i = 0; i < 3; ++i)
     {
-        if (side > 1 && paral[i] > 0) paral[i] -= side - 1.0f;
-        path[i] = (isNeg[i] != 0) ? (-side * vecStart[i] - float(paral[i])) : (paral[i] + side * (1.0f - vecStart[i]));
+        if (side > 1 && paral[i] > 0) paral[i] -= side - 1.0;
+        path[i] = (isNeg[i] != 0) ? (-side * vecStart[i] - float(paral[i])) : (paral[i] + side * (1.0 - vecStart[i]));
         path[i] = (path[i] == 0) ? epsilon : path[i];
     }
 
@@ -169,7 +169,7 @@ vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, uvec3 parals[8], out
         absPos[i] += intersection[i];
         absPos[i] += epsilon * (1.0 - 2.0 * isNeg[i]);
         finish = finish || ((absPos[i] - epsilon <= minmax[0] && dir[i] < 0) || (absPos[i] >= minmax[1] && dir[i] > 0));
-    }
+    } 
 
     absCoord += intersection / side;
 
@@ -423,7 +423,7 @@ vec3 raytraceMap(vec3 rayStart, vec3 rayDir, inout vec3 normal, inout vec4 color
         if (checkMapBounds(curChunkPos))
             break;
 
-        uint idx = uint((curChunkPos.x + chunkLoadRadius) * chunkLoadDiameter * chunkLoadDiameter + curChunkPos.y + chunkLoadRadius * chunkLoadDiameter + curChunkPos.z + chunkLoadRadius);
+        uint idx = uint((curChunkPos.x + chunkLoadRadius) * chunkLoadDiameter * chunkLoadDiameter + (curChunkPos.y + chunkLoadRadius) * chunkLoadDiameter + curChunkPos.z + chunkLoadRadius);
         uint off = CHUNK_SIZE * idx;
 
 	    bool fullness;
@@ -445,7 +445,7 @@ vec3 raytraceMap(vec3 rayStart, vec3 rayDir, inout vec3 normal, inout vec4 color
     }
 
     if (marchFinish) {
-        marchAbsPos = clamp(rayDir * 1000000.0f, vec3(-chunkLoadRadius), vec3(chunkLoadRadius + 1.0));
+        marchAbsPos = clamp(rayDir * 1000000.0, vec3(-chunkLoadRadius), vec3(chunkLoadRadius + 1.0));
     }
 
     //drawLights(rayStart, rayDir, marchAbsPos, color);
@@ -463,4 +463,5 @@ void main()
     vec3 normal;
     outColor = vec4(vec3(0.0), 1.0);
     raytraceMap(start, dir, normal, outColor);
+    outColor = fract(outColor);
 }

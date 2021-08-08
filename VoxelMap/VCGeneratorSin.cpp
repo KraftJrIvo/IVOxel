@@ -33,7 +33,7 @@ std::vector<Light> VCGeneratorSin::generateLights(const std::vector<int32_t>& po
     rotmat = glm::rotate(rotmat, glm::radians(time * 3), glm::vec3(0.0f, 1.0f, 0.0f));
     auto sun = glm::mat3(rotmat) * dir;
 
-    lights.push_back(Light(LightType::AMBIENT, { 10, 10, 10, 255 }));
+    lights.push_back(Light(LightType::AMBIENT, { 100, 100, 100, 255 }));
     lights.push_back(Light(LightType::GLOBAL, { 80, 80, 80, 255 }, { sun.x, sun.y, sun.z }));
     
     for (int i = 1; i < diam; ++i)
