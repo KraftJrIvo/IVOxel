@@ -120,7 +120,7 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
 
         glm::uint voxOff = chunkH.voxOffset + (curVoxPos[0] * chunkH.side * chunkH.side + curVoxPos[1] * chunkH.side + curVoxPos[2]) * _format.voxelFormat.getSizeInBytes(_alignToFourBytes);
         auto voxelState = _format.getVoxelState(_mapData + voxOff);
-        stepsToTake = uint(sideSteps / pow(2, voxelState.size)); //!!!
+        stepsToTake = voxelState.size ? 1 : uint(sideSteps / pow(2, voxelState.size));
         vec3 absPos = vec3(curChunkPos) + (vec3(curVoxPos - curVoxPos % stepsToTake) / float(sideSteps));
 
         float voxRatio = float(stepsToTake) / float(sideSteps);
@@ -137,7 +137,7 @@ bool VoxelMapRayTracer::_raytraceChunk(const VoxelChunkState& chunkH, vec3 raySt
             }
         }
         vec3 absCoordVox = {0,0,0};
-        _marchAndGetNextDir(rayDir, 1, ivec2(0, sideSteps), voxelState.parals.data(), marchFinish, marchPos, lastRes, absCoordVox);
+        _marchAndGetNextDir(rayDir, stepsToTake, ivec2(0, sideSteps), voxelState.parals.data(), marchFinish, marchPos, lastRes, absCoordVox);
         absCoord += absCoordVox * voxRatio;
         curVoxPos = ivec3(floor(marchPos));
         keepTracing = !marchFinish;
