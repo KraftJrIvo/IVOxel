@@ -86,10 +86,12 @@ void getVoxelState(uint off, out bool fullness, out uint size, out uint neighs, 
 {
     fullness = get_byte(off) > 0;
     size = get_byte(off + 1);
-    neighs = get_byte(off + 2);
+    // shape + material (2b)
+    // color (3b)
+    neighs = get_byte(off + 7);
     for (int i = 0; i < 8; ++i)
         for (int j = 0; j < 3; ++j)
-            parals[i][j] = 0;//get_byte((off + 3) + 3 * i + j);
+            parals[i][j] = get_byte((off + 8) + 3 * i + j);
 }
 
 void unformatVoxel(uint off, out uint size, out uint shape, out uint material, out vec3 color)
