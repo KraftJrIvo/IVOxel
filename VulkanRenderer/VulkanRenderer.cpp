@@ -118,16 +118,6 @@ void VulkanRenderer::startRender()
 			_recreateEnv();
 		}
 
-		std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
-
-		if (map.checkAndLoad(pos, false) || _firstRender)
-		{
-			for (int i = 0; i < _swapchain.getImgCount(); ++i)
-				_gs.update(EVERY_LOAD, &_descrPool, i);
-			map.setAbsPos(pos);
-			_firstRender = false;
-		}
-
 		_beginRender(frameID);
 
 		if (_imgsInFlight[frameID]) {
@@ -161,6 +151,15 @@ void VulkanRenderer::startRender()
 		vkResetFences(_mainDevice.get(), 1, &_frameFences[frameID]);
 
 		_gs.update(EVERY_FRAME, &_descrPool, frameID);
+
+		std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
+		if ((map.checkAndLoad(pos, false) || _firstRender))
+		{
+			for (int i = 0; i < _swapchain.getImgCount(); ++i)
+				_gs.update(EVERY_LOAD, &_descrPool, i);
+			map.setAbsPos(pos);
+			_firstRender = false;
+		}
 
 		std::vector<VkSemaphore> waitSemaphores = { _semImgAvailable[frameID] };
 		std::vector<VkSemaphore> signalSemaphores = { _semRenderDone[frameID] };
