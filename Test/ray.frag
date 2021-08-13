@@ -358,6 +358,9 @@ bool raytraceVoxel_light(uint voxOff, const uint neighs, vec3 rayStart, vec3 ray
     vec3 hitCoord, n;
     bool hit = raytrace(vox_shape, rayStart, dir, neighs, hitCoord, n);
     hitCoord *= voxRatio;
+
+    if (hit)
+        absCoord = absPos + hitCoord;
         
     return hit;
 }
@@ -561,14 +564,16 @@ bool raytraceChunk(bool fullness, uint voxOffset, uint side, vec3 rayStart, vec3
 
         stepsToTake = (vox_size > 1) ? 1 : uint(sideSteps / pow(2, vox_size));
         vec3 absPos = vec3(curChunkPos) + (vec3(curVoxPos - curVoxPos % stepsToTake) / float(sideSteps));
-
+        
         float voxRatio = float(stepsToTake) / float(sideSteps);
 
         if (vox_fullness)
         {
             vec3 entry = getCurEntryPoint(marchPos, stepsToTake, lastRes);
-            if (raytraceVoxel(voxOff, vox_neighs, entry, rayDir, absPos, voxRatio, absCoord, normal, color))
-            return true;
+            if (raytraceVoxel(voxOff, vox_neighs, entry, rayDir, absPos, voxRatio, absCoord, normal, color)) 
+            {
+                return true;
+            }
         }
         vec3 absCoordVox = {0,0,0};
         marchAndGetNextDir(rayDir, stepsToTake, ivec2(0, sideSteps), vox_parals, marchFinish, marchPos, lastRes, absCoordVox);
