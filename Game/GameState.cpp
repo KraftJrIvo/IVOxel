@@ -19,7 +19,7 @@ GameState::GameState(Window* window, VoxelMap& map) :
 	_cam.res = { ra[2], ra[3] };
 	_curRot = glm::vec3(0.0f, 180.0f, 0.0f);
 	_cam.rotate(_curRot);
-	_cam.translate(glm::vec3(0.51f, 0.51f, 0.51f));
+	_cam.translate(glm::vec3(0.51f, 1.51f, 0.51f));
 	
 	_startTime = std::chrono::high_resolution_clock::now();
 

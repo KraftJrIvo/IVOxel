@@ -13,8 +13,8 @@ std::shared_ptr<VoxelChunk> VCGeneratorSin::generateChunk(const VoxelMapFormat& 
             for (uint32_t z = 0; z < side; ++z)
             {
                 float val = 0.5f + (sin(pos[0] + x * offset) + sin(pos[2] + z * offset)) / 4.0f;
-                bool ground = (y * offset + pos[1]) < 0.25;// val;
-                Voxel v = Voxel(log(side)/log(2), ground ? _groundType.first : nullptr, ground ? _groundType.second : nullptr, {{0,0,0}, false}, { 85 + pos[0] * 30, 85 + pos[1] * 30, 85 + pos[2] * 30, 255 });
+                bool ground = (y * offset + pos[1]) < val;
+                Voxel v = Voxel(log(side)/log(2), ground ? _groundType.first : nullptr, ground ? _groundType.second : nullptr, {{0,0,0}, false}, { 150, 150, 150, 255 });
                 voxels[side * side * z + side * y + x] = v;
             }
 
@@ -42,9 +42,11 @@ std::vector<Light> VCGeneratorSin::generateLights(const std::vector<int32_t>& po
         {
             if (int(pos[0] + i - radius) % 2 == 0 && int(pos[2] + j - radius) % 2 == 0)
             {
-                float xCoord = 0.5 + i - radius;
-                float zCoord = 0.5 + j - radius;
-                lights.push_back(Light(LightType::LOCAL, { 150, 150, 150, 255 }, { xCoord, 0.9f - pos[1] + sin(time + i + j) / 10.0f, zCoord }));
+                float xCoord = 0.51 + i - radius;
+                float zCoord = 0.51 + j - radius;
+                std::vector<float> curpos = { xCoord, 0.9f - pos[1] + sin(time + i + j) / 10.0f, zCoord };
+                std::vector<unsigned char> curcol = { (unsigned char)(85 + (pos[0] + i) * 300), 0, (unsigned char)(85 + (pos[2] + j) * 300), 255 };
+                lights.push_back(Light(LightType::LOCAL, curcol, curpos));
             }
         }
     }

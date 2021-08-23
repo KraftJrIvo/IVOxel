@@ -16,19 +16,19 @@ layout(set = 1, binding = 0) uniform LightData {
     vec4 data[96 * 2];
 } light;
 
-const int VOX_SIZE = 32;
-const int CHUNK_SIZE = 32;
-const int MAP_DATA_SIZE = 56160 / 4;
-layout(set = 2, binding = 0) uniform MapData {
-    uvec4 data[MAP_DATA_SIZE];
-} map;
+const int VOX_SIZE = 8;
+const int CHUNK_SIZE = 8;
 
 const int LOAD_RADIUS = 0;
 const int MAX_LIGHTS = 1;
 const int EPSILON = 2;
-layout(set = 3, binding = 0) uniform ConstData {
+layout(set = 2, binding = 0) uniform ConstData {
     vec4 data;
 } constants;
+
+layout(std140, set = 3, binding = 0) readonly buffer MapData {
+    uvec4 data[];
+} map;
 
 //---UTILS-------------------------------------------------------------------------------------------------------
 
@@ -77,9 +77,9 @@ void getChunkState(uint off, out bool fullness, out uint voxOff, out uint side, 
     fullness = get_byte(off) > 0;
     voxOff = get_uint(off + 1);
     side = get_byte(off + 5);
-    for (int i = 0; i < 8; ++i)
-        for (int j = 0; j < 3; ++j)
-            parals[i][j] = get_byte((off + 6) + 3 * i + j);
+//    for (int i = 0; i < 8; ++i)
+//        for (int j = 0; j < 3; ++j)
+//            parals[i][j] = get_byte((off + 6) + 3 * i + j);
 }
 
 void getVoxelState(uint off, out bool fullness, out uint size, out uint neighs, out uvec3 parals[8]) 
@@ -89,9 +89,9 @@ void getVoxelState(uint off, out bool fullness, out uint size, out uint neighs, 
     // shape + material (2b)
     // color (3b)
     neighs = get_byte(off + 7);
-    for (int i = 0; i < 8; ++i)
-        for (int j = 0; j < 3; ++j)
-            parals[i][j] = get_byte((off + 8) + 3 * i + j);
+//    for (int i = 0; i < 8; ++i)
+//        for (int j = 0; j < 3; ++j)
+//            parals[i][j] = get_byte((off + 8) + 3 * i + j);
 }
 
 void unformatVoxel(uint off, out uint size, out uint shape, out uint material, out vec3 color)
@@ -328,8 +328,7 @@ void drawLights(vec3 rayStart, vec3 rayDir, vec3 absPos, inout vec3 color)
                 float lightDist = getPtLineDist(rayStart, rayDir, lCoord);
                 float g = (0.1 - lightDist) * 10.0;
                 float coeff = g < 0 ? 0 : g;
-                vec3 c = coeff * lColor.xyz;
-                color += c;
+                color += (coeff * lColor.xyz) * (vec3(1.0) - color);
             }
         }
     }

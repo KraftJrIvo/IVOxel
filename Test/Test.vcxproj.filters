@@ -29,9 +29,6 @@
     <None Include="cross.frag">
       <Filter>Resource Files\shaders</Filter>
     </None>
-    <None Include="ray_.frag">
-      <Filter>Resource Files\shaders</Filter>
-    </None>
     <None Include="square.vert">
       <Filter>Resource Files\shaders</Filter>
     </None>

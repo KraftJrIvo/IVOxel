@@ -5,7 +5,7 @@
 
 GameDataMap::GameDataMap(uint32_t size_)
 {
-	size = size_;
+	size = max(size_, 64000);
 	updateGroup = EVERY_LOAD;
 }
 

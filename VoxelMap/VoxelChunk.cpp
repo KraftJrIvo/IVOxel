@@ -212,7 +212,7 @@ std::vector<uint8_t> VoxelChunk::getVoxParals(const Voxel& vox, const std::vecto
 	std::vector<uint8_t> res;
 	uint8_t oct = 0;
 
-	if (!vox.isEmpty()) {
+	if (!vox.isEmpty() || format == ParalsInfoFormat::NO_PARALS) {
 		return std::vector<uint8_t>(getSizeInBytes(format), 0);
 	}
 

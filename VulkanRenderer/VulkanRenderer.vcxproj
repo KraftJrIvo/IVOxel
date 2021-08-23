@@ -22,11 +22,7 @@
     <ClInclude Include="FPSCounter.h" />
     <ClInclude Include="FPSLimiter.h" />
     <ClInclude Include="GameState.h" />
-    <ClInclude Include="ShaderDataLight.h" />
-    <ClInclude Include="ShaderDataMap.h" />
-    <ClInclude Include="ShaderData.h" />
     <ClInclude Include="Vertex.h" />
-    <ClInclude Include="ShaderDataCamera.h" />
     <ClInclude Include="VulkanBuffer.h" />
     <ClInclude Include="VulkanCommandBuffers.h" />
     <ClInclude Include="VulkanDepthStencilImage.h" />

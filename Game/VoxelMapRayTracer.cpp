@@ -342,7 +342,7 @@ void VoxelMapRayTracer::_drawLights(glm::vec3 rayStart, glm::vec3 rayDir, glm::v
         {
             vec3 lCoord = { light[1], light[2], light[3] };
             if (type == 2) lCoord *= 4.0f;
-            vec4 lColor = { light[4], light[5], light[6], light[7] };
+            vec3 lColor = { light[4], light[5], light[6] };
             vec3 toLight = lCoord - rayStart;
             vec3 toHit = absPos - rayStart;
             float lightLen = length(toLight);
@@ -351,8 +351,7 @@ void VoxelMapRayTracer::_drawLights(glm::vec3 rayStart, glm::vec3 rayDir, glm::v
                 float lightDist = getPtLineDist(rayStart, rayDir, lCoord);
                 float g = (0.1 - lightDist) * 10.0;
                 float coeff = g < 0 ? 0 : g;
-                vec3 c = coeff * lColor;
-                color += c;
+                color += (coeff * lColor) * (vec3(1.0) - color);
             }
         }
     }

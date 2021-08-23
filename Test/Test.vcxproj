@@ -158,7 +158,6 @@
   <ItemGroup>
     <None Include="cross.frag" />
     <None Include="ray.frag" />
-    <None Include="ray_.frag" />
     <None Include="square.vert" />
   </ItemGroup>
   <ItemGroup>

@@ -6,7 +6,7 @@
 
 #include "VoxelTypes.h"
 
-#define USE_GPU
+#define USE_GPU true
 
 int main()
 {
@@ -20,13 +20,13 @@ int main()
 
 	VoxelChunkFormat chunkFormat = {
 		ChunkFullnessFormat::UINT8, ChunkOffsetFormat::UINT32,
-		ChunkSizeFormat::UINT8, ParalsInfoFormat::NON_CUBIC_UINT8
+		ChunkSizeFormat::UINT8, USE_GPU ? ParalsInfoFormat::NO_PARALS : ParalsInfoFormat::NON_CUBIC_UINT8
 	};
 	VoxelFormat voxFormat = {
 		VoxelFullnessFormat::UINT8, VoxelSizeFormat::UINT8,
 		VoxelShapeFormat::UINT8, VoxelMaterialFormat::UINT8,
 		VoxelOrientationFormat::NO_ORIENTATION, VoxelColorFormat::RGB_THREE_BYTES,
-		VoxelNeighbourInfoFormat::SIX_DIRS_ONE_BYTE, ParalsInfoFormat::NON_CUBIC_UINT8,
+		VoxelNeighbourInfoFormat::SIX_DIRS_ONE_BYTE, USE_GPU ? ParalsInfoFormat::NO_PARALS : ParalsInfoFormat::NON_CUBIC_UINT8,
 		&vtc, &vts
 	};
 	VoxelMapFormat format(chunkFormat, voxFormat);
@@ -34,7 +34,7 @@ int main()
 	VCGeneratorSin generator;
 	generator.setGroundType({ vts.getShape(2), vts.getMaterial(1) });
 
-	VoxelMap map(format, generator, 4, 1, 96);
+	VoxelMap map(format, generator, 4, 5, 96);
 	
 	GameState game(&w, map);
 

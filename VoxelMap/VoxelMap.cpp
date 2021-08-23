@@ -122,7 +122,7 @@ std::vector<uint8_t> VoxelMap::getChunksData(uint8_t radius, bool alignToFourByt
 	int32_t nChunks = cubeSide * cubeSide * cubeSide;
 
 	int32_t voxelBytes = pow(_chunkSide, 3) * _format.voxelFormat.getSizeInBytes(alignToFourBytes);
-
+	
 	int32_t nChunkBytes = _format.chunkFormat.getSizeInBytes(alignToFourBytes);
 	int32_t nTotalChunkBytes = nChunks * nChunkBytes;
 
@@ -287,7 +287,7 @@ std::vector<uint8_t> VoxelMap::getChunkParals(const std::vector<int32_t>& pos)
 	std::vector<uint8_t> res;
 	uint8_t oct = 0;
 
-	if (!getChunk(pos).isEmpty()) {
+	if (!getChunk(pos).isEmpty() || _format.chunkFormat.parals == ParalsInfoFormat::NO_PARALS) {
 		return std::vector<uint8_t>(getSizeInBytes(_format.chunkFormat.parals), 0);
 	}
 

@@ -13,9 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Header Files\ShaderData">
-      <UniqueIdentifier>{62ccb61a-88e3-486a-b65c-60d2a248a525}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\Vulkan">
       <UniqueIdentifier>{eac95ecf-c42c-4b3e-82c6-25abb5c11d1e}</UniqueIdentifier>
     </Filter>
@@ -35,9 +32,6 @@
     </ClInclude>
     <ClInclude Include="Vertex.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ShaderData.h">
-      <Filter>Header Files\ShaderData</Filter>
     </ClInclude>
     <ClInclude Include="GameState.h">
       <Filter>Header Files</Filter>
@@ -92,15 +86,6 @@
     </ClInclude>
     <ClInclude Include="VulkanTypes.h">
       <Filter>Header Files\Vulkan</Filter>
-    </ClInclude>
-    <ClInclude Include="ShaderDataCamera.h">
-      <Filter>Header Files\ShaderData</Filter>
-    </ClInclude>
-    <ClInclude Include="ShaderDataLight.h">
-      <Filter>Header Files\ShaderData</Filter>
-    </ClInclude>
-    <ClInclude Include="ShaderDataMap.h">
-      <Filter>Header Files\ShaderData</Filter>
     </ClInclude>
     <ClInclude Include="VulkanImageBuffers.h">
       <Filter>Header Files\Vulkan</Filter>
