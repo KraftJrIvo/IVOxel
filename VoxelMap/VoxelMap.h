@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <future>
 
 #include "VoxelChunkGenerator.h"
 #include "VoxelChunkStorer.h"
@@ -52,6 +53,9 @@ protected:
 	std::map<uint32_t, Light> _lights;
 
 	std::vector<int32_t> _curAbsPos;
+
+	std::mutex _load_mtx;
+	std::list<std::vector<int32_t>> _chunksToLoad;
 
 	uint32_t _getIdx(const std::vector<int32_t>& pos) const;
 	std::vector<int32_t> _getAbsPos(const std::vector<int32_t>& pos) const;

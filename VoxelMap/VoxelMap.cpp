@@ -71,6 +71,41 @@ bool VoxelMap::checkAndLoad(const std::vector<int32_t>& pos, bool alignToFourByt
 
 		auto temp = _chunks;
 
+		auto ldChnk = [&]() {
+			#pragma omp parallel
+			{
+				uint8_t nThreads = omp_get_num_threads();
+				uint8_t threadId = omp_get_thread_num();
+				std::vector<int32_t> absPos;
+				std::vector<int32_t> locPos;
+
+				while (true) {
+					bool go = false;
+					{
+						std::unique_lock l(_load_mtx);
+						go = !_chunksToLoad.empty();
+						if (go) {
+							absPos = _chunksToLoad.front();
+							_chunksToLoad.pop_front();
+						}
+					}
+					if (go) {
+						auto chunk = std::make_shared<VoxelChunk>();
+						if (!_storer.loadChunk(absPos, chunk.get()))
+							chunk = _generator.generateChunk(_format, _chunkSide, absPos);
+						locPos = { absPos[0] - _curAbsPos[0], absPos[1] - _curAbsPos[1], absPos[2] - _curAbsPos[2] };
+						chunk->parals = getChunkParals(locPos);
+						chunk->data = _format.chunkFormat.formatChunk(*chunk, alignToFourBytes);
+						locPos = { absPos[0] - _curAbsPos[0], absPos[1] - _curAbsPos[1], absPos[2] - _curAbsPos[2] };
+						auto idx = _getIdx({ locPos[0] + _loadRadius, locPos[1] + _loadRadius, locPos[2] + _loadRadius });
+						if (idx < _chunks.size()) _chunks[idx] = chunk;
+					}
+					std::this_thread::sleep_for(std::chrono::milliseconds(1));
+				}
+			}
+		};
+		static std::thread t(ldChnk);
+
 		#pragma omp parallel
 		{
 			uint8_t nThreads = omp_get_num_threads();
@@ -91,22 +126,10 @@ bool VoxelMap::checkAndLoad(const std::vector<int32_t>& pos, bool alignToFourByt
 						}
 						else
 						{
-							std::vector<int32_t> cAbsPos = _getAbsPos(xyz);
-							auto id = _getIdx(xyz);
-							_loadChunk(cAbsPos, id);
+							std::unique_lock l(_load_mtx);
+							_chunksToLoad.push_back({ _curAbsPos[0] + xyz[0] - _loadRadius, _curAbsPos[1] + xyz[1] - _loadRadius, _curAbsPos[2] + xyz[2] - _loadRadius });
 						}
 					}
-
-			#pragma omp barrier
-
-			for (xyz[0] = threadId; xyz[0] < _loadDiameter; xyz[0] += nThreads)
-				for (xyz[1] = 0; xyz[1] < _loadDiameter; ++xyz[1])
-					for (xyz[2] = 0; xyz[2] < _loadDiameter; ++xyz[2])
-					{
-						auto id = _getIdx(xyz);
-						_prepChunk(xyz, id, alignToFourBytes);
-					}
-
 
 			#pragma omp barrier
 		}

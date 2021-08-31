@@ -96,6 +96,7 @@ void VulkanRenderer::startRender()
 	fpsLimiter.reset();
 
 	uint32_t frameID = 0;
+	uint32_t counter = 0;
 
 	for (int i = 0; i < _swapchain.getImgCount(); ++i)
 		_gs.update(EVERY_INIT, &_descrPool, i);
@@ -153,7 +154,7 @@ void VulkanRenderer::startRender()
 		_gs.update(EVERY_FRAME, &_descrPool, frameID);
 
 		std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
-		if ((map.checkAndLoad(pos, false) || _firstRender))
+		if ((map.checkAndLoad(pos, false) || _firstRender || counter % FPS_LIMIT == 0))
 		{
 			for (int i = 0; i < _swapchain.getImgCount(); ++i)
 				_gs.update(EVERY_LOAD, &_descrPool, i);
@@ -170,6 +171,7 @@ void VulkanRenderer::startRender()
 		_endRender(frameID);
 
 		frameID = (frameID + 1) % _swapchain.getImgCount();
+		counter++;
 
 		if (FPS_LIMIT)
 			fpsLimiter.tick();

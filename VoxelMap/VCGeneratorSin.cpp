@@ -44,7 +44,7 @@ std::vector<Light> VCGeneratorSin::generateLights(const std::vector<int32_t>& po
             {
                 float xCoord = 0.51 + i - radius;
                 float zCoord = 0.51 + j - radius;
-                std::vector<float> curpos = { xCoord, 0.9f - pos[1] + sin(time + i + j) / 10.0f, zCoord };
+                std::vector<float> curpos = { xCoord, 0.9f - pos[1] + sin(time * 3.0f + (pos[0] + i)) / 3.0f + cos(time * 3.0f + (pos[2] + j)) / 3.0f, zCoord };
                 std::vector<unsigned char> curcol = { (unsigned char)(85 + (pos[0] + i) * 300), 0, (unsigned char)(85 + (pos[2] + j) * 300), 255 };
                 lights.push_back(Light(LightType::LOCAL, curcol, curpos));
             }

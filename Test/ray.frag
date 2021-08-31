@@ -317,7 +317,7 @@ void drawLights(vec3 rayStart, vec3 rayDir, vec3 absPos, inout vec3 color)
         vec3 lCoord;
         vec4 lColor;
         getLight(i, type, lCoord, lColor);
-        if (type == 3 || type == 2) //local
+        if (type == 3) //local
         {
             if (type == 2) lCoord *= 4.0f;
             vec3 toLight = lCoord - rayStart;
@@ -328,7 +328,7 @@ void drawLights(vec3 rayStart, vec3 rayDir, vec3 absPos, inout vec3 color)
                 float lightDist = getPtLineDist(rayStart, rayDir, lCoord);
                 float g = (0.1 - lightDist) * 10.0;
                 float coeff = g < 0 ? 0 : g;
-                color += (coeff * lColor.xyz) * (vec3(1.0) - color);
+                color += (coeff * lColor.xyz) * (vec3(1.0) - color) * vec3(max(1.0 - length(lCoord - rayStart) / constants.data[LOAD_RADIUS], 0));
             }
         }
     }
@@ -625,6 +625,8 @@ vec3 raytraceMap(vec3 rayStart, vec3 rayDir, inout vec3 normal, inout vec3 color
     if (marchFinish) {
         marchAbsPos = clamp(rayDir * 1000000.0, vec3(-chunkLoadRadius), vec3(chunkLoadRadius + 1.0));
     }
+
+    color *= vec3(max(1.0 - length(marchAbsPos - rayStart) / chunkLoadRadius, 0));
 
     drawLights(rayStart, rayDir, marchAbsPos, color);
 
