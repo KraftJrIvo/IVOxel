@@ -9,15 +9,12 @@ GameDataMap::GameDataMap(uint32_t size_)
 	updateGroup = EVERY_LOAD;
 }
 
-void GameDataMap::update(GameState& game, uint32_t dataID, GameDataContainer* container, uint32_t frameID, bool alignToFourBytes)
+void GameDataMap::update(GameState& game, bool alignToFourBytes)
 {
-	auto& cam = game.getCam();
-	std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
-	auto mapData = game.getMap().getChunksData(game.getMap().getLoadRadius(), alignToFourBytes);
-
-	checkAndAllocate();
-
-	std::memcpy(data.data(), mapData.data(), min(mapData.size(), size));
-
-	if (container) container->setData(dataID, data.data(), frameID);
 }
+
+void GameDataMap::upload(GameState& game, uint32_t dataID, GameDataContainer* container, uint32_t frameID)
+{
+	if (container) container->setData(dataID, (void*)game.getMapData().data(), frameID);
+}
+

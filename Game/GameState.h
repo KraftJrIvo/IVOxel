@@ -33,6 +33,8 @@ public:
 
 	const std::list<std::shared_ptr<GameData>> getGameData() const;
 	const std::shared_ptr<GameData> getGameData(uint8_t key) const;
+	const std::vector<uint8_t>& getLightData() const;
+	const std::vector<uint8_t>& getMapData() const;
 	const glm::vec2& getRot() { return _curRot; }
 	const glm::vec3& getTrans() { return _cam.pos; }
 	VoxelMap& getMap() { return _map; }
@@ -40,14 +42,19 @@ public:
 	Camera& getCam();
 
 	void startUpdateLoop(GameDataContainer* container, uint8_t nFrames);
-	void startCameraLoop();
 	
-	void update(uint8_t group, GameDataContainer* container = nullptr, uint32_t frameID = 0);
+	void update(uint8_t group);
+	void upload(uint8_t group, GameDataContainer* container = nullptr, uint32_t frameID = 0);
+
+	std::mutex updMtx;
 
 private:
 	VoxelMap& _map;
 
 	std::map<uint8_t, std::shared_ptr<GameData>> _gameData;
+
+	std::vector<uint8_t> _lightData;
+	std::vector<uint8_t> _mapData;
 
 	Window* _window;
 	Camera _cam;

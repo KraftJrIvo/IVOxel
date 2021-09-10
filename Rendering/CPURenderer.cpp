@@ -43,7 +43,8 @@ void CPURenderer::startRender()
 	auto& cam = _gs.getCam();
 	auto& map = _gs.getMap();
 
-	_gs.update(EVERY_INIT, &_raytracer);
+	_gs.update(EVERY_INIT);
+	_gs.upload(EVERY_INIT, &_raytracer);
 
 	while (_runOnce())
 	{
@@ -53,7 +54,8 @@ void CPURenderer::startRender()
 		
 		if (map.checkAndLoad(pos, false) || _firstRender)
 		{
-			_gs.update(EVERY_LOAD, &_raytracer);
+			_gs.update(EVERY_LOAD);
+			_gs.upload(EVERY_LOAD, &_raytracer);
 			map.setAbsPos(pos);
 			_firstRender = false;
 		}
@@ -73,7 +75,8 @@ void CPURenderer::startRender()
 			#pragma omp barrier
 		}
 
-		_gs.update(EVERY_FRAME, &_raytracer);
+		_gs.update(EVERY_FRAME);
+		_gs.upload(EVERY_FRAME, &_raytracer);
 
 		_drawImage(result);
 	}

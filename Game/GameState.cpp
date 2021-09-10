@@ -83,6 +83,16 @@ const std::shared_ptr<GameData> GameState::getGameData(uint8_t key) const
 	return nullptr;
 }
 
+const std::vector<uint8_t>& GameState::getLightData() const
+{
+	return _lightData;
+}
+
+const std::vector<uint8_t>& GameState::getMapData() const
+{
+	return _mapData;
+}
+
 float GameState::getTime()
 {
 	auto currentTime = std::chrono::high_resolution_clock::now();
@@ -96,43 +106,56 @@ Camera& GameState::getCam()
 
 void GameState::startUpdateLoop(GameDataContainer* container, uint8_t nFrames)
 {
+	update(EVERY_INIT);
 	for (uint8_t i = 0; i < nFrames; ++i)
-		update(EVERY_INIT, container, i);
+		upload(EVERY_INIT, container, i);
 
 	static bool firstTime = true;
 
-	while (true) 
-	{
-		std::vector<int32_t> pos = { (int)floor(_cam.pos.x), (int)floor(_cam.pos.y), (int)floor(_cam.pos.z) };
-
-		if (_map.checkAndLoad(pos, false) || firstTime)
-		{
-			for (uint8_t i = 0; i < nFrames; ++i)
-				update(EVERY_LOAD, container, i);
-			firstTime = false;
-		}
-		for (uint8_t i = 0; i < nFrames; ++i)
-			update(EVERY_FRAME, container, i);
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
-	}
-}
-
-void GameState::startCameraLoop()
-{
 	while (true)
 	{
-		updateRot();
-		updateTrans();
+		{
+			std::lock_guard lock(updMtx);
+
+			update(EVERY_FRAME);
+
+			static glm::vec3 abspos = { _map.getAbsPos()[0],_map.getAbsPos()[1],_map.getAbsPos()[2] };
+
+			std::vector<int32_t> pos = { (int)floor(_cam.pos.x), (int)floor(_cam.pos.y), (int)floor(_cam.pos.z) };
+			_lightData = _map.getLightDataAt(pos, _map.getLoadRadius(), getTime());
+
+			if (_map.checkAndLoad(pos, false) || firstTime)
+			{
+				abspos = { _map.getAbsPos()[0],_map.getAbsPos()[1],_map.getAbsPos()[2] };
+				_mapData = _map.getChunksData(_map.getLoadRadius(), true);
+				for (uint8_t i = 0; i < nFrames; ++i)
+					upload(EVERY_LOAD, container, i);
+				firstTime = false;
+			}
+			_cam.abspos = _cam.pos - abspos;
+
+			for (uint8_t i = 0; i < nFrames; ++i)
+				upload(EVERY_FRAME, container, i);
+		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	}
 }
 
-void GameState::update(uint8_t group, GameDataContainer* container, uint32_t frameID)
+void GameState::update(uint8_t group)
 {
 	for (auto& gd : _gameData)
 		if (gd.second->updateGroup == group)
 		{
-			gd.second->update(*this, gd.first, container, frameID);
+			gd.second->update(*this, gd.first);
 		}
 }
+
+void GameState::upload(uint8_t group, GameDataContainer* container, uint32_t frameID)
+{
+	for (auto& gd : _gameData)
+		if (gd.second->updateGroup == group)
+		{
+			gd.second->upload(*this, gd.first, container, frameID);
+		}
+}
+

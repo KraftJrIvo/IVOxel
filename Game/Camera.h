@@ -21,6 +21,8 @@ public:
 	float	  fov;
 	float _align_; //for gpu alignment
 	glm::vec3 pos;
+	float _align2_; //for gpu alignment
+	glm::vec3 abspos;
 
 	void translate(glm::vec3 delta);
 	void rotate(glm::vec3 delta);

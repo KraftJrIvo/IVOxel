@@ -16,7 +16,8 @@ enum UpdateGroup : unsigned char
 
 struct GameData
 {
-	virtual void update(GameState& game, uint32_t dataID, GameDataContainer* container = nullptr, uint32_t frameID = 0, bool alignToFourBytes = true) = 0;
+	virtual void update(GameState& game, bool alignToFourBytes = true) = 0;
+	virtual void upload(GameState& game, uint32_t dataID, GameDataContainer* container = nullptr, uint32_t frameID = 0) = 0;
 
 	void checkAndAllocate() {
 		if (!data.size())

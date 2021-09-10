@@ -10,6 +10,7 @@ layout(set = 0, binding = 0) uniform CameraData {
     vec2 res;
     float fov;
     vec3 pos;
+    vec3 abspos;
 } cam;
 
 layout(set = 1, binding = 0) uniform LightData {
@@ -639,7 +640,7 @@ void main()
 {
     vec2 coeffs = (gl_FragCoord.xy - cam.res / 2.0) / cam.res.y;
     vec3 coords = vec3(coeffs.y, coeffs.x, -1.0);
-    vec3 start = fract(cam.pos);
+    vec3 start = cam.abspos;
     vec3 dir = mat3(cam.mvp) * coords;
 
     vec3 normal;

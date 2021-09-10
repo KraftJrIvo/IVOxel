@@ -24,11 +24,6 @@ private:
 	const uint8_t* _lightData;
 	const uint8_t* _constData;
 
-	void _setCamData(const uint8_t* data);
-	void _setMapData(const uint8_t* data);
-	void _setLightData(const uint8_t* data);
-	void _setConstData(const uint8_t* data);
-
 	bool _raytraceChunk(const VoxelChunkState& chunkH, glm::vec3 rayStart, glm::vec3 rayDir, glm::ivec3 curChunkPos, glm::vec3& hitPoint, glm::vec3& normal, glm::vec3& color, bool light = false) const;
 	bool _raytraceVoxel(glm::uint voxOff, const VoxelNeighbours& neighs, glm::vec3 rayStart, glm::vec3 rayDir, glm::vec3 absPos, float voxRatio, glm::vec3& hitPoint, glm::vec3& normal, glm::vec3& color, bool light = false) const;
 

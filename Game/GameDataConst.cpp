@@ -13,7 +13,7 @@ GameDataConst::GameDataConst(uint8_t chunkLoadRadius, uint8_t maxLights, float e
     updateGroup = EVERY_INIT;
 }
 
-void GameDataConst::update(GameState& game, uint32_t dataID, GameDataContainer* container, uint32_t frameID, bool alignToFourBytes)
+void GameDataConst::update(GameState& game, bool alignToFourBytes)
 {
 	std::vector<uint8_t> vdata;
 	utils::appendBytes(vdata, (float)_chunkLoadRadius);
@@ -21,8 +21,11 @@ void GameDataConst::update(GameState& game, uint32_t dataID, GameDataContainer* 
 	utils::appendBytes(vdata, _epsilon);
 
 	checkAndAllocate();
-
 	std::memcpy(data.data(), vdata.data(), size);
+}
 
+void GameDataConst::upload(GameState& game, uint32_t dataID, GameDataContainer* container, uint32_t frameID)
+{
 	if (container) container->setData(dataID, data.data(), frameID);
 }
+
