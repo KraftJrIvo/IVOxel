@@ -94,10 +94,44 @@ Camera& GameState::getCam()
 	return _cam;
 }
 
+void GameState::startUpdateLoop(GameDataContainer* container, uint8_t nFrames)
+{
+	for (uint8_t i = 0; i < nFrames; ++i)
+		update(EVERY_INIT, container, i);
+
+	static bool firstTime = true;
+
+	while (true) 
+	{
+		std::vector<int32_t> pos = { (int)floor(_cam.pos.x), (int)floor(_cam.pos.y), (int)floor(_cam.pos.z) };
+
+		if (_map.checkAndLoad(pos, false) || firstTime)
+		{
+			for (uint8_t i = 0; i < nFrames; ++i)
+				update(EVERY_LOAD, container, i);
+			firstTime = false;
+		}
+		for (uint8_t i = 0; i < nFrames; ++i)
+			update(EVERY_FRAME, container, i);
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+}
+
+void GameState::startCameraLoop()
+{
+	while (true)
+	{
+		updateRot();
+		updateTrans();
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+}
+
 void GameState::update(uint8_t group, GameDataContainer* container, uint32_t frameID)
 {
 	for (auto& gd : _gameData)
-		if (gd.second->updateGroup <= group)
+		if (gd.second->updateGroup == group)
 		{
 			gd.second->update(*this, gd.first, container, frameID);
 		}

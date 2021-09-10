@@ -38,6 +38,9 @@ public:
 	VoxelMap& getMap() { return _map; }
 	float getTime();
 	Camera& getCam();
+
+	void startUpdateLoop(GameDataContainer* container, uint8_t nFrames);
+	void startCameraLoop();
 	
 	void update(uint8_t group, GameDataContainer* container = nullptr, uint32_t frameID = 0);
 

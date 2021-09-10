@@ -33,6 +33,7 @@ public:
 	bool checkAndLoad(const std::vector<int32_t>& pos, bool alignToFourBytes = true);
 
 	void setAbsPos(const std::vector<int32_t>& absPos);
+	const std::vector<int32_t>& getAbsPos();
 
 protected:
 	uint8_t _loadRadius;

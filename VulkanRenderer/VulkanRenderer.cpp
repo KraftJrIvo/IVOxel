@@ -98,7 +98,12 @@ void VulkanRenderer::startRender()
 	uint32_t frameID = 0;
 	uint32_t counter = 0;
 
-	for (int i = 0; i < _swapchain.getImgCount(); ++i)
+	//auto l = [&]() {_gs.startUpdateLoop(&_descrPool, _swapchain.getImgCount()); };
+	auto l2 = [&]() {_gs.startCameraLoop(); };
+	static std::thread t1(l2);
+	//static std::thread t2(l);
+
+	for (uint8_t i = 0; i < _swapchain.getImgCount(); ++i)
 		_gs.update(EVERY_INIT, &_descrPool, i);
 
 	while (_runOnce())
@@ -117,6 +122,19 @@ void VulkanRenderer::startRender()
 			} 
 			while (!renderArea.extent.width || !renderArea.extent.height);
 			_recreateEnv();
+		}
+
+		static glm::vec3 abspos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
+		std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
+		for (int i = 0; i < _swapchain.getImgCount(); ++i)
+			_gs.update(EVERY_FRAME, &_descrPool, i);
+
+		if (((map.checkAndLoad(pos, false) || _firstRender/* || counter % FPS_LIMIT == 0*/)))
+		{
+			abspos = { pos[0], pos[1], pos[2] };
+			for (int i = 0; i < _swapchain.getImgCount(); ++i)
+				_gs.update(EVERY_LOAD, &_descrPool, i);
+			_firstRender = false;
 		}
 
 		_beginRender(frameID);
@@ -150,17 +168,6 @@ void VulkanRenderer::startRender()
 		vkEndCommandBuffer(_commandBuffs[frameID]);
 
 		vkResetFences(_mainDevice.get(), 1, &_frameFences[frameID]);
-
-		_gs.update(EVERY_FRAME, &_descrPool, frameID);
-
-		std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
-		if ((map.checkAndLoad(pos, false) || _firstRender || counter % FPS_LIMIT == 0))
-		{
-			for (int i = 0; i < _swapchain.getImgCount(); ++i)
-				_gs.update(EVERY_LOAD, &_descrPool, i);
-			map.setAbsPos(pos);
-			_firstRender = false;
-		}
 
 		std::vector<VkSemaphore> waitSemaphores = { _semImgAvailable[frameID] };
 		std::vector<VkSemaphore> signalSemaphores = { _semRenderDone[frameID] };

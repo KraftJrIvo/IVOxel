@@ -13,9 +13,6 @@ GameDataCamera::GameDataCamera()
 
 void GameDataCamera::update(GameState& game, uint32_t dataID, GameDataContainer* container, uint32_t frameID, bool alignToFourBytes)
 {
-	game.updateRot();
-	game.updateTrans();
-
 	auto& cam = game.getCam();
 
 	checkAndAllocate();
