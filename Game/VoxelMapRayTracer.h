@@ -11,6 +11,7 @@ class VoxelMapRayTracer : public GameDataContainer
 public:
 	VoxelMapRayTracer(VoxelMap& map, bool alignToFourBytes = true);
 	void setData(uint32_t dataID, void* ptr, uint32_t frameID = 0) override;
+	bool isGPU() override { return false; }
 	glm::vec3 raytracePixel(glm::vec2 xy, glm::vec3& normal, glm::vec3& color) const;
 	glm::vec3 raytraceMap(glm::vec3 rayStart, glm::vec3 rayDir, glm::vec3& normal, glm::vec3& color, bool light = false) const;
 

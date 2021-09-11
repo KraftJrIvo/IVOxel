@@ -28,6 +28,7 @@ public:
 	const std::vector<VkDescriptorSet>& getSets(uint32_t frameID);
 
 	void setData(uint32_t dataID, void* ptr, uint32_t frameID) override;
+	bool isGPU() override { return true; }
 
 private:
 	VkDescriptorPool _pool;

@@ -51,23 +51,24 @@ void CPURenderer::startRender()
 	{
 		cv::Mat result(cam.res[1], cam.res[0], CV_8UC3, cv::Scalar(0, 0, 0));
 
-		#pragma omp parallel
 		{
-			uint8_t nThreads = omp_get_num_threads();
-			uint8_t threadId = omp_get_thread_num();
+			std::lock_guard<std::mutex> lock(_gs.updMtx);
 
-			for (uint32_t i = threadId; i < cam.res[0]; i += nThreads)
-				for (uint32_t j = 0; j < cam.res[1]; ++j)
-				{
-					auto pixel = _renderPixel({ i, j });
-					result.at<cv::Vec3b>(j, i) = { pixel[2], pixel[1], pixel[0] };
-				}
+			#pragma omp parallel
+			{
+				uint8_t nThreads = omp_get_num_threads();
+				uint8_t threadId = omp_get_thread_num();
+
+				for (uint32_t i = threadId; i < cam.res[0]; i += nThreads)
+					for (uint32_t j = 0; j < cam.res[1]; ++j)
+					{
+						auto pixel = _renderPixel({ i, j });
+						result.at<cv::Vec3b>(j, i) = { pixel[2], pixel[1], pixel[0] };
+					}
 			
-			#pragma omp barrier
+				#pragma omp barrier
+			}
 		}
-
-		_gs.update(EVERY_FRAME);
-		_gs.upload(EVERY_FRAME, &_raytracer);
 
 		_drawImage(result);
 	}

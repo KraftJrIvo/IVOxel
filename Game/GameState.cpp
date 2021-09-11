@@ -135,7 +135,14 @@ void GameState::startUpdateLoop(GameDataContainer* container, uint8_t nFrames)
 				_cam.mapId = !_cam.mapId;
 				abspos = { _map.getAbsPos()[0],_map.getAbsPos()[1],_map.getAbsPos()[2] };
 				_mapData = _map.getChunksData(_map.getLoadRadius(), true);
-				upload(EVERY_LOAD, container, 0, _cam.mapId ? LOCAL_MAP2 : LOCAL_MAP);
+				if (container->isGPU()) 
+				{
+					upload(EVERY_LOAD, container, 0, _cam.mapId ? LOCAL_MAP2 : LOCAL_MAP);
+				}
+				else
+				{
+					upload(EVERY_LOAD, container);
+				}
 				firstTime = false;
 			}
 			_cam.abspos = _cam.pos - abspos;
