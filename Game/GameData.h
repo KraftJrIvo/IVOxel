@@ -11,7 +11,8 @@ enum UpdateGroup : unsigned char
 {
 	EVERY_FRAME = 0,
 	EVERY_LOAD = 1,
-	EVERY_INIT = 2
+	EVERY_INIT = 2,
+	ALL_GROUPS = 3
 };
 
 struct GameData

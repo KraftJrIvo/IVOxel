@@ -9,6 +9,7 @@ layout(set = 0, binding = 0) uniform CameraData {
     mat4 mvp;
     vec2 res;
     float fov;
+    uint mapId;
     vec3 pos;
     vec3 abspos;
 } cam;
@@ -31,6 +32,10 @@ layout(std140, set = 3, binding = 0) readonly buffer MapData {
     uvec4 data[];
 } map;
 
+layout(std140, set = 4, binding = 0) readonly buffer MapData2 {
+    uvec4 data[];
+} map2;
+
 //---UTILS-------------------------------------------------------------------------------------------------------
 
 uint get_byte_group(uint start_byte_ix)
@@ -38,7 +43,7 @@ uint get_byte_group(uint start_byte_ix)
   uint uint_in_vec = (start_byte_ix / 4) % 4;
   uint vec_ix = start_byte_ix / 16;
 
-  return map.data[vec_ix][uint_in_vec];
+  return (cam.mapId == 0) ? map.data[vec_ix][uint_in_vec] : map2.data[vec_ix][uint_in_vec];
 }
 
 uint get_byte(uint byte_ix)

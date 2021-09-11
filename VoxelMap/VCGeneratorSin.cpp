@@ -36,7 +36,7 @@ std::vector<Light> VCGeneratorSin::generateLights(const std::vector<int32_t>& po
     lights.push_back(Light(LightType::AMBIENT, { 10, 10, 10, 255 }));
     lights.push_back(Light(LightType::GLOBAL, { 180, 180, 180, 255 }, { sun.x, sun.y, sun.z }));
     
-    /*for (int i = 1; i < diam; ++i)
+    for (int i = 1; i < diam; ++i)
     {
         for (int j = 1; j < diam; ++j)
         {
@@ -49,7 +49,7 @@ std::vector<Light> VCGeneratorSin::generateLights(const std::vector<int32_t>& po
                 lights.push_back(Light(LightType::LOCAL, curcol, curpos));
             }
         }
-    }*/
+    }
 
     return lights;
 }

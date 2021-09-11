@@ -38,13 +38,19 @@ int main()
 	
 	GameState game(&w, map);
 
-#ifdef USE_GPU
-	VulkanRenderer renderer(w, game);
-#else
-	CPURenderer renderer(w, game);
-#endif
+	AbstractRenderer* renderer;
 
-	renderer.startRender();
+	if (USE_GPU) 
+	{
+		renderer = new VulkanRenderer(w, game);
+	}
+	else
+	{
+		renderer = new CPURenderer(w, game);
+	}
+
+	renderer->startRender();
+	delete renderer;
 
 	return 0;
 }

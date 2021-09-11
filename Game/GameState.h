@@ -16,7 +16,8 @@ enum GameDataType : unsigned int
 	CAMERA = 0,
 	LIGHTING = 1,
 	LOCAL_MAP = 2,
-	CONSTANTS = 3
+	LOCAL_MAP2 = 3,
+	CONSTANTS = 4
 };
 
 class GameState
@@ -43,8 +44,8 @@ public:
 
 	void startUpdateLoop(GameDataContainer* container, uint8_t nFrames);
 	
-	void update(uint8_t group);
-	void upload(uint8_t group, GameDataContainer* container = nullptr, uint32_t frameID = 0);
+	void update(uint8_t group, int32_t gdID = -1);
+	void upload(uint8_t group, GameDataContainer* container = nullptr, uint32_t frameID = 0, int32_t gdID = -1);
 
 	std::mutex updMtx;
 

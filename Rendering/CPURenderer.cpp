@@ -43,22 +43,13 @@ void CPURenderer::startRender()
 	auto& cam = _gs.getCam();
 	auto& map = _gs.getMap();
 
-	_gs.update(EVERY_INIT);
-	_gs.upload(EVERY_INIT, &_raytracer);
+	static std::thread t([&]() {_gs.startUpdateLoop(&_raytracer, 1); });
+
+	std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
 	while (_runOnce())
 	{
 		cv::Mat result(cam.res[1], cam.res[0], CV_8UC3, cv::Scalar(0, 0, 0));
-
-		std::vector<int32_t> pos = { (int)floor(cam.pos.x), (int)floor(cam.pos.y), (int)floor(cam.pos.z) };
-		
-		if (map.checkAndLoad(pos, false) || _firstRender)
-		{
-			_gs.update(EVERY_LOAD);
-			_gs.upload(EVERY_LOAD, &_raytracer);
-			map.setAbsPos(pos);
-			_firstRender = false;
-		}
 
 		#pragma omp parallel
 		{

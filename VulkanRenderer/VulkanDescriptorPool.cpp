@@ -119,22 +119,23 @@ void VulkanDescriptorPool::init(const VulkanDevice& device, const VulkanSwapchai
 
 	for (int i = 0; i < _storageSetLayouts.size(); ++i)
 	{
-		std::vector<VkDescriptorSetLayout> layouts(swapchain.getImgCount(), _storageSetLayouts[i]);
-		auto allocInfo = vkTypes::getDescriptorSetAllocateInfo(_pool, layouts, swapchain.getImgCount());
+		std::vector<VkDescriptorSetLayout> layouts(1, _storageSetLayouts[i]);
+		auto allocInfo = vkTypes::getDescriptorSetAllocateInfo(_pool, layouts, 1);
 
-		_storageSetsByType[i].resize(swapchain.getImgCount());
+		_storageSetsByType[i].resize(1);
 		vkAllocateDescriptorSets(device.get(), &allocInfo, _storageSetsByType[i].data());
 		for (int j = 0; j < swapchain.getImgCount(); j++) {
-			_setsByFrame[j].push_back(_storageSetsByType[i][j]);
+			_setsByFrame[j].push_back(_storageSetsByType[i][0]);
 
+		}
 			VkDescriptorBufferInfo bufferInfo = {};
-			bufferInfo.buffer = _storageBuffs[j].getBuffer();
+			bufferInfo.buffer = _storageBuffs[0].getBuffer();
 			bufferInfo.offset = _storageOffsets[i];
 			bufferInfo.range = _storageSetSizes[i];
 
 			VkWriteDescriptorSet descriptorWrite = {};
 			descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrite.dstSet = _storageSetsByType[i][j];
+			descriptorWrite.dstSet = _storageSetsByType[i][0];
 			descriptorWrite.dstBinding = 0;
 			descriptorWrite.dstArrayElement = 0;
 			descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -142,7 +143,7 @@ void VulkanDescriptorPool::init(const VulkanDevice& device, const VulkanSwapchai
 			descriptorWrite.pBufferInfo = &bufferInfo;
 
 			vkUpdateDescriptorSets(device.get(), 1, &descriptorWrite, 0, nullptr);
-		}
+		
 	}
 }
 
@@ -178,6 +179,6 @@ void VulkanDescriptorPool::setData(uint32_t dataID, void* ptr, uint32_t frameID)
 	if (uniform)
 		_uniformBuffs[frameID].setData(ptr, offset, size);
 	else 
-		_storageBuffs[frameID].setData(ptr, offset, size);
+		_storageBuffs[0].setData(ptr, offset, size);
 }
 
