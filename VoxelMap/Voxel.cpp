@@ -56,6 +56,9 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, uint32_t size_
 	case VoxelSizeFormat::UINT8:
 		utils::appendBytes(res, uint8_t(size_));
 		break;
+	case VoxelSizeFormat::UINT32:
+		utils::appendBytes(res, size_);
+		break;
 	default:
 		break;
 	}
@@ -68,6 +71,9 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, uint32_t size_
 	case VoxelShapeFormat::UINT16:
 		utils::appendBytes(res, (uint16_t)coder->encodeShape(voxel.shape));
 		break;
+	case VoxelShapeFormat::UINT32:
+		utils::appendBytes(res, (uint32_t)coder->encodeShape(voxel.shape));
+		break;
 	default:
 		break;
 	}
@@ -79,6 +85,9 @@ std::vector<uint8_t> VoxelFormat::formatVoxel(const Voxel& voxel, uint32_t size_
 		break;
 	case VoxelMaterialFormat::UINT16:
 		utils::appendBytes(res, (uint16_t)coder->encodeMaterial(voxel.material));
+		break;
+	case VoxelMaterialFormat::UINT32:
+		utils::appendBytes(res, (uint32_t)coder->encodeMaterial(voxel.material));
 		break;
 	default:
 		break;
@@ -164,6 +173,9 @@ Voxel VoxelFormat::unformatVoxel(const uint8_t* data) const
 	{
 	case VoxelSizeFormat::UINT8:
 		voxel.size = data[0];
+		break;
+	case VoxelSizeFormat::UINT32:
+		voxel.size = ((uint32_t*)data)[0];
 		break;
 	default:
 		break;

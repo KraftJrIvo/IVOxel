@@ -79,7 +79,8 @@ uint8_t getSizeInBytes(ChunkSizeFormat csf);
 enum class VoxelSizeFormat
 {
 	NO_SIZE,						// 0 bytes
-	UINT8							// 1 byte
+	UINT8,							// 1 byte
+	UINT32							// 4 bytes
 };
 uint8_t getSizeInBytes(VoxelSizeFormat vsf);
 
@@ -135,7 +136,7 @@ namespace utils
 	template <typename T>
 	void appendBytes(std::vector<uint8_t>& bytes, T val, size_t customSize)
 	{
-		const uint8_t* pVal = (const uint8_t*)val;
+		const uint8_t* pVal = (const uint8_t*)&val;
 		size_t sizeInBytes = customSize;
 		bytes.insert(bytes.end(), pVal, pVal + sizeInBytes);
 	}

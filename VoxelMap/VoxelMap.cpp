@@ -154,6 +154,7 @@ std::vector<uint8_t> VoxelMap::getChunksData(uint8_t radius, bool alignToFourByt
 	int32_t voxelBytes = pow(_chunkSide, 3) * _format.voxelFormat.getSizeInBytes(alignToFourBytes);
 	
 	int32_t nChunkBytes = _format.chunkFormat.getSizeInBytes(alignToFourBytes);
+	//std::cout << nChunkBytes << " " << _format.voxelFormat.getSizeInBytes(alignToFourBytes) << std::endl;
 	int32_t nTotalChunkBytes = nChunks * nChunkBytes;
 
 	std::vector<uint8_t> chunkData(nChunkBytes * nChunks, 0);

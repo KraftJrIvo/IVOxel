@@ -129,6 +129,8 @@ uint8_t getSizeInBytes(VoxelShapeFormat vtf)
 		return 1;
 	case VoxelShapeFormat::UINT16:
 		return 2;
+	case VoxelShapeFormat::UINT32:
+		return 4;
 	}
 	return 0;
 }
@@ -141,6 +143,8 @@ uint8_t getSizeInBytes(VoxelMaterialFormat vtf)
 		return 1;
 	case VoxelMaterialFormat::UINT16:
 		return 2;
+	case VoxelMaterialFormat::UINT32:
+		return 4;
 	}
 	return 0;
 }
@@ -179,6 +183,8 @@ uint8_t getSizeInBytes(VoxelSizeFormat vsf)
 	{
 	case VoxelSizeFormat::UINT8:
 		return 1;	
+	case VoxelSizeFormat::UINT32:
+		return 4;	
 	}
 	return 0;
 }

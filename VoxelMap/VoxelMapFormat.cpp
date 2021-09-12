@@ -231,6 +231,9 @@ VoxelState VoxelMapFormat::getVoxelState(const uint8_t* data) const
 	{
 	case VoxelSizeFormat::UINT8:
 		state.size = data[0];
+		break;	
+	case VoxelSizeFormat::UINT32:
+		state.size = ((uint32_t*)data)[0];
 		break;
 	}
 

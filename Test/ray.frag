@@ -18,8 +18,8 @@ layout(set = 1, binding = 0) uniform LightData {
     vec4 data[96 * 2];
 } light;
 
-const int VOX_SIZE = 8;
-const int CHUNK_SIZE = 8;
+const int VOX_SIZE = 24;
+const int CHUNK_SIZE = 12;
 
 const int LOAD_RADIUS = 0;
 const int MAX_LIGHTS = 1;
@@ -56,7 +56,10 @@ uint get_byte(uint byte_ix)
 
 uint get_uint(uint byte_ix)
 {
-    return (get_byte(byte_ix)) | (get_byte(byte_ix + 1) << 0x8) | (get_byte(byte_ix + 2) << 0x10) | (get_byte(byte_ix + 3) << 0x18);
+    //return (get_byte(byte_ix)) | (get_byte(byte_ix + 1) << 0x8) | (get_byte(byte_ix + 2) << 0x10) | (get_byte(byte_ix + 3) << 0x18);
+    uint idx1 = byte_ix / 16;
+    uint idx2 = (byte_ix % 16) / 4;
+    return (cam.mapId == 0) ? map.data[idx1][idx2] : map2.data[idx1][idx2];
 }
 
 //---MAP-UTILS---------------------------------------------------------------------------------------------------
@@ -80,9 +83,9 @@ bool checkChunkBounds(vec3 pos, float steps)
 
 void getChunkState(uint off, out bool fullness, out uint voxOff, out uint side, out uvec3 parals[8]) 
 {
-    fullness = get_byte(off) > 0;
-    voxOff = get_uint(off + 1);
-    side = get_byte(off + 5);
+    fullness = get_uint(off) > 0;
+    voxOff = get_uint(off + 4);
+    side = get_uint(off + 8);
 //    for (int i = 0; i < 8; ++i)
 //        for (int j = 0; j < 3; ++j)
 //            parals[i][j] = get_byte((off + 6) + 3 * i + j);
@@ -90,11 +93,11 @@ void getChunkState(uint off, out bool fullness, out uint voxOff, out uint side, 
 
 void getVoxelState(uint off, out bool fullness, out uint size, out uint neighs, out uvec3 parals[8]) 
 {
-    fullness = get_byte(off) > 0;
-    size = get_byte(off + 1);
-    // shape + material (2b)
-    // color (3b)
-    neighs = get_byte(off + 7);
+    fullness = get_uint(off) > 0;
+    size = get_uint(off + 4);
+    // shape + material (8b)
+    // color (4b)
+    neighs = get_uint(off + 20);
 //    for (int i = 0; i < 8; ++i)
 //        for (int j = 0; j < 3; ++j)
 //            parals[i][j] = get_byte((off + 8) + 3 * i + j);
@@ -102,12 +105,13 @@ void getVoxelState(uint off, out bool fullness, out uint size, out uint neighs, 
 
 void unformatVoxel(uint off, out uint size, out uint shape, out uint material, out vec3 color)
 {
-    size = get_byte(off + 1);
-    shape = get_byte(off + 2);
-    material = get_byte(off + 3);
-    color.r = get_byte(off + 4);
-    color.g = get_byte(off + 5);
-    color.b = get_byte(off + 6);
+    size = get_uint(off + 4);
+    shape = get_uint(off + 8);
+    material = get_uint(off + 12);
+    uint c = get_uint(off + 16);
+    color.r = c & 0xff;
+    color.g = (c & 0xff00) >> 8;
+    color.b = (c & 0xff0000) >> 16;
 }
 
 void getLight(uint off, out uint type, out vec3 coord, out vec4 color)

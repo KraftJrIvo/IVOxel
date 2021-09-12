@@ -11,8 +11,8 @@ class CPURenderer : public AbstractRenderer
 {
 public:
 	CPURenderer(Window& w, GameState& gs) : 
-		AbstractRenderer(w, gs, false),
-		_raytracer(gs.getMap(), false)
+		AbstractRenderer(w, gs, true),
+		_raytracer(gs.getMap(), true)
 	{ }
 
 	void startRender() override;
