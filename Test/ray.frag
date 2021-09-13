@@ -143,46 +143,27 @@ vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, uvec3 parals[8], ino
 {
     float epsilon = constants.data[EPSILON];
 
-    vec3 isNeg;
-    for (int i = 0; i < 3; ++i)
-        isNeg[i] = dir[i] < 0 ? 1.0 : 0.0;
+    vec3 sgn = sign(dir + epsilon);
+    vec3 ispos = (sgn + 1.0) / 2.0;
+    vec3 isneg = 1.0 - ispos;
 
-    vec3 vecStart = getCurEntryPoint(absPos, side, lastRes);
+    vec3 entry = getCurEntryPoint(absPos, side, lastRes);
 
-    vec3 vec = vec3(1.0, 2.0, 4.0) * (vec3(1,1,1) - isNeg);
-    int paralN = int(vec.x + vec.y + vec.z);
-    vec3 paral = parals[paralN];
+    vec3 vec = vec3(1.0, 2.0, 4.0) * (vec3(1,1,1) - isneg);
+    vec3 paral = parals[int(vec.x + vec.y + vec.z)];
+    if (side > 1) paral -= sign(floor(paral)) * (side - 1.0);
 
-    vec3 path;
-    for (int i = 0; i < 3; ++i)
-    {
-        if (side > 1 && paral[i] > 0) paral[i] -= side - 1.0;
-        path[i] = (isNeg[i] != 0) ? (-side * vecStart[i] - float(paral[i])) : (paral[i] + side * (1.0 - vecStart[i]));
-        path[i] = (path[i] == 0) ? epsilon : path[i];
-    }
+    vec3 path = sgn * ((ispos - sgn * entry) * side + paral);
+    path = path + epsilon * (1.0 - sign(abs(path)));
 
-    vec3 diffs = dir / path;
-    float maxDiff = max(diffs.x, max(diffs.y, diffs.z));
+    vec3 diff = dir / path;
+    float maxDiff = max(diff.x, max(diff.y, diff.z));
+    vec3 resDiff = floor(diff / maxDiff + epsilon);
+    vec3 invResDiff = 1 - resDiff;
+    vec3 result = sgn * resDiff;
 
-    vec3 result;
-    for (int i = 0; i < 3; ++i)
-        result[i] = (1.0 - 2.0 * isNeg[i]) * (abs(maxDiff - diffs[i]) < epsilon ? 1.0 : 0.0);
-
-    vec3 intersection;
-    for (int i = 0; i < 3; ++i)
-    {
-        int otherCoord1 = (i == 0) ? 1 : 0;
-        int otherCoord2 = (i == 2) ? 1 : 2;
-        intersection[i] = (abs(result[i]) != 0) ? 
-            ((isNeg[i] == 0 ? (side + paral[i]) : -float(paral[i])) - side * vecStart[i]) :
-            ((abs(result[otherCoord1]) != 0) ?
-                (path[otherCoord1] * dir[i] / dir[otherCoord1]) :
-                (path[otherCoord2] * dir[i] / dir[otherCoord2]));
-        absPos[i] += intersection[i];
-        absPos[i] += epsilon * (1.0 - 2.0 * isNeg[i]);
-        finish = finish || ((absPos[i] - epsilon <= minmax[0] && dir[i] < 0) || (absPos[i] >= minmax[1] && dir[i] > 0));
-    } 
-
+    vec3 intersection = resDiff * (ispos * (side + paral) - isneg * paral - side * entry) + invResDiff * (length(resDiff * path) * dir / length(resDiff * dir));
+    absPos += intersection + sgn * epsilon;
     absCoord += intersection / side;
 
     lastRes = result;
