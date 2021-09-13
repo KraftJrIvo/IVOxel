@@ -166,6 +166,8 @@ vec3 marchAndGetNextDir(vec3 dir, float side, ivec2 minmax, uvec3 parals[8], ino
     absPos += intersection + sgn * epsilon;
     absCoord += intersection / side;
 
+    finish = absPos[0] - epsilon <= minmax[0] || absPos[1] - epsilon <= minmax[0] || absPos[2] - epsilon <= minmax[0];
+
     lastRes = result;
     return result;
 }

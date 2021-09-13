@@ -100,9 +100,6 @@ LRESULT CALLBACK WindowsEventHandler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
 		window->mousePos = { LOWORD(lParam), HIWORD(lParam) };
 		window->lmbDown = true;
 		break;
-	case WM_MOUSEMOVE:
-		window->handleMouseMove(LOWORD(lParam), HIWORD(lParam));
-		break;
 	case WM_LBUTTONUP:
 		window->lmbDown = false;
 		break;
@@ -231,6 +228,29 @@ void Window::_InitOSWindow()
 	}
 	SetWindowLongPtr(_win32_window, GWLP_USERDATA, (LONG_PTR)this);
 
+	auto hr = DirectInput8Create(GetModuleHandle(NULL), DIRECTINPUT_VERSION, IID_IDirectInput8, (VOID**)&pDI, NULL);
+
+	hr = pDI->CreateDevice(GUID_SysMouse, &pMouse, NULL);
+
+	hr = pMouse->SetDataFormat(&c_dfDIMouse2);
+
+	hr = pMouse->SetCooperativeLevel(_win32_window, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+
+	/*if (!bImmediate)
+	{
+		DIPROPDWORD dipdw;
+		dipdw.diph.dwSize = sizeof(DIPROPDWORD);
+		dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+		dipdw.diph.dwObj = 0;
+		dipdw.diph.dwHow = DIPH_DEVICE;
+		dipdw.dwData = 16; // Arbitrary buffer size
+
+		if (FAILED(hr = pMouse->SetProperty(DIPROP_BUFFERSIZE, &dipdw.diph)))
+			return hr;
+	}*/
+
+	pMouse->Acquire();
+
 	ShowWindow(_win32_window, SW_SHOW);
 	SetForegroundWindow(_win32_window);
 	SetFocus(_win32_window);
@@ -286,23 +306,26 @@ void Window::fullScreenSwitch()
 	}
 }
 
-void Window::handleMouseMove(int32_t x, int32_t y)
-{
-	int32_t dx = mousePos[0] - x;
-	int32_t dy = mousePos[1] - y;
-
-	if (lmbDown) {
-		_deltaRot[0] = dy * 1.25f;
-		_deltaRot[1] = -dx * 1.25f;
-	}
-	mousePos = { x, y };
-}
-
 std::vector<float> Window::getCurDeltaRot()
 {
-	auto temp = _deltaRot;
-	_deltaRot = {0,0};
-	return {temp[0] / renderScale, temp[1] / renderScale };
+	DIMOUSESTATE2 dims2;
+	ZeroMemory(&dims2, sizeof(dims2));
+
+	auto hr = pMouse->GetDeviceState(sizeof(DIMOUSESTATE2), &dims2);
+
+	if (!lmbDown)
+		return { 0,0 };
+
+	if (FAILED(hr))
+	{
+		hr = pMouse->Acquire();
+		while (hr == DIERR_INPUTLOST)
+			hr = pMouse->Acquire();
+
+		return { 0,0 };
+	}
+
+	return { -dims2.lY / renderScale, dims2.lX / renderScale };
 }
 
 std::vector<float> Window::getCurDeltaTrans()

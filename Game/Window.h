@@ -2,8 +2,10 @@
 
 #include <string>
 #include <vector>
+#include <atomic>
 
 #include <windows.h>
+#include <dinput.h>
 
 #include <glm/glm.hpp>
 
@@ -26,20 +28,19 @@ public:
 	const HINSTANCE& getHInstance();
 	const HWND& getHWND();
 
-	void handleMouseMove(int32_t x, int32_t y);
 	std::vector<float> getCurDeltaRot();
 	std::vector<float> getCurDeltaTrans();
 
 	void fullScreenSwitch();
 
 	std::vector<int32_t> mousePos = {0,0};
-	bool lmbDown         = false;
-	bool upPressed       = false;
-	bool downPressed     = false;
-	bool leftPressed     = false;
-	bool rightPressed    = false;
-	bool forwardPressed  = false;
-	bool backwardPressed = false;
+	std::atomic<bool> lmbDown         = false;
+	std::atomic<bool> upPressed       = false;
+	std::atomic<bool> downPressed     = false;
+	std::atomic<bool> leftPressed     = false;
+	std::atomic<bool> rightPressed    = false;
+	std::atomic<bool> forwardPressed  = false;
+	std::atomic<bool> backwardPressed = false;
 
 	float renderScale = 1.0;
 	bool justResized = false;
@@ -68,4 +69,6 @@ private:
 	DWORD		    _style = 0;
 	DWORD		    _styleEx = 0;
 
+	LPDIRECTINPUTA pDI;
+	LPDIRECTINPUTDEVICEA pMouse;
 };

@@ -150,7 +150,7 @@ void GameState::startUpdateLoop(GameDataContainer* container, uint8_t nFrames)
 			for (uint8_t i = 0; i < nFrames; ++i)
 				upload(EVERY_FRAME, container, i);
 		}
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		std::this_thread::sleep_for(std::chrono::milliseconds(2));
 	}
 }
 
